@@ -1,3 +1,5 @@
+---
+
 # 📘 **Python Studio – Code Editor & Form Designer**  
 ### **README（日本語版 & English Version）**
 
@@ -9,14 +11,6 @@
 **Python Studio** は、1つの `.pyw` ファイルで動作する **軽量 IDE & GUI フォームデザイナー**です。  
 Visual Basic や Delphi のような **ドラッグ配置型 GUI 開発**を Python で再現し、コードエディターとフォームデザイナーを統合しています。
 
-最新版では以下の更新が含まれています：
-
-- **ホットキービルダー機能の追加**  
-- フォームデザイナーの安定化  
-- コードエディターの強化（検索・置換・ハイライト）  
-- 内部構造の整理（イベント管理・クラス分割）  
-- **`.py` だけでなく `.pyw` 形式でも保存可能になりました** ← ★追加点
-
 ---
 
 ## 🧩 機能一覧
@@ -26,15 +20,15 @@ Visual Basic や Delphi のような **ドラッグ配置型 GUI 開発**を Pyt
 - プロパティ編集（位置・サイズ・テキスト・色など）  
 - Python コードとして自動生成  
 - コードとフォームを同一画面で編集可能  
-- **ホットキービルダーでショートカット割り当てが可能**
+- ホットキービルダーでショートカットを設定可能  
 
 ### ✏️ コードエディター
 - Python シンタックスハイライト  
 - Undo / Redo  
 - 検索・置換  
 - 自動インデント  
-- `.py` / `.pyw` の読み書き・保存に対応 ← ★追加点  
-- フォームコードとの連携
+- `.py` / `.pyw` の読み書き・保存に対応  
+- フォームコードとの連携  
 
 ### ⚙️ 環境チェック
 - Python 実行環境の存在確認  
@@ -53,7 +47,7 @@ Visual Basic や Delphi のような **ドラッグ配置型 GUI 開発**を Pyt
   - ホットキービルダー  
   - プロパティエディター  
   - イベント管理  
-  - ファイル入出力（`.py` / `.pyw` 保存対応）  
+  - ファイル入出力（`.py` / `.pyw` 対応）  
   - Python 実行チェック  
 
 ---
@@ -86,13 +80,13 @@ Visual Basic や Delphi のような **ドラッグ配置型 GUI 開発**を Pyt
 ### 2. コードを編集
 - 自動生成されたコードを確認  
 - イベント処理を追加  
-- `.py` または `.pyw` として保存可能 ← ★追加点  
+- `.py` または `.pyw` として保存可能  
 - 保存したファイルはそのまま Python で実行できます
 
 ### 3. ホットキービルダー
 - GUI 操作用のショートカットを設定  
 - フォームイベントに割り当て可能  
-- 設定はコードに反映される
+- 設定はコードに反映されます
 
 ---
 
@@ -126,15 +120,7 @@ Visual Basic や Delphi のような **ドラッグ配置型 GUI 開発**を Pyt
 
 ## 📌 Overview
 **Python Studio** is a lightweight **IDE & GUI Form Designer** that runs entirely from a single `.pyw` file.  
-It recreates a Visual Basic / Delphi–style **drag-and-drop GUI development experience** in Python, combining a code editor and a form designer in one environment.
-
-Recent updates include:
-
-- **Hotkey Builder feature added**  
-- Improved form designer stability  
-- Enhanced code editor (search, replace, syntax highlight)  
-- Internal structure cleanup (event management, class organization)  
-- **Supports saving files as both `.py` and `.pyw`** ← ★New
+It provides a Visual Basic / Delphi–style **drag-and-drop GUI development experience** within Python, combining a code editor and a form designer in one environment.
 
 ---
 
@@ -143,17 +129,17 @@ Recent updates include:
 ### 🎨 GUI Form Designer
 - Drag-and-drop widget placement  
 - Property editor (position, size, text, color, etc.)  
-- Auto-generates Python code  
+- Automatically generates Python code  
 - Edit form and code in the same window  
-- **Hotkey Builder for assigning shortcuts**
+- Hotkey Builder for assigning shortcuts  
 
 ### ✏️ Code Editor
 - Python syntax highlighting  
 - Undo / Redo  
 - Search & Replace  
 - Auto indentation  
-- Load and save `.py` and `.pyw` files ← ★New  
-- Integrated with form-generated code
+- Supports loading and saving `.py` and `.pyw` files  
+- Integrated with form-generated code  
 
 ### ⚙️ Environment Check
 - Detects Python interpreter  
@@ -205,7 +191,7 @@ python "jp-Python Studio – Code Editor & Form Designer.pyw"
 ### 2. Edit Code
 - Review auto-generated Python code  
 - Add event handlers  
-- Save as `.py` **or `.pyw`** ← ★New  
+- Save as `.py` or `.pyw`  
 - Run the saved file directly with Python
 
 ### 3. Hotkey Builder
@@ -236,3 +222,5 @@ See the `LICENSE` file in the repository.
 ## 👤 Credits
 - Repository: rabbit-hand / Python-Studio-Code-Editor-Form-Designer  
 - File: jp-Python Studio – Code Editor & Form Designer.pyw  
+
+---
