@@ -59,8 +59,10 @@ def get_desktop_path():
             pass
     return os.path.join(os.path.expanduser("~"), "Desktop")
 
+VIRTUALENV_PATH = os.path.join(get_desktop_path(), VENV_FOLDER_NAME)
+
 def get_virtualenv_path():
-    return os.path.join(get_desktop_path(), VENV_FOLDER_NAME)
+    return VIRTUALENV_PATH
 
 def get_virtualenv_python():
     venv_path = get_virtualenv_path()
@@ -85,7 +87,7 @@ def get_settings_path(filename):
     return os.path.join(SETTINGS_FOLDER, filename)
 
 def load_settings():
-    global current_theme, current_font_size, test_timeout_seconds
+    global current_theme, current_font_size, test_timeout_seconds, VIRTUALENV_PATH
     path = get_settings_path(THEME_SETTINGS_FILE)
     if os.path.exists(path):
         try:
@@ -97,6 +99,9 @@ def load_settings():
                 if saved_timeout == 5:
                     saved_timeout = 20
                 test_timeout_seconds = min(max(saved_timeout, 1), 3600)
+                VIRTUALENV_PATH = os.path.abspath(os.path.expanduser(
+                    data.get('virtualenv_path') or VIRTUALENV_PATH
+                ))
         except Exception:
             pass
 
@@ -107,7 +112,8 @@ def save_settings():
             json.dump({
                 'theme': current_theme,
                 'font_size': current_font_size,
-                'test_timeout_seconds': test_timeout_seconds
+                'test_timeout_seconds': test_timeout_seconds,
+                'virtualenv_path': VIRTUALENV_PATH
             }, f, ensure_ascii=False, indent=2)
     except Exception:
         pass
@@ -2495,7 +2501,8 @@ tk.Label(tools_frame, text="🛠 開発環境およびツール管理",
          fg=THEMES[current_theme]['text_fg']).pack(anchor="w", pady=(0, 10))
 tk.Label(tools_frame, text=f"Python 実行パス: {sys.executable}", font=("Consolas", 9),
          bg=THEMES[current_theme]['bg'], fg=THEMES[current_theme]['text_fg']).pack(anchor="w", pady=2)
-tk.Label(tools_frame, text=f"モジュール用仮想環境: {get_virtualenv_path()}", font=("Consolas", 9),
+virtualenv_path_display = tk.StringVar(value=f"モジュール用仮想環境: {get_virtualenv_path()}")
+tk.Label(tools_frame, textvariable=virtualenv_path_display, font=("Consolas", 9),
          bg=THEMES[current_theme]['bg'], fg=THEMES[current_theme]['text_fg']).pack(anchor="w", pady=2)
 tk.Label(tools_frame, text=f"設定保存フォルダ: {SETTINGS_FOLDER}", font=("Consolas", 9),
          bg=THEMES[current_theme]['bg'], fg=THEMES[current_theme]['text_fg']).pack(anchor="w", pady=2)
@@ -2539,6 +2546,7 @@ def open_settings_dialog():
     dialog.grab_set()
 
     timeout_value = tk.StringVar(value=str(test_timeout_seconds))
+    virtualenv_path_value = tk.StringVar(value=get_virtualenv_path())
     content = tk.Frame(dialog, padx=20, pady=18)
     content.pack(fill="both", expand=True)
     tk.Label(content, text="テストランのタイムアウト", font=("Meiryo UI", 10, "bold")).grid(
@@ -2548,8 +2556,33 @@ def open_settings_dialog():
                 width=8).grid(row=0, column=1, sticky="w", pady=6)
     tk.Label(content, text="秒（1〜3600秒）").grid(row=0, column=2, sticky="w", padx=(6, 0))
 
-    def save_timeout_setting():
-        global test_timeout_seconds
+    tk.Label(content, text="仮想環境の保存先", font=("Meiryo UI", 10, "bold")).grid(
+        row=1, column=0, sticky="w", padx=(0, 12), pady=6
+    )
+    ttk.Entry(content, textvariable=virtualenv_path_value, width=52).grid(
+        row=1, column=1, columnspan=2, sticky="ew", pady=6
+    )
+
+    def browse_virtualenv_path():
+        current_path = virtualenv_path_value.get()
+        initial_directory = current_path if os.path.isdir(current_path) else os.path.dirname(current_path)
+        if not os.path.isdir(initial_directory):
+            initial_directory = get_desktop_path()
+        selected_path = filedialog.askdirectory(
+            parent=dialog,
+            title="仮想環境の保存先を選択",
+            initialdir=initial_directory,
+            mustexist=False
+        )
+        if selected_path:
+            virtualenv_path_value.set(selected_path)
+
+    ttk.Button(content, text="参照...", command=browse_virtualenv_path).grid(
+        row=1, column=3, padx=(8, 0), pady=6
+    )
+
+    def save_settings_dialog():
+        global test_timeout_seconds, VIRTUALENV_PATH
         try:
             timeout = int(timeout_value.get())
         except ValueError:
@@ -2558,16 +2591,22 @@ def open_settings_dialog():
         if not 1 <= timeout <= 3600:
             messagebox.showerror("入力エラー", "1〜3600秒の範囲で入力してください。", parent=dialog)
             return
+        selected_path = virtualenv_path_value.get().strip()
+        if not selected_path:
+            messagebox.showerror("入力エラー", "仮想環境の保存先を指定してください。", parent=dialog)
+            return
         test_timeout_seconds = timeout
+        VIRTUALENV_PATH = os.path.abspath(os.path.expanduser(selected_path))
         save_settings()
+        virtualenv_path_display.set(f"モジュール用仮想環境: {get_virtualenv_path()}")
         dialog.destroy()
-        messagebox.showinfo("設定", f"テストランのタイムアウトを{timeout}秒に設定しました。", parent=root)
+        messagebox.showinfo("設定", "設定を保存しました。", parent=root)
 
     buttons = tk.Frame(content)
-    buttons.grid(row=1, column=0, columnspan=3, sticky="e", pady=(12, 0))
+    buttons.grid(row=2, column=0, columnspan=4, sticky="e", pady=(12, 0))
     ttk.Button(buttons, text="キャンセル", command=dialog.destroy).pack(side="right", padx=(6, 0))
-    ttk.Button(buttons, text="保存", command=save_timeout_setting).pack(side="right")
-    dialog.bind("<Return>", lambda event: save_timeout_setting())
+    ttk.Button(buttons, text="保存", command=save_settings_dialog).pack(side="right")
+    dialog.bind("<Return>", lambda event: save_settings_dialog())
 
 
 # メニューバー
@@ -2591,7 +2630,7 @@ edit_menu.add_command(label="全選択 (Ctrl+A)", command=select_all)
 menubar.add_cascade(label="編集", menu=edit_menu)
 
 settings_menu = tk.Menu(menubar, tearoff=0)
-settings_menu.add_command(label="テストランのタイムアウト...", command=open_settings_dialog)
+settings_menu.add_command(label="設定...", command=open_settings_dialog)
 menubar.add_cascade(label="設定", menu=settings_menu)
 
 root.config(menu=menubar)
