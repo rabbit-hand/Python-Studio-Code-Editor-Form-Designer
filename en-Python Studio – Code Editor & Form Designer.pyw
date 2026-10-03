@@ -14,7 +14,7 @@ import urllib.parse
 import platform
 import shutil
 
-# Windows-specific support
+# Windows-specific
 try:
     import winsound
 except ImportError:
@@ -45,7 +45,7 @@ text_modified = False
 last_saved_content = ""
 search_window = None
 last_search_index = "1.0"
-VENV_FOLDER_NAME = "PythonWorkshop_VirtualEnv"
+VENV_FOLDER_NAME = "Python_Editor_Virtual_Environment"
 
 def get_desktop_path():
     if os.name == "nt":
@@ -59,8 +59,10 @@ def get_desktop_path():
             pass
     return os.path.join(os.path.expanduser("~"), "Desktop")
 
+VIRTUALENV_PATH = os.path.join(get_desktop_path(), VENV_FOLDER_NAME)
+
 def get_virtualenv_path():
-    return os.path.join(get_desktop_path(), VENV_FOLDER_NAME)
+    return VIRTUALENV_PATH
 
 def get_virtualenv_python():
     venv_path = get_virtualenv_path()
@@ -73,7 +75,7 @@ def get_virtualenv_python():
         except subprocess.CalledProcessError as e:
             raise RuntimeError(e.stderr.strip() or str(e)) from e
     if not os.path.isfile(python_path):
-        raise RuntimeError("Could not create the virtual environment's Python interpreter.")
+        raise RuntimeError("Could not create the virtual environment Python executable.")
     return python_path
 
 def get_settings_path(filename):
@@ -85,8 +87,9 @@ def get_settings_path(filename):
     return os.path.join(SETTINGS_FOLDER, filename)
 
 def load_settings():
-    global current_theme, current_font_size, test_timeout_seconds
+    global current_theme, current_font_size, test_timeout_seconds, VIRTUALENV_PATH
     path = get_settings_path(THEME_SETTINGS_FILE)
+    migrate_virtualenv_path = False
     if os.path.exists(path):
         try:
             with open(path, 'r', encoding='utf-8') as f:
@@ -97,18 +100,44 @@ def load_settings():
                 if saved_timeout == 5:
                     saved_timeout = 20
                 test_timeout_seconds = min(max(saved_timeout, 1), 3600)
+                saved_virtualenv_path = data.get('english_virtualenv_path')
+                migrate_virtualenv_path = False
+                if not saved_virtualenv_path:
+                    saved_virtualenv_path = data.get('virtualenv_path')
+                    legacy_default_path = os.path.abspath(os.path.join(
+                        get_desktop_path(), "Pythonエディター_仮想環境"
+                    ))
+                    if saved_virtualenv_path and os.path.normcase(os.path.abspath(
+                        os.path.expanduser(saved_virtualenv_path)
+                    )) == os.path.normcase(legacy_default_path):
+                        saved_virtualenv_path = VIRTUALENV_PATH
+                        migrate_virtualenv_path = True
+                VIRTUALENV_PATH = os.path.abspath(os.path.expanduser(
+                    saved_virtualenv_path or VIRTUALENV_PATH
+                ))
         except Exception:
             pass
+    if migrate_virtualenv_path:
+        save_settings()
 
 def save_settings():
     path = get_settings_path(THEME_SETTINGS_FILE)
     try:
+        data = {}
+        if os.path.exists(path):
+            try:
+                with open(path, 'r', encoding='utf-8') as f:
+                    data = json.load(f)
+            except Exception:
+                pass
+        data.update({
+            'theme': current_theme,
+            'font_size': current_font_size,
+            'test_timeout_seconds': test_timeout_seconds,
+            'english_virtualenv_path': VIRTUALENV_PATH
+        })
         with open(path, 'w', encoding='utf-8') as f:
-            json.dump({
-                'theme': current_theme,
-                'font_size': current_font_size,
-                'test_timeout_seconds': test_timeout_seconds
-            }, f, ensure_ascii=False, indent=2)
+            json.dump(data, f, ensure_ascii=False, indent=2)
     except Exception:
         pass
 
@@ -120,7 +149,7 @@ def update_text_modified_state(event=None):
 def safe_exit():
     global text_modified
     if text_modified:
-        res = messagebox.askyesnocancel("Confirm", "There are unsaved changes. Would you like to save?")
+        res = messagebox.askyesnocancel("Confirm", "There are unsaved changes. Save them?")
         if res is None:
             return
         elif res:
@@ -138,7 +167,7 @@ def quick_save():
             last_saved_content = content + "\n"
             text_modified = False
             update_status_bar()
-            messagebox.showinfo("Saved", f"File overwritten:\n{os.path.basename(quick_save.current_file_path)}")
+            messagebox.showinfo("SaveComplete", f"File saved:\n{os.path.basename(quick_save.current_file_path)}")
             return True
         except Exception as e:
             messagebox.showerror("Error", f"Save failed: {e}")
@@ -152,8 +181,8 @@ def save_as_file():
     selected_filetype = tk.StringVar(root)
     path = filedialog.asksaveasfilename(
         filetypes=[
-            ("Python Files (*.py)", "*.py"),
-            ("Python Windowless (*.pyw)", "*.pyw"),
+            ("Python files (*.py)", "*.py"),
+            ("Python windowed files (*.pyw)", "*.pyw"),
             ("All Files", "*.*")
         ],
         typevariable=selected_filetype
@@ -169,7 +198,7 @@ def save_as_file():
             last_saved_content = content + "\n"
             text_modified = False
             update_status_bar()
-            messagebox.showinfo("Saved", f"File saved:\n{os.path.basename(path)}")
+            messagebox.showinfo("SaveComplete", f"File saved:\n{os.path.basename(path)}")
             return True
         except Exception as e:
             messagebox.showerror("Error", f"Save failed: {e}")
@@ -193,7 +222,7 @@ def open_file():
             update_status_bar()
             update_line_numbers()
         except Exception as e:
-            messagebox.showerror("Error", f"Could not open file: {e}")
+            messagebox.showerror("Error", f"Failed to load: {e}")
 
 def new_file():
     global text_modified, last_saved_content
@@ -210,7 +239,7 @@ def new_file():
 PROJECT_EXAMPLES = [
     {
         "category": "Practice Apps", "name": "Calculator", "kind": "code",
-        "description": "A simple GUI calculator that lets you choose two numbers and an operation.",
+        "description": "A simple GUI calculator that performs an operation on two numbers.",
         "code": '''import tkinter as tk
 from tkinter import messagebox
 
@@ -223,7 +252,7 @@ operation = tk.StringVar(value="+")
 tk.OptionMenu(root, operation, "+", "-", "*", "/").pack()
 second = tk.Entry(root)
 second.pack(padx=12, pady=6, fill="x")
-result = tk.Label(root, text="Result: ")
+result = tk.Label(root, text="Answer: ")
 result.pack(pady=8)
 
 def calculate():
@@ -235,11 +264,11 @@ def calculate():
         elif op == "*": answer = left * right
         elif right == 0: raise ZeroDivisionError
         else: answer = left / right
-        result.config(text=f"Result: {answer:g}")
+        result.config(text=f"Answer: {answer:g}")
     except ValueError:
-        messagebox.showerror("Input Error", "Enter a number in both fields.")
+        messagebox.showerror("Input Error", "Enter numbers in both fields.")
     except ZeroDivisionError:
-        messagebox.showerror("CalculateError", "You cannot divide by zero.")
+        messagebox.showerror("Calculation Error", "Cannot divide by zero.")
 
 tk.Button(root, text="Calculate", command=calculate).pack(pady=4)
 root.mainloop()
@@ -247,30 +276,30 @@ root.mainloop()
     },
     {
         "category": "Practice Apps", "name": "Rock Paper Scissors", "kind": "code",
-        "description": "Play against the computer using the buttons and keep track of your wins and losses.",
+        "description": "Play against the computer and keep track of your score.",
         "code": '''import random
 import tkinter as tk
 
 root = tk.Tk()
 root.title("Rock Paper Scissors")
 root.geometry("340x220")
-score = {"Wins": 0, "Losses": 0, "Ties": 0}
+score = {"Wins": 0, "Losses": 0, "Draws": 0}
 result = tk.Label(root, text="Choose your move", font=("Meiryo UI", 14))
 result.pack(pady=20)
-score_label = tk.Label(root, text="Wins 0  Losses 0  Ties 0")
+score_label = tk.Label(root, text="Wins 0  Losses 0  Draws 0")
 score_label.pack(pady=8)
 
 def play(player):
     computer = random.choice(["Rock", "Scissors", "Paper"])
     if player == computer:
-        outcome = "Ties"
+        outcome = "Draws"
     elif (player, computer) in [("Rock", "Scissors"), ("Scissors", "Paper"), ("Paper", "Rock")]:
         outcome = "Wins"
     else:
         outcome = "Losses"
     score[outcome] += 1
     result.config(text=f"You: {player} / Computer: {computer}  → {outcome}")
-    score_label.config(text=f"Wins {score['Wins']}  Losses {score['Losses']}  Ties {score['Ties']}")
+    score_label.config(text=f"Wins {score['Wins']}  Losses {score['Losses']}  Draws {score['Draws']}")
 
 for hand in ("Rock", "Scissors", "Paper"):
     tk.Button(root, text=hand, command=lambda value=hand: play(value)).pack(side="left", expand=True, padx=8)
@@ -278,17 +307,17 @@ root.mainloop()
 '''
     },
     {
-        "category": "Practice Apps", "name": "Guess the Number", "kind": "code",
-        "description": "Guess a number from 1 to 100. Enter a number and check your guess.",
+        "category": "Practice Apps", "name": "Number Guessing Game", "kind": "code",
+        "description": "Guess a number from 1 to 100. Enter a number and click Guess.",
         "code": '''import random
 import tkinter as tk
 
 root = tk.Tk()
-root.title("Guess the Number")
+root.title("Number Guessing Game")
 root.geometry("340x220")
 answer = random.randint(1, 100)
 tries = 0
-message = tk.Label(root, text="Guess the number from 1 to 100.")
+message = tk.Label(root, text="Guess a number from 1 to 100")
 message.pack(pady=24)
 guess = tk.Entry(root, justify="center")
 guess.pack(pady=6)
@@ -300,23 +329,23 @@ def check_guess():
         if not 1 <= number <= 100:
             raise ValueError
     except ValueError:
-        message.config(text="Enter a whole number from 1 to 100.")
+        message.config(text="Enter an integer from 1 to 100")
         return
     tries += 1
     if number == answer:
-        message.config(text=f"Correct! You guessed it in {tries} tries.")
+        message.config(text=f"Correct! {tries} guesses")
     elif number < answer:
-        message.config(text="Try a higher number.")
+        message.config(text="Try a higher number")
     else:
-        message.config(text="Try a lower number.")
+        message.config(text="Try a lower number")
 
-tk.Button(root, text="Check Guess", command=check_guess).pack(pady=8)
+tk.Button(root, text="Guess", command=check_guess).pack(pady=8)
 root.mainloop()
 '''
     },
     {
         "category": "Practice Apps", "name": "Timer", "kind": "code",
-        "description": "A countdown timer that runs for the number of seconds you enter.",
+        "description": "A countdown timer with a configurable duration.",
         "code": '''import tkinter as tk
 from tkinter import messagebox
 
@@ -360,7 +389,7 @@ root.mainloop()
 '''
     },
     {
-        "category": "Everyday Tools", "name": "To-Do List", "kind": "code",
+        "category": "Useful Tools", "name": "To-Do List", "kind": "code",
         "description": "Add tasks and remove completed items.",
         "code": '''import tkinter as tk
 from tkinter import messagebox
@@ -394,8 +423,8 @@ root.mainloop()
 '''
     },
     {
-        "category": "Everyday Tools", "name": "Notepad", "kind": "code",
-        "description": "Edit text and open or save it as a text file.",
+        "category": "Useful Tools", "name": "Notepad", "kind": "code",
+        "description": "Edit notes and open or save them as text files.",
         "code": '''import tkinter as tk
 from tkinter import filedialog, messagebox
 
@@ -406,17 +435,17 @@ editor = tk.Text(root, wrap="word", undo=True)
 editor.pack(fill="both", expand=True, padx=8, pady=8)
 
 def open_note():
-    path = filedialog.askopenfilename(filetypes=[("Text files", "*.txt"), ("All Files", "*.*")])
+    path = filedialog.askopenfilename(filetypes=[("Text", "*.txt"), ("All Files", "*.*")])
     if path:
         try:
             with open(path, encoding="utf-8") as file:
                 editor.delete("1.0", tk.END)
                 editor.insert("1.0", file.read())
         except OSError as error:
-            messagebox.showerror("Open Error", str(error))
+            messagebox.showerror("Load Error", str(error))
 
 def save_note():
-    path = filedialog.asksaveasfilename(defaultextension=".txt", filetypes=[("Text files", "*.txt")])
+    path = filedialog.asksaveasfilename(defaultextension=".txt", filetypes=[("Text", "*.txt")])
     if path:
         try:
             with open(path, "w", encoding="utf-8") as file:
@@ -433,8 +462,8 @@ root.mainloop()
 '''
     },
     {
-        "category": "Everyday Tools", "name": "Password Generator", "kind": "code",
-        "description": "Generate a random password of the length you choose.",
+        "category": "Useful Tools", "name": "Password Generator", "kind": "code",
+        "description": "Generate a random password of the specified length.",
         "code": '''import secrets
 import string
 import tkinter as tk
@@ -443,7 +472,7 @@ from tkinter import messagebox
 root = tk.Tk()
 root.title("Password Generator")
 root.geometry("380x190")
-tk.Label(root, text="Length (8-128 characters)").pack(pady=(18, 4))
+tk.Label(root, text="Length (8-128)").pack(pady=(18, 4))
 length = tk.Entry(root, justify="center")
 length.insert(0, "16")
 length.pack()
@@ -455,7 +484,7 @@ def generate():
         size = int(length.get())
         if not 8 <= size <= 128: raise ValueError
     except ValueError:
-        messagebox.showerror("Input Error", "Enter a whole number from 8 to 128.")
+        messagebox.showerror("Input Error", "Enter an integer from 8 to 128.")
         return
     alphabet = string.ascii_letters + string.digits + "!@#$%&*+-_"
     result.delete(0, tk.END)
@@ -466,17 +495,17 @@ root.mainloop()
 '''
     },
     {
-        "category": "Everyday Tools", "name": "Bulk File Renamer", "kind": "code",
-        "description": "Add a prefix to all files in a selected folder. You will be asked to confirm before renaming.",
+        "category": "Useful Tools", "name": "Batch Rename Files", "kind": "code",
+        "description": "Add a prefix to files in a selected folder after confirmation.",
         "code": '''import os
 import tkinter as tk
 from tkinter import filedialog, messagebox
 
 root = tk.Tk()
-root.title("Bulk File Renamer")
+root.title("Batch Rename Files")
 root.geometry("430x210")
 folder = tk.StringVar()
-prefix = tk.StringVar(value="Organized_")
+prefix = tk.StringVar(value="prefix_")
 
 def choose_folder():
     selected = filedialog.askdirectory()
@@ -486,7 +515,7 @@ def choose_folder():
 tk.Label(root, text="Target Folder").pack(anchor="w", padx=12, pady=(12, 2))
 tk.Entry(root, textvariable=folder).pack(fill="x", padx=12)
 tk.Button(root, text="Choose Folder", command=choose_folder).pack(anchor="e", padx=12, pady=4)
-tk.Label(root, text="Prefix to add to filenames").pack(anchor="w", padx=12, pady=(6, 2))
+tk.Label(root, text="Filename Prefix").pack(anchor="w", padx=12, pady=(6, 2))
 tk.Entry(root, textvariable=prefix).pack(fill="x", padx=12)
 
 def rename_files():
@@ -498,7 +527,7 @@ def rename_files():
     if not files:
         messagebox.showinfo("Confirm", "There are no files to rename.")
         return
-    if not messagebox.askyesno("Confirm Changes", f"{len(files)} file(s) will be renamed. Continue?"):
+    if not messagebox.askyesno("Confirm Rename", f"{len(files)} filenames will be changed. Continue?"):
         return
     renamed = 0
     for name in files:
@@ -507,21 +536,21 @@ def rename_files():
         if not os.path.exists(new):
             os.rename(old, new)
             renamed += 1
-    messagebox.showinfo("Complete", f"{renamed} file(s) renamed.")
+    messagebox.showinfo("Complete", f"{renamed} filenames changed.")
 
-tk.Button(root, text="Rename Files", command=rename_files).pack(pady=10)
+tk.Button(root, text="Rename All", command=rename_files).pack(pady=10)
 root.mainloop()
 '''
     },
     {
-        "category": "Everyday Tools", "name": "CSV Cleanup and Summary", "kind": "code",
-        "description": "Open a CSV file to see the number of entries and numeric totals for each column.",
+        "category": "Useful Tools", "name": "CSV Summary", "kind": "code",
+        "description": "Open a CSV file to show the count and numeric total for each column.",
         "code": '''import csv
 import tkinter as tk
 from tkinter import filedialog, messagebox
 
 root = tk.Tk()
-root.title("CSV Summary")
+root.title("Simple CSV Summary")
 root.geometry("900x620")
 root.minsize(720, 500)
 root.grid_columnconfigure(0, weight=1)
@@ -529,7 +558,7 @@ root.grid_rowconfigure(1, weight=1)
 
 toolbar = tk.Frame(root, padx=16, pady=14)
 toolbar.grid(row=0, column=0, sticky="ew")
-tk.Label(toolbar, text="Summarize CSV Data", font=("Meiryo UI", 15, "bold")).pack(side="left")
+tk.Label(toolbar, text="Summarize CSV", font=("Meiryo UI", 15, "bold")).pack(side="left")
 output_frame = tk.Frame(root, padx=16, pady=12)
 output_frame.grid(row=1, column=0, sticky="nsew")
 output_frame.grid_columnconfigure(0, weight=1)
@@ -539,7 +568,7 @@ output.grid(row=0, column=0, sticky="nsew")
 scrollbar = tk.Scrollbar(output_frame, orient="vertical", command=output.yview)
 scrollbar.grid(row=0, column=1, sticky="ns")
 output.config(yscrollcommand=scrollbar.set)
-status = tk.Label(root, text="Choose a CSV file to count entries and sum numeric values in each column.",
+status = tk.Label(root, text="Select a CSV file to show counts and numeric totals by column.",
               anchor="w", font=("Meiryo UI", 10), padx=16)
 status.grid(row=2, column=0, sticky="ew", pady=(0, 6))
 
@@ -551,9 +580,9 @@ def summarize():
         with open(path, newline="", encoding="utf-8-sig") as file:
             rows = list(csv.DictReader(file))
         if not rows:
-            messagebox.showinfo("Confirm", "The CSV file has no data rows.")
+            messagebox.showinfo("Confirm", "The CSV contains no data rows.")
             return
-        lines = [f"Rows: {len(rows)}"]
+        lines = [f"Data rows: {len(rows)}"]
         for column in rows[0]:
             values = [row.get(column, "").strip() for row in rows]
             numbers = []
@@ -562,23 +591,23 @@ def summarize():
                     numbers.append(float(value.replace(",", "")))
                 except ValueError:
                     pass
-            lines.append(f"{column}: entries: {sum(bool(v) for v in values)}")
+            lines.append(f"{column}: {sum(bool(v) for v in values)} values")
             if numbers:
-                lines.append(f"    Numeric total: {sum(numbers):g}")
+                lines.append(f"  Numeric total: {sum(numbers):g}")
         output.delete("1.0", tk.END)
         output.insert("1.0", "\\n".join(lines))
         status.config(text=f"Summary complete: {len(rows)} rows")
     except (OSError, csv.Error) as error:
-        messagebox.showerror("Open Error", str(error))
+        messagebox.showerror("Load Error", str(error))
 
-tk.Button(toolbar, text="Choose CSV and Summarize", command=summarize,
+tk.Button(toolbar, text="Select CSV and Summarize", command=summarize,
           font=("Meiryo UI", 12, "bold"), padx=28, pady=12).pack(side="right")
 root.mainloop()
 '''
     },
     {
-        "category": "Next-Level Projects", "name": "Get Web Page Title", "kind": "code",
-        "description": "Enter a URL to get the web page title using Python's standard library.",
+        "category": "More Advanced Apps", "name": "Get Web Page Title", "kind": "code",
+        "description": "Enter a URL to retrieve the page title using the Python standard library.",
         "code": '''from html.parser import HTMLParser
 from urllib.request import Request, urlopen
 import tkinter as tk
@@ -608,7 +637,7 @@ root.geometry("480x180")
 url = tk.Entry(root)
 url.insert(0, "https://example.com")
 url.pack(fill="x", padx=12, pady=16)
-result = tk.Label(root, text="The result will appear here.", wraplength=440)
+result = tk.Label(root, text="The result will appear here", wraplength=440)
 result.pack(pady=8)
 
 def fetch_title():
@@ -621,17 +650,17 @@ def fetch_title():
         with urlopen(request, timeout=10) as response:
             parser = TitleParser()
             parser.feed(response.read().decode(response.headers.get_content_charset() or "utf-8", errors="replace"))
-        result.config(text=parser.title.strip() or "No title was found.")
+        result.config(text=parser.title.strip() or "No title found.")
     except Exception as error:
-        messagebox.showerror("Fetch Error", str(error))
+        messagebox.showerror("Retrieval Error", str(error))
 
 tk.Button(root, text="Get Title", command=fetch_title).pack()
 root.mainloop()
 '''
     },
     {
-        "category": "Next-Level Projects", "name": "Weather App", "kind": "code",
-        "description": "Get weather by city name using the free Open-Meteo API. No API key is required.",
+        "category": "More Advanced Apps", "name": "Weather App", "kind": "code",
+        "description": "Get weather by city using the free Open-Meteo API. No API key is required.",
         "code": '''import json
 from urllib.parse import urlencode
 from urllib.request import urlopen
@@ -644,36 +673,36 @@ root.geometry("360x210")
 city = tk.Entry(root, justify="center")
 city.insert(0, "Tokyo")
 city.pack(fill="x", padx=18, pady=(20, 8))
-result = tk.Label(root, text="Enter a city name.", font=("Meiryo UI", 12), wraplength=320)
+result = tk.Label(root, text="Enter a city name", font=("Meiryo UI", 12), wraplength=320)
 result.pack(pady=12)
 
 def get_weather():
     name = city.get().strip()
     if not name:
-        messagebox.showerror("Input Error", "Enter a city name.")
+        messagebox.showerror("Input Error", "Enter a city name。")
         return
     try:
         geo_url = "https://geocoding-api.open-meteo.com/v1/search?" + urlencode({"name": name, "count": 1, "language": "en", "format": "json"})
         with urlopen(geo_url, timeout=10) as response:
             places = json.load(response).get("results", [])
         if not places:
-            result.config(text="City not found.")
+            result.config(text="City not found")
             return
         place = places[0]
         query = urlencode({"latitude": place["latitude"], "longitude": place["longitude"], "current": "temperature_2m,relative_humidity_2m,weather_code"})
         with urlopen("https://api.open-meteo.com/v1/forecast?" + query, timeout=10) as response:
             current = json.load(response)["current"]
-        result.config(text=f"{place['name']}\\nTemperature {current['temperature_2m']}°C / Humidity {current['relative_humidity_2m']}%\\nWeather code {current['weather_code']}")
+        result.config(text=f"{place['name']}\\nTemperature {current['temperature_2m']}℃ / Humidity {current['relative_humidity_2m']}%\\nWeather code {current['weather_code']}")
     except Exception as error:
-        messagebox.showerror("Fetch Error", str(error))
+        messagebox.showerror("Retrieval Error", str(error))
 
 tk.Button(root, text="Get Weather", command=get_weather).pack()
 root.mainloop()
 '''
     },
     {
-        "category": "Next-Level Projects", "name": "Discord Webhook Sender", "kind": "code",
-        "description": "Send a message to Discord using a webhook URL. No extra packages or bot token are needed. Treat the webhook URL as a secret.",
+        "category": "More Advanced Apps", "name": "Send Discord Webhook", "kind": "code",
+        "description": "Send a message to Discord with a webhook URL. No extra libraries or bot token are required. Keep the webhook URL secret.",
         "code": '''import json
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlparse
@@ -682,7 +711,7 @@ import tkinter as tk
 from tkinter import messagebox
 
 root = tk.Tk()
-root.title("Discord Webhook Sender")
+root.title("Send Discord Webhook")
 root.geometry("640x440")
 root.minsize(560, 390)
 root.grid_columnconfigure(0, weight=1)
@@ -693,12 +722,12 @@ tk.Label(root, text="Discord Webhook URL", font=("Meiryo UI", 11, "bold")).grid(
 )
 webhook_input = tk.Entry(root, font=("Consolas", 10))
 webhook_input.grid(row=1, column=0, sticky="ew", padx=18)
-tk.Label(root, text="Message to Send", font=("Meiryo UI", 11, "bold")).grid(
+tk.Label(root, text="Message", font=("Meiryo UI", 11, "bold")).grid(
     row=2, column=0, sticky="w", padx=18, pady=(14, 4)
 )
 message_input = tk.Text(root, height=7, wrap="word", font=("Meiryo UI", 11))
 message_input.grid(row=3, column=0, sticky="nsew", padx=18)
-status = tk.Label(root, text="Enter the webhook URL and a message.", anchor="w")
+status = tk.Label(root, text="Enter a webhook URL and a message.", anchor="w")
 status.grid(row=4, column=0, sticky="ew", padx=18, pady=8)
 
 def send_message():
@@ -709,7 +738,7 @@ def send_message():
         messagebox.showerror("URL Error", "Enter a Discord webhook URL.")
         return
     if not content:
-        messagebox.showerror("Input Error", "Enter a message to send.")
+        messagebox.showerror("Input Error", "Enter a message.")
         return
     if len(content) > 2000:
         messagebox.showerror("Input Error", "Messages must be 2,000 characters or fewer.")
@@ -734,8 +763,8 @@ root.mainloop()
 '''
     },
     {
-        "category": "Next-Level Projects", "name": "LINE Messaging API Notification", "kind": "code",
-        "description": "Send a message with the official LINE Messaging API. A channel access token and recipient ID are required. A webhook URL alone cannot send messages through official LINE.",
+        "category": "More Advanced Apps", "name": "LINE Messaging API", "kind": "code",
+        "description": "Send messages through the official LINE API. A channel access token and recipient ID are required; a webhook URL alone is not sufficient.",
         "code": '''import json
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
@@ -752,7 +781,7 @@ root.grid_rowconfigure(7, weight=1)
 tk.Label(root, text="Send a message with the LINE Messaging API", font=("Meiryo UI", 14, "bold")).grid(
     row=0, column=0, sticky="w", padx=18, pady=(18, 4)
 )
-tk.Label(root, text="This uses a channel access token and recipient ID, not a webhook URL.",
+tk.Label(root, text="Use a channel access token and recipient ID, not a webhook URL.",
          wraplength=570, justify="left").grid(row=1, column=0, sticky="w", padx=18, pady=(0, 10))
 tk.Label(root, text="Channel Access Token", font=("Meiryo UI", 10, "bold")).grid(
     row=2, column=0, sticky="w", padx=18, pady=(4, 3)
@@ -769,7 +798,7 @@ tk.Label(root, text="Message", font=("Meiryo UI", 10, "bold")).grid(
 )
 message_input = tk.Text(root, height=5, wrap="word", font=("Meiryo UI", 11))
 message_input.grid(row=7, column=0, sticky="nsew", padx=18)
-status = tk.Label(root, text="The token you enter is not saved.", anchor="w")
+status = tk.Label(root, text="The token is not saved.", anchor="w")
 status.grid(row=8, column=0, sticky="ew", padx=18, pady=8)
 
 def send_message():
@@ -804,8 +833,8 @@ root.mainloop()
 '''
     },
     {
-        "category": "Next-Level Projects", "name": "GUI Form (Designer)", "kind": "designer",
-        "description": "Create a GUI by placing buttons, labels, and text fields. Opens the Form Designer tab.",
+        "category": "More Advanced Apps", "name": "GUI Form Designer", "kind": "designer",
+        "description": "Create a GUI by placing buttons, labels, and input fields. Opens the Form Designer tab.",
         "code": ""
     },
 ]
@@ -831,14 +860,14 @@ def load_project_code(code):
 
 def open_project_catalog():
     win = tk.Toplevel(root)
-    win.title("Beginner Project Gallery")
+    win.title("Projects for Beginners")
     win.geometry("930x600")
     win.minsize(760, 480)
     win.transient(root)
 
     main = tk.Frame(win, padx=12, pady=12)
     main.pack(fill="both", expand=True)
-    tk.Label(main, text="Choose a project to build", font=("Meiryo UI", 15, "bold")).pack(anchor="w", pady=(0, 10))
+    tk.Label(main, text="Choose a project to create", font=("Meiryo UI", 15, "bold")).pack(anchor="w", pady=(0, 10))
     body = tk.Frame(main)
     body.pack(fill="both", expand=True)
     tree = ttk.Treeview(body, show="tree", selectmode="browse")
@@ -903,7 +932,7 @@ def open_project_catalog():
         if project and load_project_code(project["code"]):
             win.destroy()
             if project["kind"] == "guide":
-                messagebox.showinfo("Setup Instructions", "This project requires an external service. See the setup notes in the code.")
+                messagebox.showinfo("Setup Instructions", "This project requires an external service. Check the comments in the code.")
 
     def open_designer():
         top_notebook.select(tab_designer)
@@ -1084,9 +1113,9 @@ def open_search_dialog(event=None):
             text.insert("1.0", new_content)
             apply_syntax_highlighting()
             update_line_numbers()
-            messagebox.showinfo("ReplaceComplete", "All occurrences were replaced.")
+            messagebox.showinfo("Replacement Complete", "All occurrences replaced.")
         else:
-            messagebox.showinfo("Replace", "No matches were found.")
+            messagebox.showinfo("Replace", "No matching text found.")
 
     tk.Button(search_window, text="Find Next", command=do_find, width=12).place(x=90, y=110)
     tk.Button(search_window, text="Replace", command=do_replace, width=10).place(x=200, y=110)
@@ -1106,10 +1135,10 @@ def format_code():
         availability = subprocess.run([venv_python, "-m", "autopep8", "--version"],
                                       capture_output=True, text=True, timeout=15)
     except Exception as e:
-        messagebox.showerror("Error", f"Could not check for autopep8:\n{e}")
+        messagebox.showerror("Error", f"Could not check autopep8:\n{e}")
         return
     if availability.returncode != 0:
-        if messagebox.askyesno("Confirm", "autopep8 is not installed.\nWould you like to install it?"):
+        if messagebox.askyesno("Confirm", "autopep8 is not installed.\nInstall it now?"):
             try:
                 subprocess.run([venv_python, "-m", "pip", "install", "autopep8"],
                                check=True, capture_output=True, text=True, timeout=60)
@@ -1130,7 +1159,7 @@ def format_code():
         text.insert("1.0", formatted)
         apply_syntax_highlighting()
         update_line_numbers()
-        messagebox.showinfo("Formatting Complete", "Code formatted to PEP 8 style.")
+        messagebox.showinfo("Formatting Complete", "Code formatted to PEP 8.")
     except Exception as e:
         messagebox.showerror("Error", f"Formatting failed:\n{e}")
     finally:
@@ -1162,15 +1191,15 @@ def test_python_code():
         try:
             res = subprocess.run([python_executable, tpath], capture_output=True, text=True, timeout=test_timeout_seconds)
             error_output = res.stderr.strip() or res.stdout.strip() or f"Exit code: {res.returncode}"
-            out = res.stdout if res.returncode == 0 else f"【Error】\n{error_output}"
+            out = res.stdout if res.returncode == 0 else f"[Error]\n{error_output}"
             if res.returncode == 0 and not out.strip():
-                out = "Test completed successfully.\nThere was no standard output."
+                out = "The test completed successfully.\nThere was no standard output."
             if res.returncode == 0:
-                root.after(0, lambda: messagebox.showinfo("Test Results", out[:1500] + ("\n...(truncated)" if len(out) > 1500 else "")))
+                root.after(0, lambda: messagebox.showinfo("Test Result", out[:1500] + ("\n...(truncated)" if len(out) > 1500 else "")))
             else:
-                root.after(0, lambda: messagebox.showerror("Test Runtime Error", out))
+                root.after(0, lambda: messagebox.showerror("Test Error", out))
         except subprocess.TimeoutExpired:
-                root.after(0, lambda: messagebox.showerror("Timeout", f"The run exceeded the configured time limit ({test_timeout_seconds} seconds)."))
+            root.after(0, lambda: messagebox.showerror("Timeout", f"Execution exceeded the time limit ({test_timeout_seconds} seconds)."))
         except Exception as e:
             root.after(0, lambda: messagebox.showerror("Runtime Error", str(e)))
         finally:
@@ -1196,7 +1225,7 @@ def parse_and_install_code_modules():
     }
     candidate_modules = [m for m in modules if m not in stdlib_set]
     if not candidate_modules:
-        messagebox.showinfo("Confirm", "No missing external modules were found.")
+        messagebox.showinfo("Confirm", "No missing external modules need to be installed.")
         return
     try:
         python_executable = get_virtualenv_python()
@@ -1208,14 +1237,14 @@ def parse_and_install_code_modules():
         messagebox.showerror("Error", f"Could not check modules in the virtual environment:\n{e}")
         return
     if not target_modules:
-        messagebox.showinfo("Confirm", "No missing external modules were found.")
+        messagebox.showinfo("Confirm", "No missing external modules need to be installed.")
         return
     win = tk.Toplevel(root)
-    win.title("Automatic Module Installer")
+    win.title("Automatic Module Installation")
     win.geometry("450x320")
     win.resizable(False, False)
     win.configure(bg="#f8f9fa")
-    tk.Label(win, text="📦 Missing External Modules Found", font=("Meiryo UI", 11, "bold"),
+    tk.Label(win, text="📦 Missing external modules found", font=("Meiryo UI", 11, "bold"),
              bg="#0d6efd", fg="white", padx=10, pady=10).pack(side="top", fill="x")
     tk.Label(win, text="Install the following modules with pip?", font=("Meiryo UI", 9), bg="#f8f9fa").pack(anchor="w", padx=15, pady=(10, 5))
     list_frame = tk.Frame(win, bg="white", bd=1, relief="sunken")
@@ -1232,7 +1261,7 @@ def parse_and_install_code_modules():
     def do_install():
         selected_indices = lb.curselection()
         if not selected_indices:
-            messagebox.showwarning("Notice", "Select at least one module.")
+            messagebox.showwarning("Notice", "Select a module.")
             return
         success_list, fail_list = [], []
         for idx in selected_indices:
@@ -1270,9 +1299,9 @@ def showerror_with_clipboard(title, message, **options):
     except Exception:
         pass
     if len(error_text) > 1500:
-        display_text = error_text[:1500] + "\n...(truncated; full error copied to clipboard)"
+        display_text = error_text[:1500] + "\n...(truncated; full text copied to clipboard)"
     else:
-        display_text = error_text + "\n\nThe error was copied to the clipboard."
+        display_text = error_text + "\n\nError details copied to the clipboard."
     return original_showerror(title, display_text, **options)
 
 messagebox.showerror = showerror_with_clipboard
@@ -1302,7 +1331,7 @@ tab_designer = ttk.Frame(top_notebook)
 top_notebook.add(tab_designer, text="🎨 Form Designer")
 
 tab_tools = ttk.Frame(top_notebook)
-top_notebook.add(tab_tools, text="🛠 Tools & Environment")
+top_notebook.add(tab_tools, text="🛠 Tools and Environment")
 
 
 # ---------- Tab 1: Code Editor ----------
@@ -1316,13 +1345,13 @@ def add_btn(parent, text, cmd, bg="#333333", fg="white"):
     return b
 
 add_btn(top_btn_frame, "📄 New", new_file, "#495057")
-add_btn(top_btn_frame, "🧩 Project Gallery", open_project_catalog, "#0f766e")
+add_btn(top_btn_frame, "🧩 Projects", open_project_catalog, "#0f766e")
 add_btn(top_btn_frame, "📂 Open", open_file, "#495057")
 add_btn(top_btn_frame, "💾 Save", quick_save, "#0d6efd")
 add_btn(top_btn_frame, "✨ Format", format_code, "#6c757d")
 add_btn(top_btn_frame, "▶ Run Test", test_python_code, "#198754")
-add_btn(top_btn_frame, "📦 Detect Code Modules", parse_and_install_code_modules, "#6610f2")
-add_btn(top_btn_frame, "🔍 Search", open_search_dialog, "#6c757d")
+add_btn(top_btn_frame, "📦 Detect Required Modules", parse_and_install_code_modules, "#6610f2")
+add_btn(top_btn_frame, "🔍 Find", open_search_dialog, "#6c757d")
 add_btn(top_btn_frame, "🌓 Toggle Theme", toggle_theme, "#ffc107", "#000")
 
 text_frame = tk.Frame(tab_editor)
@@ -1378,7 +1407,7 @@ root.bind("<Control-z>", lambda e: undo_action())
 root.bind("<Control-y>", lambda e: redo_action())
 
 
-# ---------- Tab 2: Visual Form Designer ----------
+# ---------- Tab 2: Visual Form Builder ----------
 designer_components = []
 selected_component = None
 
@@ -1405,7 +1434,7 @@ form_resize_handle = tk.Label(form_preview, text="◢", bg="#0d6efd", fg="white"
 form_resize_handle.place(relx=1.0, rely=1.0, x=-16, y=-16, width=16, height=16)
 
 size_lbl = tk.Label(canvas_container,
-                    text=f"📱 Form Size: {form_window_width} x {form_window_height}  |  🖥 Window Position: X={form_pos_x}, Y={form_pos_y}",
+                    text=f"📱 Form size: {form_window_width} x {form_window_height}  |  🖥 Window position: X={form_pos_x}, Y={form_pos_y}",
                     bg="#1e1e1e", fg="#cccccc", font=("Meiryo UI", 9))
 size_lbl.place(x=50, y=20)
 
@@ -1449,8 +1478,8 @@ form_width_spin.bind("<FocusOut>", apply_form_size_inputs)
 form_height_spin.bind("<FocusOut>", apply_form_size_inputs)
 
 def update_size_label():
-    pos_str = "Center on Screen" if form_pos_mode == "center" else f"X={form_pos_x}, Y={form_pos_y}"
-    size_lbl.config(text=f"📱 Form Size: {form_window_width} x {form_window_height}  |  🖥 Window Position: {pos_str}")
+    pos_str = "Centered on screen" if form_pos_mode == "center" else f"X={form_pos_x}, Y={form_pos_y}"
+    size_lbl.config(text=f"📱 Form size: {form_window_width} x {form_window_height}  |  🖥 Window position: {pos_str}")
 
 def apply_form_colors():
     form_preview.configure(bg=form_bg_color)
@@ -1472,7 +1501,7 @@ def choose_form_color(color_type):
     current_color = form_bg_color if color_type == "background" else form_fg_color
     selected_color = colorchooser.askcolor(
         color=current_color,
-        title="Choose Form Background Color" if color_type == "background" else "Choose Form Text Color",
+        title="Choose form background color" if color_type == "background" else "Choose form text color",
         parent=root,
     )[1]
     if selected_color:
@@ -1486,12 +1515,12 @@ form_color_controls = tk.Frame(designer_toolbar, bg="#2d2d2d")
 form_color_controls.pack(side="right", padx=8)
 tk.Label(form_color_controls, text="Form Background", bg="#2d2d2d", fg="#eeeeee",
          font=("Meiryo UI", 9)).pack(side="left", padx=(0, 3))
-form_bg_swatch = tk.Button(form_color_controls, text="Select", width=5, bg=form_bg_color,
+form_bg_swatch = tk.Button(form_color_controls, text="Choose", width=5, bg=form_bg_color,
                            command=lambda: choose_form_color("background"), cursor="hand2")
 form_bg_swatch.pack(side="left", padx=(0, 8))
 tk.Label(form_color_controls, text="Form Text", bg="#2d2d2d", fg="#eeeeee",
          font=("Meiryo UI", 9)).pack(side="left", padx=(0, 3))
-form_fg_swatch = tk.Button(form_color_controls, text="Select", width=5, bg=form_fg_color,
+form_fg_swatch = tk.Button(form_color_controls, text="Choose", width=5, bg=form_fg_color,
                            command=lambda: choose_form_color("foreground"), cursor="hand2")
 form_fg_swatch.pack(side="left")
 
@@ -1512,14 +1541,14 @@ form_resize_handle.bind("<B1-Motion>", on_form_resize_drag)
 def open_window_position_dialog():
     global form_pos_x, form_pos_y, form_pos_mode
     w_diag = tk.Toplevel(root)
-    w_diag.title("Window Position Settings")
+    w_diag.title("Window Position")
     w_diag.geometry("450x340")
     w_diag.resizable(False, False)
     w_diag.configure(bg="#f8f9fa")
     w_diag.transient(root)
     w_diag.grab_set()
 
-    tk.Label(w_diag, text="🖥 Window Position at Startup",
+    tk.Label(w_diag, text="🖥 Window position at startup",
              font=("Meiryo UI", 11, "bold"), bg="#0d6efd", fg="white",
              padx=10, pady=10).pack(side="top", fill="x")
 
@@ -1527,20 +1556,20 @@ def open_window_position_dialog():
     f_body.pack(fill="both", expand=True)
 
     mode_var = tk.StringVar(value=form_pos_mode)
-    tk.Radiobutton(f_body, text="Center the window on screen", variable=mode_var, value="center",
+    tk.Radiobutton(f_body, text="Center the window automatically", variable=mode_var, value="center",
                    bg="#f8f9fa", font=("Meiryo UI", 10)).pack(anchor="w", pady=5)
-    tk.Radiobutton(f_body, text="Use the specified desktop coordinates (X, Y)", variable=mode_var, value="manual",
+    tk.Radiobutton(f_body, text="Use specific desktop coordinates (X, Y)", variable=mode_var, value="manual",
                    bg="#f8f9fa", font=("Meiryo UI", 10)).pack(anchor="w", pady=(10, 5))
 
     coord_frame_diag = tk.Frame(f_body, bg="#f8f9fa", padx=20)
     coord_frame_diag.pack(anchor="w", pady=5)
 
-    tk.Label(coord_frame_diag, text="X Position:", bg="#f8f9fa", font=("Meiryo UI", 9)).grid(row=0, column=0, sticky="w", pady=5)
+    tk.Label(coord_frame_diag, text="X coordinate:", bg="#f8f9fa", font=("Meiryo UI", 9)).grid(row=0, column=0, sticky="w", pady=5)
     x_entry = tk.Entry(coord_frame_diag, width=12, font=("Consolas", 10))
     x_entry.grid(row=0, column=1, padx=10, pady=5)
     x_entry.insert(0, str(form_pos_x))
 
-    tk.Label(coord_frame_diag, text="Y Position:", bg="#f8f9fa", font=("Meiryo UI", 9)).grid(row=1, column=0, sticky="w", pady=5)
+    tk.Label(coord_frame_diag, text="Y coordinate:", bg="#f8f9fa", font=("Meiryo UI", 9)).grid(row=1, column=0, sticky="w", pady=5)
     y_entry = tk.Entry(coord_frame_diag, width=12, font=("Consolas", 10))
     y_entry.grid(row=1, column=1, padx=10, pady=5)
     y_entry.insert(0, str(form_pos_y))
@@ -1554,12 +1583,12 @@ def open_window_position_dialog():
         mode_var.set("manual")
         return "break"
 
-    # Bind both the dialog and entry so Home can fill the current coordinates.
+    # Bind both the main window and the Values field (clicking None allows Home to work properly)
     w_diag.bind("<Home>", capture_mouse_pos_here)
     x_entry.bind("<Home>", capture_mouse_pos_here)
     y_entry.bind("<Home>", capture_mouse_pos_here)
 
-    tk.Label(f_body, text="💡 Press [Home] to enter the current mouse coordinates",
+    tk.Label(f_body, text="💡 Press [Home] to enter the current mouse position",
              bg="#f8f9fa", fg="#666666", font=("Meiryo UI", 9)).pack(anchor="w", pady=(10, 0))
 
     def save_pos():
@@ -1570,10 +1599,10 @@ def open_window_position_dialog():
                 form_pos_x = int(x_entry.get().strip())
                 form_pos_y = int(y_entry.get().strip())
             except ValueError:
-                messagebox.showerror("Error", "Enter valid whole numbers for the coordinates.")
+                messagebox.showerror("Error", "Enter valid integer coordinates.")
                 return
         update_size_label()
-        messagebox.showinfo("Saved", "Window position settings saved.")
+        messagebox.showinfo("SaveComplete", "Window position saved.")
         w_diag.destroy()
 
     tk.Button(w_diag, text="💾 Save Settings", command=save_pos, bg="#198754", fg="white",
@@ -1591,7 +1620,7 @@ def open_window_position_dialog():
     center_position_dialog()
     w_diag.after(50, center_position_dialog)
 
-    # Force focus when the dialog opens.
+    # Force focus immediately when the window opens
     w_diag.after(50, lambda: w_diag.focus_force())
 
 
@@ -1685,18 +1714,18 @@ def open_properties_dialog(comp):
 
     tab_design = ttk.Frame(diag_notebook)
     tab_action = ttk.Frame(diag_notebook)
-    diag_notebook.add(tab_design, text="① Text and Appearance")
-    diag_notebook.add(tab_action, text="② Action Settings")
+    diag_notebook.add(tab_design, text="① Text and Design")
+    diag_notebook.add(tab_action, text="② Actions")
 
     f_des = tk.Frame(tab_design, bg="#f8f9fa", padx=20, pady=20)
     f_des.pack(fill="both", expand=True)
 
-    tk.Label(f_des, text="Display Text (Content):", bg="#f8f9fa", font=("Meiryo UI", 10, "bold")).pack(anchor="w")
+    tk.Label(f_des, text="Display Text:", bg="#f8f9fa", font=("Meiryo UI", 10, "bold")).pack(anchor="w")
     txt_entry = tk.Entry(f_des, width=48, font=("Meiryo UI", 10))
     txt_entry.pack(anchor="w", pady=(2, 15))
     txt_entry.insert(0, comp["text"])
 
-    style_frame = tk.LabelFrame(f_des, text=" Appearance (Color and Font Size) ", bg="#f8f9fa",
+    style_frame = tk.LabelFrame(f_des, text=" Design (Color and Font Size) ", bg="#f8f9fa",
                                 font=("Meiryo UI", 9, "bold"), padx=15, pady=12)
     style_frame.pack(fill="x", pady=5)
 
@@ -1743,31 +1772,31 @@ def open_properties_dialog(comp):
         act_canvas.pack(side="left", fill="both", expand=True)
         act_scrollbar.pack(side="right", fill="y")
 
-        tk.Label(f_act, text="Choose an action (many beginner-friendly options):", bg="#f8f9fa",
+        tk.Label(f_act, text="Choose an action:", bg="#f8f9fa",
                  font=("Meiryo UI", 10, "bold")).pack(anchor="w", pady=(0, 5))
 
         action_categories = [
-            ("--- Basic ---", [
+            ("--- General ---", [
                 ("Do Nothing", "none"),
                 ("🚪 Exit Application", "close_app"),
             ]),
-            ("📁 File and Folder Operations (Recommended)", [
+            ("📁 File and Folder Operations", [
                 ("📄 Copy File", "copy_file"),
                 ("📂 Copy Folder", "copy_folder"),
                 ("✂ Move File", "move_file"),
-                ("🗑 Delete File (with Confirmation)", "delete_file"),
+                ("🗑 Delete File (Confirm)", "delete_file"),
                 ("📂 Open Folder", "open_folder"),
-                ("📄 Open File with Associated App", "open_file_default"),
-                ("📁 Create New Folder", "create_folder"),
+                ("📄 Open File", "open_file_default"),
+                ("📁 Create Folder", "create_folder"),
                 ("📝 Create Text File", "create_text_file"),
             ]),
-            ("🖥 Open Common Folders", [
+            ("🖥 Common Folders", [
                 ("🖥 Open Desktop", "open_desktop"),
                 ("📄 Open Documents", "open_documents"),
                 ("⬇ Open Downloads", "open_downloads"),
                 ("📂 Open File Explorer", "open_explorer"),
             ]),
-            ("🌐 Web & Search", [
+            ("🌐 Web and Search", [
                 ("Open URL", "open_url"),
                 ("Open X", "open_x"),
                 ("Open ABEMA TV", "open_abema"),
@@ -1776,23 +1805,23 @@ def open_properties_dialog(comp):
                 ("Google Translate", "google_translate"),
                 ("Google Maps", "google_maps"),
             ]),
-            ("💬 Messages & Utilities", [
-                ("Show Message Box", "show_msg"),
-                ("Confirmation Dialog", "ask_yesno"),
+            ("💬 Messages and Utilities", [
+                ("Show Message", "show_msg"),
+                ("Show Confirmation", "ask_yesno"),
                 ("Copy Text to Clipboard", "copy_clipboard"),
-                ("Copy Current Time to Clipboard", "copy_time"),
+                ("Copy Current Time", "copy_time"),
                 ("Show Current Time", "show_time"),
             ]),
             ("🖥 System Tools", [
                 ("Open Notepad", "open_notepad"),
                 ("Open Calculator", "open_calc"),
                 ("Open Command Prompt / Terminal", "open_terminal"),
-                ("Play a Beep", "beep"),
+                ("Play Beep", "beep"),
             ]),
             ("🎲 Fun", [
                 ("Pick a Number (1-100)", "random_num"),
-                ("Roll Dice", "dice_roll"),
-                ("Fortune Draw", "omikuji"),
+                ("Roll a Die", "dice_roll"),
+                ("Fortune", "omikuji"),
                 ("Generate Password", "gen_password"),
             ]),
         ]
@@ -1805,7 +1834,7 @@ def open_properties_dialog(comp):
                 tk.Radiobutton(f_act, text=text_lbl, variable=act_var, value=val,
                                bg="#f8f9fa", font=("Meiryo UI", 9), anchor="w").pack(anchor="w", padx=12, pady=1)
 
-        tk.Label(f_act, text="Action Parameter (URL, message, etc.):", bg="#f8f9fa",
+        tk.Label(f_act, text="Action Parameters (URL, message, etc.):", bg="#f8f9fa",
                  font=("Meiryo UI", 9, "bold")).pack(anchor="w", pady=(14, 2))
         param_entry = tk.Entry(f_act, width=50, font=("Meiryo UI", 10))
         param_entry.pack(anchor="w")
@@ -1819,7 +1848,7 @@ def open_properties_dialog(comp):
             font=("Meiryo UI", 9),
             anchor="w",
         ).pack(anchor="w", pady=(8, 2))
-        tk.Label(f_act, text="Browser to use for browser actions:", bg="#f8f9fa",
+        tk.Label(f_act, text="Browser for web actions:", bg="#f8f9fa",
                  font=("Meiryo UI", 9)).pack(anchor="w", pady=(8, 2))
         browser_var = tk.StringVar(value=comp.get("browser_choice", "Default Browser"))
         browser_combo = ttk.Combobox(
@@ -1830,7 +1859,7 @@ def open_properties_dialog(comp):
             width=24,
         )
         browser_combo.pack(anchor="w")
-        tk.Label(f_act, text="Browser window mode:", bg="#f8f9fa",
+        tk.Label(f_act, text="Browser Window Position:", bg="#f8f9fa",
                  font=("Meiryo UI", 9)).pack(anchor="w", pady=(6, 2))
         browser_window_mode_var = tk.StringVar(value=comp.get("browser_window_mode", "Maximized"))
         browser_window_mode_combo = ttk.Combobox(
@@ -1841,7 +1870,7 @@ def open_properties_dialog(comp):
             width=12,
         )
         browser_window_mode_combo.pack(anchor="w")
-        tk.Label(f_act, text="* For copy actions, set the source and destination in the properties below.",
+        tk.Label(f_act, text="Set the source and destination below for copy actions.",
                  bg="#f8f9fa", fg="#666666", font=("Meiryo UI", 8)).pack(anchor="w", pady=(4, 0))
 
         path_frame = tk.LabelFrame(f_act, text="Copy Source and Destination",
@@ -1864,15 +1893,15 @@ def open_properties_dialog(comp):
 
         def browse_source_path():
             if act_var.get() == "copy_folder":
-                path = filedialog.askdirectory(parent=diag, title="Select Source Folder")
+                path = filedialog.askdirectory(parent=diag, title="Choose Source Folder")
             else:
-                path = filedialog.askopenfilename(parent=diag, title="Select Source File")
+                path = filedialog.askopenfilename(parent=diag, title="Choose Source File")
             if path:
                 source_entry.delete(0, tk.END)
                 source_entry.insert(0, path)
 
         def browse_destination_path():
-            path = filedialog.askdirectory(parent=diag, title="Select Destination Folder")
+            path = filedialog.askdirectory(parent=diag, title="Choose Destination Folder")
             if path:
                 destination_entry.delete(0, tk.END)
                 destination_entry.insert(0, path)
@@ -1911,7 +1940,7 @@ def open_properties_dialog(comp):
         close_after_var = None
         browser_var = None
         browser_window_mode_var = None
-        tk.Label(tab_action, text="Actions cannot be assigned to labels or text fields.",
+        tk.Label(tab_action, text="Actions cannot be assigned to labels or entry fields.",
                  bg="#f8f9fa", fg="#6c757d", font=("Meiryo UI", 10)).pack(padx=20, pady=20)
 
     def save_config():
@@ -1926,18 +1955,18 @@ def open_properties_dialog(comp):
             if not source_path or not destination_path:
                 messagebox.showwarning(
                     "Copy Settings Required",
-                    "Set both the source and destination folders.",
+                    "Set the source and destination folders.",
                     parent=diag,
                 )
                 return
             if selected_action == "copy_file" and not os.path.isfile(source_path):
-                messagebox.showerror("Settings Error", "The source file was not found.", parent=diag)
+                messagebox.showerror("SettingsError", "Source file not found.", parent=diag)
                 return
             if selected_action == "copy_folder" and not os.path.isdir(source_path):
-                messagebox.showerror("Settings Error", "The source folder was not found.", parent=diag)
+                messagebox.showerror("SettingsError", "Source folder not found.", parent=diag)
                 return
             if not os.path.isdir(destination_path):
-                messagebox.showerror("Settings Error", "The destination folder was not found.", parent=diag)
+                messagebox.showerror("SettingsError", "Destination folder not found.", parent=diag)
                 return
 
         comp["text"] = txt_entry.get().strip()
@@ -1967,7 +1996,7 @@ def open_properties_dialog(comp):
                                      font=("Meiryo UI", comp["font_size"]))
         except Exception:
             pass
-        messagebox.showinfo("Saved", "Component settings updated.")
+        messagebox.showinfo("SaveComplete", "Component settings updated.")
         diag.destroy()
 
     tk.Button(bottom_frame, text="💾 Save Settings", command=save_config,
@@ -2017,7 +2046,7 @@ def generate_code_from_designer():
     if missing_copy_settings:
         messagebox.showwarning(
             "Copy Settings Required",
-            "For copy buttons, set the source and destination folders in Properties.",
+            "For copy actions, set the source and destination folders in Advanced Settings.",
         )
         top_notebook.select(tab_designer)
         return
@@ -2148,7 +2177,7 @@ def generate_code_from_designer():
         "            browser_aliases = {'Microsoft Edge': 'edge', 'Google Chrome': 'chrome', 'Mozilla Firefox': 'firefox', 'Brave': 'chrome'}",
         "            opened = webbrowser.get(browser_aliases[browser_choice]).open(url, new=2)",
         "        if not opened:",
-        "            raise RuntimeError('Could not start the browser.')",
+        "            raise RuntimeError('Could not launch the browser.')",
         "        if os.name == 'nt':",
         "            expected_names = browser_executables.get(browser_choice, browser_executables['Default Browser'])",
         "            enum_callback_type = ctypes.WINFUNCTYPE(wintypes.BOOL, wintypes.HWND, wintypes.LPARAM)",
@@ -2215,7 +2244,7 @@ def generate_code_from_designer():
         "                    if user32.GetForegroundWindow() == browser_window:",
         "                        return True",
         "                time.sleep(0.1)",
-        "            raise RuntimeError(f'{browser_choice} could not be brought to the foreground.')",
+        "            raise RuntimeError(f'Could not bring {browser_choice} to the foreground.')",
         "        return True",
         "    except Exception as e:",
         "        error = str(e)",
@@ -2243,9 +2272,9 @@ def generate_code_from_designer():
             "            shell_execute.restype = ctypes.c_void_p",
             "            result = shell_execute(None, 'open', url, None, None, 3)",
             "            if not result or result <= 32:",
-            "                raise OSError('Could not start the browser.')",
+            "                raise OSError('Could not launch the browser.')",
             "        elif not webbrowser.open(url, new=2):",
-            "            raise RuntimeError('Could not start the browser.')",
+            "            raise RuntimeError('Could not launch the browser.')",
             "        return True",
             "    except Exception as e:",
             "        root.deiconify()",
@@ -2301,16 +2330,16 @@ def generate_code_from_designer():
                     code.append("        if copies_into_source:")
                     code.append("            raise ValueError('The destination cannot be the source folder or a folder inside it.')")
                     code.append("        if os.path.exists(dest):")
-                    code.append("            if not messagebox.askyesno('Confirm', 'A folder with this name already exists. Merge or overwrite its contents?', parent=root): return")
+                    code.append("            if not messagebox.askyesno('Confirm', 'A folder with the same name exists. Merge and overwrite its contents?', parent=root): return")
                     code.append("        shutil.copytree(src, dest, dirs_exist_ok=True)")
                     code.append("        messagebox.showinfo('Complete', f'Folder copied\\n{os.path.basename(src)}')")
                     code.append("    except Exception as e:")
                     code.append("        messagebox.showerror('Error', str(e))")
                     code.append("        return")
                 elif act == "move_file":
-                    code.append("    src = filedialog.askopenfilename(parent=root, title='Select a File to Move', initialdir=os.getcwd())")
+                    code.append("    src = filedialog.askopenfilename(parent=root, title='Select a file to move', initialdir=os.getcwd())")
                     code.append("    if not src: return")
-                    code.append("    dest = filedialog.askdirectory(parent=root, title='Select Destination Folder', initialdir=os.path.dirname(src))")
+                    code.append("    dest = filedialog.askdirectory(parent=root, title='Select a destination folder', initialdir=os.path.dirname(src))")
                     code.append("    if not dest: return")
                     code.append("    try:")
                     code.append("        shutil.move(src, dest)")
@@ -2323,19 +2352,19 @@ def generate_code_from_designer():
                     code.append("    if messagebox.askyesno('Confirm', f'Are you sure you want to delete this file?\\n{os.path.basename(path)}', parent=root):")
                     code.append("        try:")
                     code.append("            os.remove(path)")
-                    code.append("            messagebox.showinfo('Complete', 'File deleted.')")
+                    code.append("            messagebox.showinfo('Complete', 'File deleted')")
                     code.append("        except Exception as e:")
                     code.append("            messagebox.showerror('Error', str(e))")
                 elif act == "open_folder":
-                    code.append("    path = filedialog.askdirectory(parent=root, title='Select a Folder to Open', initialdir=os.getcwd())")
+                    code.append("    path = filedialog.askdirectory(parent=root, title='Select a folder to open', initialdir=os.getcwd())")
                     code.append("    if path:")
                     code.append("        os.startfile(path) if os.name == 'nt' else subprocess.Popen(['xdg-open', path])")
                 elif act == "open_file_default":
-                    code.append("    path = filedialog.askopenfilename(parent=root, title='Select a File to Open', initialdir=os.getcwd())")
+                    code.append("    path = filedialog.askopenfilename(parent=root, title='Select a file to open', initialdir=os.getcwd())")
                     code.append("    if path:")
                     code.append("        os.startfile(path) if os.name == 'nt' else subprocess.Popen(['xdg-open', path])")
                 elif act == "create_folder":
-                    code.append("    parent = filedialog.askdirectory(parent=root, title='Select a Location to Create the Folder', initialdir=os.getcwd())")
+                    code.append("    parent = filedialog.askdirectory(parent=root, title='Select a location', initialdir=os.getcwd())")
                     code.append("    if not parent: return")
                     code.append("    new_name = 'New Folder'")
                     code.append("    path = os.path.join(parent, new_name)")
@@ -2345,9 +2374,9 @@ def generate_code_from_designer():
                     code.append("    except Exception as e:")
                     code.append("        messagebox.showerror('Error', str(e))")
                 elif act == "create_text_file":
-                    code.append("    parent = filedialog.askdirectory(parent=root, title='Select a Location to Create the Folder', initialdir=os.getcwd())")
+                    code.append("    parent = filedialog.askdirectory(parent=root, title='Select a location', initialdir=os.getcwd())")
                     code.append("    if not parent: return")
-                    code.append("    path = os.path.join(parent, 'New Text File.txt')")
+                    code.append("    path = os.path.join(parent, 'New Text.txt')")
                     code.append("    try:")
                     code.append("        with open(path, 'w', encoding='utf-8') as f:")
                     code.append("            f.write('')")
@@ -2388,17 +2417,17 @@ def generate_code_from_designer():
                 elif act == "show_msg":
                     code.append(f"    messagebox.showinfo('Notice', {(param or 'Hello!')!r})")
                 elif act == "ask_yesno":
-                    code.append(f"    res = messagebox.askyesno('Confirm', {(param or 'Run this action?')!r})")
+                    code.append(f"    res = messagebox.askyesno('Confirm', {(param or 'Would you like to continue?')!r})")
                     code.append("    messagebox.showinfo('Result', f'Selected: {res}')")
                 elif act == "copy_clipboard":
                     code.append("    root.clipboard_clear()")
                     code.append(f"    root.clipboard_append({param!r})")
-                    code.append("    messagebox.showinfo('Clipboard', 'Copied to clipboard.')")
+                    code.append("    messagebox.showinfo('Copy', 'Copied to clipboard')")
                 elif act == "copy_time":
                     code.append("    now = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')")
                     code.append("    root.clipboard_clear()")
                     code.append("    root.clipboard_append(now)")
-                    code.append("    messagebox.showinfo('Clipboard', f'Current time copied\\n{now}')")
+                    code.append("    messagebox.showinfo('Copy', f'Current time copied\\n{now}')")
                 elif act == "show_time":
                     code.append("    now = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')")
                     code.append("    messagebox.showinfo('Current Time', f'Current time: {now}')")
@@ -2424,13 +2453,13 @@ def generate_code_from_designer():
                     code.append("        print('\\a')")
                 elif act == "random_num":
                     code.append("    n = random.randint(1, 100)")
-                    code.append("    messagebox.showinfo('Number Draw', f'Your number: {n}')")
+                    code.append("    messagebox.showinfo('Lucky Draw', f'Number: {n}')")
                 elif act == "dice_roll":
                     code.append("    d = random.randint(1, 6)")
-                    code.append("    messagebox.showinfo('Dice Roll', f'Dice roll: 🎲 {d}')")
+                    code.append("    messagebox.showinfo('Dice Roll', f'🎲 Roll: {d}')")
                 elif act == "omikuji":
-                    code.append("    omi = random.choice(['Excellent Luck ✨', 'Good Luck 🌟', 'Fair Luck 👍', 'Good 😊', 'Bad 💦'])")
-                    code.append("    messagebox.showinfo('Fortune Draw', f'Today's fortune: {omi}')")
+                    code.append("    omi = random.choice(['Excellent ✨', 'Good 🌟', 'Fair 👍', 'Good 😊', 'Poor 💦'])")
+                    code.append("    messagebox.showinfo('Fortune', f'Fortune: {omi}')")
                 elif act == "gen_password":
                     code.append("    chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$*'")
                     code.append("    pwd = ''.join(random.choices(chars, k=12))")
@@ -2453,7 +2482,7 @@ def generate_code_from_designer():
 
     code.extend(["", "root.mainloop()"])
     if text.get("1.0", tk.END).strip():
-        if not messagebox.askyesno("Confirm Overwrite", "Replace the editor contents with the generated code?"):
+        if not messagebox.askyesno("Overwrite Confirmation", "Replace the editor contents with the generated code?"):
             return
     text.delete("1.0", tk.END)
     text.insert("1.0", "\n".join(code) + "\n")
@@ -2462,7 +2491,7 @@ def generate_code_from_designer():
     update_line_numbers()
     update_status_bar()
     top_notebook.select(tab_editor)
-    messagebox.showinfo("Code Generated", "The generated form code has replaced the editor contents!\nFile operations will ask you to select files when run.")
+    messagebox.showinfo("Generation Complete", "Editor contents replaced with generated form code.\nFile operations will prompt for selections when run.")
 
 # Toolbar buttons
 def add_designer_toolbar_button(label, command, bg, fg="white", active_bg=None):
@@ -2479,9 +2508,9 @@ def add_designer_toolbar_button(label, command, bg, fg="white", active_bg=None):
 
 add_designer_toolbar_button("+ Button", lambda: add_component("Button"), "#1769aa", active_bg="#12558a")
 add_designer_toolbar_button("+ Label", lambda: add_component("Label"), "#0f766e", active_bg="#0b5c56")
-add_designer_toolbar_button("+ Text Field", lambda: add_component("Entry"), "#3a7d44", active_bg="#2d6335")
+add_designer_toolbar_button("+ Entry", lambda: add_component("Entry"), "#3a7d44", active_bg="#2d6335")
 add_designer_toolbar_button("⚙ Window Position", open_window_position_dialog, "#6610f2")
-add_designer_toolbar_button("⚙ Properties", lambda: open_properties_dialog(selected_component) if selected_component else messagebox.showwarning("Notice", "Select a component"), "#ffc107", fg="#000")
+add_designer_toolbar_button("⚙ Advanced Settings", lambda: open_properties_dialog(selected_component) if selected_component else messagebox.showwarning("Notice", "Select a component"), "#ffc107", fg="#000")
 add_designer_toolbar_button("🗑 Delete", delete_component, "#dc3545")
 add_designer_toolbar_button("🧹 Clear All", clear_designer, "#6c757d")
 add_designer_toolbar_button("📝 Generate Code", generate_code_from_designer, "#0d6efd")
@@ -2493,11 +2522,12 @@ tools_frame.pack(expand=True, fill="both")
 tk.Label(tools_frame, text="🛠 Development Tools",
          font=("Meiryo UI", 12, "bold"), bg=THEMES[current_theme]['bg'],
          fg=THEMES[current_theme]['text_fg']).pack(anchor="w", pady=(0, 10))
-tk.Label(tools_frame, text=f"Python executable: {sys.executable}", font=("Consolas", 9),
+tk.Label(tools_frame, text=f"Python Executable: {sys.executable}", font=("Consolas", 9),
          bg=THEMES[current_theme]['bg'], fg=THEMES[current_theme]['text_fg']).pack(anchor="w", pady=2)
-tk.Label(tools_frame, text=f"Module virtual environment: {get_virtualenv_path()}", font=("Consolas", 9),
+virtualenv_path_display = tk.StringVar(value=f"Module Virtual Environment: {get_virtualenv_path()}")
+tk.Label(tools_frame, textvariable=virtualenv_path_display, font=("Consolas", 9),
          bg=THEMES[current_theme]['bg'], fg=THEMES[current_theme]['text_fg']).pack(anchor="w", pady=2)
-tk.Label(tools_frame, text=f"Settings folder: {SETTINGS_FOLDER}", font=("Consolas", 9),
+tk.Label(tools_frame, text=f"Settings Folder: {SETTINGS_FOLDER}", font=("Consolas", 9),
          bg=THEMES[current_theme]['bg'], fg=THEMES[current_theme]['text_fg']).pack(anchor="w", pady=2)
 tk.Label(tools_frame, text=f"OS: {platform.system()} {platform.release()}", font=("Consolas", 9),
          bg=THEMES[current_theme]['bg'], fg=THEMES[current_theme]['text_fg']).pack(anchor="w", pady=2)
@@ -2521,7 +2551,7 @@ def install_custom_module():
         res = subprocess.run([python_executable, "-m", "pip", "install", mname],
                              capture_output=True, text=True, timeout=90)
         if res.returncode == 0:
-            messagebox.showinfo("Installation Successful", f"Module '{mname}' was installed successfully!")
+            messagebox.showinfo("Installation Successful", f"Module '{mname}' installed successfully!")
         else:
             messagebox.showerror("Error", f"Installation failed:\n{res.stderr[:500]}")
     except Exception as e:
@@ -2539,17 +2569,43 @@ def open_settings_dialog():
     dialog.grab_set()
 
     timeout_value = tk.StringVar(value=str(test_timeout_seconds))
+    virtualenv_path_value = tk.StringVar(value=get_virtualenv_path())
     content = tk.Frame(dialog, padx=20, pady=18)
     content.pack(fill="both", expand=True)
-    tk.Label(content, text="Test Run Timeout", font=("Meiryo UI", 10, "bold")).grid(
+    tk.Label(content, text="Test Timeout", font=("Meiryo UI", 10, "bold")).grid(
         row=0, column=0, sticky="w", padx=(0, 12), pady=6
     )
     ttk.Spinbox(content, from_=1, to=3600, increment=1, textvariable=timeout_value,
                 width=8).grid(row=0, column=1, sticky="w", pady=6)
     tk.Label(content, text="seconds (1-3600)").grid(row=0, column=2, sticky="w", padx=(6, 0))
 
-    def save_timeout_setting():
-        global test_timeout_seconds
+    tk.Label(content, text="Virtual Environment Location", font=("Meiryo UI", 10, "bold")).grid(
+        row=1, column=0, sticky="w", padx=(0, 12), pady=6
+    )
+    ttk.Entry(content, textvariable=virtualenv_path_value, width=52).grid(
+        row=1, column=1, columnspan=2, sticky="ew", pady=6
+    )
+
+    def browse_virtualenv_path():
+        current_path = virtualenv_path_value.get()
+        initial_directory = current_path if os.path.isdir(current_path) else os.path.dirname(current_path)
+        if not os.path.isdir(initial_directory):
+            initial_directory = get_desktop_path()
+        selected_path = filedialog.askdirectory(
+            parent=dialog,
+            title="Choose Virtual Environment Location",
+            initialdir=initial_directory,
+            mustexist=False
+        )
+        if selected_path:
+            virtualenv_path_value.set(selected_path)
+
+    ttk.Button(content, text="Browse...", command=browse_virtualenv_path).grid(
+        row=1, column=3, padx=(8, 0), pady=6
+    )
+
+    def save_settings_dialog():
+        global test_timeout_seconds, VIRTUALENV_PATH
         try:
             timeout = int(timeout_value.get())
         except ValueError:
@@ -2558,16 +2614,22 @@ def open_settings_dialog():
         if not 1 <= timeout <= 3600:
             messagebox.showerror("Input Error", "Enter a value from 1 to 3600 seconds.", parent=dialog)
             return
+        selected_path = virtualenv_path_value.get().strip()
+        if not selected_path:
+            messagebox.showerror("Input Error", "Specify a virtual environment location.", parent=dialog)
+            return
         test_timeout_seconds = timeout
+        VIRTUALENV_PATH = os.path.abspath(os.path.expanduser(selected_path))
         save_settings()
+        virtualenv_path_display.set(f"Module Virtual Environment: {get_virtualenv_path()}")
         dialog.destroy()
-        messagebox.showinfo("Settings", f"Test run timeout set to {timeout} seconds.", parent=root)
+        messagebox.showinfo("Settings", "Settings saved.", parent=root)
 
     buttons = tk.Frame(content)
-    buttons.grid(row=1, column=0, columnspan=3, sticky="e", pady=(12, 0))
+    buttons.grid(row=2, column=0, columnspan=4, sticky="e", pady=(12, 0))
     ttk.Button(buttons, text="Cancel", command=dialog.destroy).pack(side="right", padx=(6, 0))
-    ttk.Button(buttons, text="Save", command=save_timeout_setting).pack(side="right")
-    dialog.bind("<Return>", lambda event: save_timeout_setting())
+    ttk.Button(buttons, text="Save", command=save_settings_dialog).pack(side="right")
+    dialog.bind("<Return>", lambda event: save_settings_dialog())
 
 
 # Menu bar
@@ -2591,7 +2653,7 @@ edit_menu.add_command(label="Select All (Ctrl+A)", command=select_all)
 menubar.add_cascade(label="Edit", menu=edit_menu)
 
 settings_menu = tk.Menu(menubar, tearoff=0)
-settings_menu.add_command(label="Test Run Timeout...", command=open_settings_dialog)
+settings_menu.add_command(label="Settings...", command=open_settings_dialog)
 menubar.add_cascade(label="Settings", menu=settings_menu)
 
 root.config(menu=menubar)
@@ -2602,4 +2664,3 @@ update_status_bar()
 root.protocol("WM_DELETE_WINDOW", safe_exit)
 root.mainloop()
 
-                                    
