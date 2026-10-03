@@ -1,192 +1,238 @@
-
-# Python Studio – Code Editor & Form Designer  
-**バイリンガル README（日本語 & English）**
-
-## 🇯🇵 日本語版
-
-### 概要
-
-**Python Studio** は、1つの `.pyw` ファイルで動作する軽量 IDE です。  
-以下の機能を統合し、Visual Basic や Delphi のような RAD 開発体験を Python で再現します。
-
-- コードエディター  
-- GUIフォームデザイナー（ドラッグ＆ドロップ）
-
-環境構築の手間を減らし、初心者から上級者まで使える「妥協しない開発環境」を目指しています。
+# 📘 **Python Studio – Code Editor & Form Designer**  
+### **README（日本語版 & English Version）**
 
 ---
 
-### 主な機能
+# 🇯🇵 **日本語版 README**
 
-- **コードエディター**
-  - Pythonコード編集  
-  - `.py` / `.pyw` の読み書き  
-  - Undo / Redo  
-  - コピー / ペースト  
-  - 検索・置換  
-  - シンタックスハイライト  
+## 📌 概要
+**Python Studio** は、1つの `.pyw` ファイルで動作する **軽量 IDE & GUI フォームデザイナー**です。  
+Visual Basic や Delphi のような **ドラッグ配置型 GUI 開発**を Python で再現し、コードエディターとフォームデザイナーを統合しています。
 
-- **GUIフォームデザイナー**
-  - ドラッグ＆ドロップでウィジェット配置  
-  - プロパティ編集（テキスト・サイズ・位置など）  
-  - Pythonコードとして自動生成  
-  - コードとフォームを同一環境で編集可能  
+最新版では以下の更新が含まれています：
 
-- **環境サポート**
-  - Pythonインタプリタの存在チェック  
-  - 必要モジュールの簡易チェック  
-  - 仮想環境（venv）利用の補助  
-  - 単体ファイルで動作するポータブル設計  
+- **ホットキービルダー機能の追加**  
+- フォームデザイナーの安定化  
+- コードエディターの強化（検索・置換・ハイライト）  
+- 内部構造の整理（イベント管理・クラス分割）  
+- **`.py` だけでなく `.pyw` 形式でも保存可能になりました** ← ★追加点
 
 ---
 
-### 必要環境
+## 🧩 機能一覧
 
-- **Python:** 3.x  
+### 🎨 GUI フォームデザイナー
+- ウィジェットをドラッグ＆ドロップで配置  
+- プロパティ編集（位置・サイズ・テキスト・色など）  
+- Python コードとして自動生成  
+- コードとフォームを同一画面で編集可能  
+- **ホットキービルダーでショートカット割り当てが可能**
+
+### ✏️ コードエディター
+- Python シンタックスハイライト  
+- Undo / Redo  
+- 検索・置換  
+- 自動インデント  
+- `.py` / `.pyw` の読み書き・保存に対応 ← ★追加点  
+- フォームコードとの連携
+
+### ⚙️ 環境チェック
+- Python 実行環境の存在確認  
+- 必要モジュールの簡易チェック  
+- 単体ファイルで動作するポータブル設計  
+
+---
+
+## 📁 ファイル構成
+本プロジェクトは **単一の `.pyw` ファイル**で構成されています。
+
+- `jp-Python Studio – Code Editor & Form Designer.pyw`  
+  - メインウィンドウ  
+  - コードエディター  
+  - フォームデザイナー  
+  - ホットキービルダー  
+  - プロパティエディター  
+  - イベント管理  
+  - ファイル入出力（`.py` / `.pyw` 保存対応）  
+  - Python 実行チェック  
+
+---
+
+## 🔧 必要環境
 - **OS:** Windows 推奨  
-- **ライブラリ:**  
-  - 標準ライブラリ  
-  - GUIライブラリ（使用しているものはスクリプト先頭を参照）
+- **Python:** 3.x  
+- **依存ライブラリ:** 標準ライブラリ（tkinter など）
 
 ---
 
-### インストール方法
-
-1. ファイルをダウンロード  
-2. Python が動作するか確認  
-3. 必要なモジュールをインストール  
-
----
-
-### 使い方
-
-```bash
-python "en-Python Studio – Code Editor & Form Designer.pyw"
-```
-
-Windowsでは `.pyw` をダブルクリックでも起動できます。
+## 📥 インストール
+1. `.pyw` ファイルをダウンロード  
+2. Python がインストールされていることを確認  
+3. `.pyw` をダブルクリックして起動  
+   - または  
+     ```bash
+     python "jp-Python Studio – Code Editor & Form Designer.pyw"
+     ```
 
 ---
 
-### 免責事項（重要）
+## 🖱️ 使い方
 
-**このソフトウェアは「現状のまま」提供されます。**  
-**作者および提供者は、このプログラムの使用・不使用により発生した一切の損害・損失・不利益について、いかなる責任も負いません。**
+### 1. GUI フォームを作成
+- ウィジェットをドラッグして配置  
+- プロパティでサイズ・色・テキストを編集  
+- ホットキービルダーでショートカットを設定  
+
+### 2. コードを編集
+- 自動生成されたコードを確認  
+- イベント処理を追加  
+- `.py` または `.pyw` として保存可能 ← ★追加点  
+- 保存したファイルはそのまま Python で実行できます
+
+### 3. ホットキービルダー
+- GUI 操作用のショートカットを設定  
+- フォームイベントに割り当て可能  
+- 設定はコードに反映される
+
+---
+
+## ⚠️ 免責事項
+このソフトウェアは **「現状のまま」提供** されます。
 
 - 動作保証なし  
-- バグ・不具合があっても保証なし  
-- データ消失・環境破損・誤動作が起きても責任なし  
-- 商用利用・教育利用などによるトラブルも責任なし  
-- いかなる状況でも補償・サポートなし  
+- バグ・不具合の保証なし  
+- データ消失の責任なし  
+- 商用利用・教育利用によるトラブルの責任なし  
+- サポート・補償なし  
 
-**すべて利用者自身の判断と自己責任で使用してください。**
+すべて利用者自身の判断と責任で使用してください。
 
 ---
 
-### ライセンス
-
+## 📄 ライセンス
 リポジトリ内の `LICENSE` を参照してください。
 
 ---
 
-### クレジット
-
-Repository: `rabbit-hand/PPython-Studio-Code-Editor-Form-Designer`  
-File: *en-Python Studio – Code Editor & Form Designer.pyw*
-
----
+## 👤 クレジット
+- Repository: rabbit-hand / Python-Studio-Code-Editor-Form-Designer  
+- File: jp-Python Studio – Code Editor & Form Designer.pyw  
 
 ---
 
-## 🇺🇸 English Version
+---
 
-### Overview
+# 🇺🇸 **English Version README**
 
-**Python Studio** is a lightweight, single‑file Python IDE that integrates:
+## 📌 Overview
+**Python Studio** is a lightweight **IDE & GUI Form Designer** that runs entirely from a single `.pyw` file.  
+It recreates a Visual Basic / Delphi–style **drag-and-drop GUI development experience** in Python, combining a code editor and a form designer in one environment.
 
-- A code editor  
-- A drag‑and‑drop GUI form designer  
+Recent updates include:
 
-It aims to provide a simple, portable, and “no‑compromise” development environment similar to classic RAD tools such as Visual Basic or Delphi.
+- **Hotkey Builder feature added**  
+- Improved form designer stability  
+- Enhanced code editor (search, replace, syntax highlight)  
+- Internal structure cleanup (event management, class organization)  
+- **Supports saving files as both `.py` and `.pyw`** ← ★New
 
 ---
 
-### Features
+## 🧩 Features
 
-- **Code Editor**
-  - Python source editing  
-  - Open/save `.py` / `.pyw`  
-  - Undo / Redo  
-  - Copy / Paste  
-  - Find / Replace  
-  - Syntax highlighting  
+### 🎨 GUI Form Designer
+- Drag-and-drop widget placement  
+- Property editor (position, size, text, color, etc.)  
+- Auto-generates Python code  
+- Edit form and code in the same window  
+- **Hotkey Builder for assigning shortcuts**
 
-- **Form Designer**
-  - Drag‑and‑drop widget placement  
-  - Property editing (text, size, position, etc.)  
-  - Auto‑generated Python GUI code  
-  - Edit code and form in the same environment  
+### ✏️ Code Editor
+- Python syntax highlighting  
+- Undo / Redo  
+- Search & Replace  
+- Auto indentation  
+- Load and save `.py` and `.pyw` files ← ★New  
+- Integrated with form-generated code
 
-- **Environment Support**
-  - Python interpreter detection  
-  - Basic module availability checks  
-  - Optional virtual environment support  
-  - Portable single‑file distribution  
+### ⚙️ Environment Check
+- Detects Python interpreter  
+- Checks required modules  
+- Portable single-file design  
 
 ---
 
-### Requirements
+## 📁 File Structure
+This project consists of **one `.pyw` file**:
 
-- **Python:** 3.x  
+- `jp-Python Studio – Code Editor & Form Designer.pyw`  
+  - Main window  
+  - Code editor  
+  - Form designer  
+  - Hotkey builder  
+  - Property editor  
+  - Event manager  
+  - File I/O (`.py` / `.pyw` support)  
+  - Python environment check  
+
+---
+
+## 🔧 Requirements
 - **OS:** Windows recommended  
-- **Libraries:**  
-  - Standard Python libraries  
-  - GUI toolkit used in the script (see imports at the top)
+- **Python:** 3.x  
+- **Libraries:** Standard libraries only (tkinter, etc.)
 
 ---
 
-### Installation
-
+## 📥 Installation
 1. Download the `.pyw` file  
-2. Verify Python installation  
-3. Install required modules  
-
----
-
-### Usage
+2. Ensure Python is installed  
+3. Launch by double-clicking or via command:
 
 ```bash
-python "en-Python Studio – Code Editor & Form Designer.pyw"
+python "jp-Python Studio – Code Editor & Form Designer.pyw"
 ```
 
-On Windows, double‑clicking the `.pyw` file also works.
+---
+
+## 🖱️ Usage
+
+### 1. Create a GUI Form
+- Drag widgets onto the canvas  
+- Edit properties (size, color, text)  
+- Assign shortcuts using Hotkey Builder  
+
+### 2. Edit Code
+- Review auto-generated Python code  
+- Add event handlers  
+- Save as `.py` **or `.pyw`** ← ★New  
+- Run the saved file directly with Python
+
+### 3. Hotkey Builder
+- Configure shortcuts for GUI operations  
+- Bind them to form events  
+- Settings are reflected in the generated code
 
 ---
 
-### Disclaimer (Important)
+## ⚠️ Disclaimer
+This software is provided **“as is”** without warranty of any kind.
 
-**This software is provided “AS IS”.**  
-**The author and distributor assume NO responsibility for any damages, losses, or issues caused by using or not using this program.**
+- No guarantee of operation  
+- No guarantee against bugs  
+- No responsibility for data loss  
+- No liability for commercial or educational use  
+- No support or compensation  
 
-- No warranty of functionality  
-- No guarantee against bugs or defects  
-- No responsibility for data loss, system damage, or misbehavior  
-- No liability for commercial, educational, or organizational use  
-- No compensation or support under any circumstances  
-
-**Use entirely at your own risk.**
+Use at your own risk.
 
 ---
 
-### License
-
+## 📄 License
 See the `LICENSE` file in the repository.
 
 ---
 
-### Credits
-
-Repository: `rabbit-hand/Python-Studio-Code-Editor-Form-Designer`  
-File: *en-Python Studio – Code Editor & Form Designer.pyw*
-
----
+## 👤 Credits
+- Repository: rabbit-hand / Python-Studio-Code-Editor-Form-Designer  
+- File: jp-Python Studio – Code Editor & Form Designer.pyw  
