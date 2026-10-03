@@ -1,9 +1,6 @@
----
 
 # Python Studio – Code Editor & Form Designer  
 **バイリンガル README（日本語 & English）**
-
----
 
 ## 🇯🇵 日本語版
 
