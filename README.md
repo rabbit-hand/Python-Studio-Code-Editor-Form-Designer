@@ -1,9 +1,3 @@
-aoi、了解したよ。  
-GitHub の **README.md 作成画面（現在のタブ）** にそのまま貼り付けられるよう、  
-**日本語＋英語を同じ場所にまとめたバイリンガル README** を Markdown 形式で仕上げたよ。
-
-構成は読みやすく、海外ユーザーにも日本語ユーザーにも自然に見えるようにしてある。
-
 ---
 
 # Python Studio – Code Editor & Form Designer  
