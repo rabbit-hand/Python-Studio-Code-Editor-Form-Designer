@@ -11,7 +11,6 @@ import datetime
 import random
 import webbrowser
 import urllib.parse
-import importlib.util
 import platform
 import shutil
 
@@ -27,7 +26,7 @@ THEME_SETTINGS_FILE = 'theme_settings.json'
 
 current_theme = 'dark'
 current_font_size = 11
-test_timeout_seconds = 5
+test_timeout_seconds = 20
 
 THEMES = {
     'light': {
@@ -46,6 +45,36 @@ text_modified = False
 last_saved_content = ""
 search_window = None
 last_search_index = "1.0"
+VENV_FOLDER_NAME = "Pythonエディター_仮想環境"
+
+def get_desktop_path():
+    if os.name == "nt":
+        try:
+            import ctypes
+            desktop_path = ctypes.create_unicode_buffer(260)
+            result = ctypes.windll.shell32.SHGetFolderPathW(None, 0x0010, None, 0, desktop_path)
+            if result == 0 and desktop_path.value:
+                return desktop_path.value
+        except (AttributeError, OSError):
+            pass
+    return os.path.join(os.path.expanduser("~"), "Desktop")
+
+def get_virtualenv_path():
+    return os.path.join(get_desktop_path(), VENV_FOLDER_NAME)
+
+def get_virtualenv_python():
+    venv_path = get_virtualenv_path()
+    python_path = os.path.join(venv_path, "Scripts", "python.exe") if os.name == "nt" else os.path.join(venv_path, "bin", "python")
+    if not os.path.isfile(python_path):
+        os.makedirs(os.path.dirname(venv_path), exist_ok=True)
+        try:
+            subprocess.run([sys.executable, "-m", "venv", venv_path], check=True,
+                           capture_output=True, text=True, timeout=120)
+        except subprocess.CalledProcessError as e:
+            raise RuntimeError(e.stderr.strip() or str(e)) from e
+    if not os.path.isfile(python_path):
+        raise RuntimeError("仮想環境のPythonを作成できませんでした。")
+    return python_path
 
 def get_settings_path(filename):
     if not os.path.exists(SETTINGS_FOLDER):
@@ -64,7 +93,10 @@ def load_settings():
                 data = json.load(f)
                 current_theme = data.get('theme', 'dark')
                 current_font_size = data.get('font_size', 11)
-                test_timeout_seconds = data.get('test_timeout_seconds', 5)
+                saved_timeout = int(data.get('test_timeout_seconds', 20))
+                if saved_timeout == 5:
+                    saved_timeout = 20
+                test_timeout_seconds = min(max(saved_timeout, 1), 3600)
         except Exception:
             pass
 
@@ -174,6 +206,719 @@ def new_file():
     quick_save.current_file_path = None
     update_line_numbers()
     update_status_bar()
+
+PROJECT_EXAMPLES = [
+    {
+        "category": "練習用ミニアプリ", "name": "電卓", "kind": "code",
+        "description": "2つの数と計算方法を選んで結果を表示する、シンプルなGUI電卓です。",
+        "code": '''import tkinter as tk
+from tkinter import messagebox
+
+root = tk.Tk()
+root.title("かんたん電卓")
+root.geometry("320x220")
+first = tk.Entry(root)
+first.pack(padx=12, pady=(16, 6), fill="x")
+operation = tk.StringVar(value="+")
+tk.OptionMenu(root, operation, "+", "-", "*", "/").pack()
+second = tk.Entry(root)
+second.pack(padx=12, pady=6, fill="x")
+result = tk.Label(root, text="答え: ")
+result.pack(pady=8)
+
+def calculate():
+    try:
+        left, right = float(first.get()), float(second.get())
+        op = operation.get()
+        if op == "+": answer = left + right
+        elif op == "-": answer = left - right
+        elif op == "*": answer = left * right
+        elif right == 0: raise ZeroDivisionError
+        else: answer = left / right
+        result.config(text=f"答え: {answer:g}")
+    except ValueError:
+        messagebox.showerror("入力エラー", "2つの欄に数字を入力してください。")
+    except ZeroDivisionError:
+        messagebox.showerror("計算エラー", "0で割ることはできません。")
+
+tk.Button(root, text="計算", command=calculate).pack(pady=4)
+root.mainloop()
+'''
+    },
+    {
+        "category": "練習用ミニアプリ", "name": "じゃんけんゲーム", "kind": "code",
+        "description": "ボタンを押してコンピューターと対戦します。勝敗数も表示します。",
+        "code": '''import random
+import tkinter as tk
+
+root = tk.Tk()
+root.title("じゃんけん")
+root.geometry("340x220")
+score = {"勝ち": 0, "負け": 0, "あいこ": 0}
+result = tk.Label(root, text="手を選んでください", font=("Meiryo UI", 14))
+result.pack(pady=20)
+score_label = tk.Label(root, text="勝ち 0  負け 0  あいこ 0")
+score_label.pack(pady=8)
+
+def play(player):
+    computer = random.choice(["グー", "チョキ", "パー"])
+    if player == computer:
+        outcome = "あいこ"
+    elif (player, computer) in [("グー", "チョキ"), ("チョキ", "パー"), ("パー", "グー")]:
+        outcome = "勝ち"
+    else:
+        outcome = "負け"
+    score[outcome] += 1
+    result.config(text=f"あなた: {player} / 相手: {computer}  → {outcome}")
+    score_label.config(text=f"勝ち {score['勝ち']}  負け {score['負け']}  あいこ {score['あいこ']}")
+
+for hand in ("グー", "チョキ", "パー"):
+    tk.Button(root, text=hand, command=lambda value=hand: play(value)).pack(side="left", expand=True, padx=8)
+root.mainloop()
+'''
+    },
+    {
+        "category": "練習用ミニアプリ", "name": "数当てゲーム", "kind": "code",
+        "description": "1から100の数字を推理します。入力欄に数字を入れて判定します。",
+        "code": '''import random
+import tkinter as tk
+
+root = tk.Tk()
+root.title("数当てゲーム")
+root.geometry("340x220")
+answer = random.randint(1, 100)
+tries = 0
+message = tk.Label(root, text="1から100の数字を当ててください")
+message.pack(pady=24)
+guess = tk.Entry(root, justify="center")
+guess.pack(pady=6)
+
+def check_guess():
+    global tries
+    try:
+        number = int(guess.get())
+        if not 1 <= number <= 100:
+            raise ValueError
+    except ValueError:
+        message.config(text="1から100までの整数を入力してください")
+        return
+    tries += 1
+    if number == answer:
+        message.config(text=f"正解！ {tries}回で当たりました")
+    elif number < answer:
+        message.config(text="もっと大きい数字です")
+    else:
+        message.config(text="もっと小さい数字です")
+
+tk.Button(root, text="判定", command=check_guess).pack(pady=8)
+root.mainloop()
+'''
+    },
+    {
+        "category": "練習用ミニアプリ", "name": "タイマー", "kind": "code",
+        "description": "秒数を指定してカウントダウンするタイマーです。",
+        "code": '''import tkinter as tk
+from tkinter import messagebox
+
+root = tk.Tk()
+root.title("タイマー")
+root.geometry("300x190")
+seconds_left = 0
+running = False
+display = tk.Label(root, text="00:00", font=("Meiryo UI", 32))
+display.pack(pady=12)
+seconds_input = tk.Entry(root, justify="center")
+seconds_input.insert(0, "60")
+seconds_input.pack()
+
+def tick():
+    global seconds_left, running
+    if not running:
+        return
+    minutes, seconds = divmod(seconds_left, 60)
+    display.config(text=f"{minutes:02}:{seconds:02}")
+    if seconds_left <= 0:
+        running = False
+        messagebox.showinfo("タイマー", "時間です！")
+        return
+    seconds_left -= 1
+    root.after(1000, tick)
+
+def start():
+    global seconds_left, running
+    try:
+        seconds_left = int(seconds_input.get())
+        if seconds_left <= 0: raise ValueError
+    except ValueError:
+        messagebox.showerror("入力エラー", "1以上の秒数を入力してください。")
+        return
+    running = True
+    tick()
+
+tk.Button(root, text="スタート", command=start).pack(pady=10)
+root.mainloop()
+'''
+    },
+    {
+        "category": "日常で使える実用品", "name": "ToDoリスト", "kind": "code",
+        "description": "タスクの追加と完了した項目の削除ができます。",
+        "code": '''import tkinter as tk
+from tkinter import messagebox
+
+root = tk.Tk()
+root.title("ToDoリスト")
+root.geometry("420x360")
+task_input = tk.Entry(root)
+task_input.pack(fill="x", padx=12, pady=12)
+tasks = tk.Listbox(root, font=("Meiryo UI", 11))
+tasks.pack(fill="both", expand=True, padx=12)
+
+def add_task():
+    task = task_input.get().strip()
+    if task:
+        tasks.insert(tk.END, "□ " + task)
+        task_input.delete(0, tk.END)
+
+def remove_task():
+    selected = tasks.curselection()
+    if selected:
+        tasks.delete(selected[0])
+    else:
+        messagebox.showinfo("確認", "削除するタスクを選んでください。")
+
+buttons = tk.Frame(root)
+buttons.pack(pady=10)
+tk.Button(buttons, text="追加", command=add_task).pack(side="left", padx=5)
+tk.Button(buttons, text="選択した項目を削除", command=remove_task).pack(side="left", padx=5)
+root.mainloop()
+'''
+    },
+    {
+        "category": "日常で使える実用品", "name": "メモ帳", "kind": "code",
+        "description": "文章を編集し、テキストファイルとして開いたり保存したりできます。",
+        "code": '''import tkinter as tk
+from tkinter import filedialog, messagebox
+
+root = tk.Tk()
+root.title("かんたんメモ帳")
+root.geometry("640x440")
+editor = tk.Text(root, wrap="word", undo=True)
+editor.pack(fill="both", expand=True, padx=8, pady=8)
+
+def open_note():
+    path = filedialog.askopenfilename(filetypes=[("テキスト", "*.txt"), ("すべて", "*.*")])
+    if path:
+        try:
+            with open(path, encoding="utf-8") as file:
+                editor.delete("1.0", tk.END)
+                editor.insert("1.0", file.read())
+        except OSError as error:
+            messagebox.showerror("読み込みエラー", str(error))
+
+def save_note():
+    path = filedialog.asksaveasfilename(defaultextension=".txt", filetypes=[("テキスト", "*.txt")])
+    if path:
+        try:
+            with open(path, "w", encoding="utf-8") as file:
+                file.write(editor.get("1.0", "end-1c"))
+            messagebox.showinfo("保存", "メモを保存しました。")
+        except OSError as error:
+            messagebox.showerror("保存エラー", str(error))
+
+toolbar = tk.Frame(root)
+toolbar.pack(fill="x")
+tk.Button(toolbar, text="開く", command=open_note).pack(side="left", padx=6, pady=4)
+tk.Button(toolbar, text="名前を付けて保存", command=save_note).pack(side="left", padx=6, pady=4)
+root.mainloop()
+'''
+    },
+    {
+        "category": "日常で使える実用品", "name": "パスワード生成器", "kind": "code",
+        "description": "指定した長さのランダムなパスワードを作成します。",
+        "code": '''import secrets
+import string
+import tkinter as tk
+from tkinter import messagebox
+
+root = tk.Tk()
+root.title("パスワード生成器")
+root.geometry("380x190")
+tk.Label(root, text="文字数（8〜128）").pack(pady=(18, 4))
+length = tk.Entry(root, justify="center")
+length.insert(0, "16")
+length.pack()
+result = tk.Entry(root, justify="center", width=38)
+result.pack(padx=12, pady=12)
+
+def generate():
+    try:
+        size = int(length.get())
+        if not 8 <= size <= 128: raise ValueError
+    except ValueError:
+        messagebox.showerror("入力エラー", "8から128までの整数を入力してください。")
+        return
+    alphabet = string.ascii_letters + string.digits + "!@#$%&*+-_"
+    result.delete(0, tk.END)
+    result.insert(0, "".join(secrets.choice(alphabet) for _ in range(size)))
+
+tk.Button(root, text="生成", command=generate).pack()
+root.mainloop()
+'''
+    },
+    {
+        "category": "日常で使える実用品", "name": "ファイル名まとめて変更", "kind": "code",
+        "description": "選んだフォルダー内のファイル名に、接頭語を付けてまとめて変更します。変更前に確認します。",
+        "code": '''import os
+import tkinter as tk
+from tkinter import filedialog, messagebox
+
+root = tk.Tk()
+root.title("ファイル名まとめて変更")
+root.geometry("430x210")
+folder = tk.StringVar()
+prefix = tk.StringVar(value="整理_")
+
+def choose_folder():
+    selected = filedialog.askdirectory()
+    if selected:
+        folder.set(selected)
+
+tk.Label(root, text="対象フォルダー").pack(anchor="w", padx=12, pady=(12, 2))
+tk.Entry(root, textvariable=folder).pack(fill="x", padx=12)
+tk.Button(root, text="フォルダーを選ぶ", command=choose_folder).pack(anchor="e", padx=12, pady=4)
+tk.Label(root, text="ファイル名の先頭に付ける文字").pack(anchor="w", padx=12, pady=(6, 2))
+tk.Entry(root, textvariable=prefix).pack(fill="x", padx=12)
+
+def rename_files():
+    path, start = folder.get(), prefix.get()
+    if not path or not start:
+        messagebox.showerror("入力エラー", "フォルダーと接頭語を指定してください。")
+        return
+    files = [name for name in os.listdir(path) if os.path.isfile(os.path.join(path, name)) and not name.startswith(start)]
+    if not files:
+        messagebox.showinfo("確認", "変更するファイルがありません。")
+        return
+    if not messagebox.askyesno("変更確認", f"{len(files)}個のファイル名を変更します。続けますか？"):
+        return
+    renamed = 0
+    for name in files:
+        old = os.path.join(path, name)
+        new = os.path.join(path, start + name)
+        if not os.path.exists(new):
+            os.rename(old, new)
+            renamed += 1
+    messagebox.showinfo("完了", f"{renamed}個のファイル名を変更しました。")
+
+tk.Button(root, text="まとめて変更", command=rename_files).pack(pady=10)
+root.mainloop()
+'''
+    },
+    {
+        "category": "日常で使える実用品", "name": "CSVの整理・集計", "kind": "code",
+        "description": "CSVファイルを開き、各列の件数と数値の合計を表示します。",
+        "code": '''import csv
+import tkinter as tk
+from tkinter import filedialog, messagebox
+
+root = tk.Tk()
+root.title("CSVかんたん集計")
+root.geometry("900x620")
+root.minsize(720, 500)
+root.grid_columnconfigure(0, weight=1)
+root.grid_rowconfigure(1, weight=1)
+
+toolbar = tk.Frame(root, padx=16, pady=14)
+toolbar.grid(row=0, column=0, sticky="ew")
+tk.Label(toolbar, text="CSVファイルを集計", font=("Meiryo UI", 15, "bold")).pack(side="left")
+output_frame = tk.Frame(root, padx=16, pady=12)
+output_frame.grid(row=1, column=0, sticky="nsew")
+output_frame.grid_columnconfigure(0, weight=1)
+output_frame.grid_rowconfigure(0, weight=1)
+output = tk.Text(output_frame, wrap="none", font=("Meiryo UI", 11), padx=10, pady=8)
+output.grid(row=0, column=0, sticky="nsew")
+scrollbar = tk.Scrollbar(output_frame, orient="vertical", command=output.yview)
+scrollbar.grid(row=0, column=1, sticky="ns")
+output.config(yscrollcommand=scrollbar.set)
+status = tk.Label(root, text="CSVファイルを選択すると、列ごとの件数と数値合計を表示します。",
+              anchor="w", font=("Meiryo UI", 10), padx=16)
+status.grid(row=2, column=0, sticky="ew", pady=(0, 6))
+
+def summarize():
+    path = filedialog.askopenfilename(filetypes=[("CSVファイル", "*.csv"), ("すべて", "*.*")])
+    if not path:
+        return
+    try:
+        with open(path, newline="", encoding="utf-8-sig") as file:
+            rows = list(csv.DictReader(file))
+        if not rows:
+            messagebox.showinfo("確認", "CSVにデータ行がありません。")
+            return
+        lines = [f"データ行数: {len(rows)}"]
+        for column in rows[0]:
+            values = [row.get(column, "").strip() for row in rows]
+            numbers = []
+            for value in values:
+                try:
+                    numbers.append(float(value.replace(",", "")))
+                except ValueError:
+                    pass
+            lines.append(f"{column}: 入力 {sum(bool(v) for v in values)}件")
+            if numbers:
+                lines.append(f"  数値合計: {sum(numbers):g}")
+        output.delete("1.0", tk.END)
+        output.insert("1.0", "\\n".join(lines))
+        status.config(text=f"集計完了: {len(rows)}行")
+    except (OSError, csv.Error) as error:
+        messagebox.showerror("読み込みエラー", str(error))
+
+tk.Button(toolbar, text="CSVを選択して集計", command=summarize,
+          font=("Meiryo UI", 12, "bold"), padx=28, pady=12).pack(side="right")
+root.mainloop()
+'''
+    },
+    {
+        "category": "少し背伸びした作品", "name": "Webページからタイトル取得", "kind": "code",
+        "description": "URLを入力すると、標準ライブラリでWebページのタイトルを取得します。",
+        "code": '''from html.parser import HTMLParser
+from urllib.request import Request, urlopen
+import tkinter as tk
+from tkinter import messagebox
+
+class TitleParser(HTMLParser):
+    def __init__(self):
+        super().__init__()
+        self.in_title = False
+        self.title = ""
+
+    def handle_starttag(self, tag, attrs):
+        if tag.lower() == "title":
+            self.in_title = True
+
+    def handle_endtag(self, tag):
+        if tag.lower() == "title":
+            self.in_title = False
+
+    def handle_data(self, data):
+        if self.in_title:
+            self.title += data
+
+root = tk.Tk()
+root.title("Webページのタイトル取得")
+root.geometry("480x180")
+url = tk.Entry(root)
+url.insert(0, "https://example.com")
+url.pack(fill="x", padx=12, pady=16)
+result = tk.Label(root, text="取得結果がここに表示されます", wraplength=440)
+result.pack(pady=8)
+
+def fetch_title():
+    address = url.get().strip()
+    if not address.startswith(("https://", "http://")):
+        messagebox.showerror("URLエラー", "http:// または https:// から始まるURLを入力してください。")
+        return
+    try:
+        request = Request(address, headers={"User-Agent": "Mozilla/5.0"})
+        with urlopen(request, timeout=10) as response:
+            parser = TitleParser()
+            parser.feed(response.read().decode(response.headers.get_content_charset() or "utf-8", errors="replace"))
+        result.config(text=parser.title.strip() or "タイトルが見つかりませんでした。")
+    except Exception as error:
+        messagebox.showerror("取得エラー", str(error))
+
+tk.Button(root, text="タイトルを取得", command=fetch_title).pack()
+root.mainloop()
+'''
+    },
+    {
+        "category": "少し背伸びした作品", "name": "天気を取得するアプリ", "kind": "code",
+        "description": "都市名から天気を取得します。Open-Meteoの無料APIを使うため、APIキーは不要です。",
+        "code": '''import json
+from urllib.parse import urlencode
+from urllib.request import urlopen
+import tkinter as tk
+from tkinter import messagebox
+
+root = tk.Tk()
+root.title("かんたん天気")
+root.geometry("360x210")
+city = tk.Entry(root, justify="center")
+city.insert(0, "Tokyo")
+city.pack(fill="x", padx=18, pady=(20, 8))
+result = tk.Label(root, text="都市名を入力してください", font=("Meiryo UI", 12), wraplength=320)
+result.pack(pady=12)
+
+def get_weather():
+    name = city.get().strip()
+    if not name:
+        messagebox.showerror("入力エラー", "都市名を入力してください。")
+        return
+    try:
+        geo_url = "https://geocoding-api.open-meteo.com/v1/search?" + urlencode({"name": name, "count": 1, "language": "ja", "format": "json"})
+        with urlopen(geo_url, timeout=10) as response:
+            places = json.load(response).get("results", [])
+        if not places:
+            result.config(text="都市が見つかりませんでした")
+            return
+        place = places[0]
+        query = urlencode({"latitude": place["latitude"], "longitude": place["longitude"], "current": "temperature_2m,relative_humidity_2m,weather_code"})
+        with urlopen("https://api.open-meteo.com/v1/forecast?" + query, timeout=10) as response:
+            current = json.load(response)["current"]
+        result.config(text=f"{place['name']}\\n気温 {current['temperature_2m']}℃ / 湿度 {current['relative_humidity_2m']}%\\n天気コード {current['weather_code']}")
+    except Exception as error:
+        messagebox.showerror("取得エラー", str(error))
+
+tk.Button(root, text="天気を取得", command=get_weather).pack()
+root.mainloop()
+'''
+    },
+    {
+        "category": "少し背伸びした作品", "name": "Discord Webhook送信", "kind": "code",
+        "description": "Webhook URLとメッセージを入力してDiscordへ送信します。追加ライブラリやBotトークンは不要です。Webhook URLは秘密情報として扱ってください。",
+        "code": '''import json
+from urllib.error import HTTPError, URLError
+from urllib.parse import urlparse
+from urllib.request import Request, urlopen
+import tkinter as tk
+from tkinter import messagebox
+
+root = tk.Tk()
+root.title("Discord Webhook送信")
+root.geometry("640x440")
+root.minsize(560, 390)
+root.grid_columnconfigure(0, weight=1)
+root.grid_rowconfigure(3, weight=1)
+
+tk.Label(root, text="Discord Webhook URL", font=("Meiryo UI", 11, "bold")).grid(
+    row=0, column=0, sticky="w", padx=18, pady=(18, 4)
+)
+webhook_input = tk.Entry(root, font=("Consolas", 10))
+webhook_input.grid(row=1, column=0, sticky="ew", padx=18)
+tk.Label(root, text="送信するメッセージ", font=("Meiryo UI", 11, "bold")).grid(
+    row=2, column=0, sticky="w", padx=18, pady=(14, 4)
+)
+message_input = tk.Text(root, height=7, wrap="word", font=("Meiryo UI", 11))
+message_input.grid(row=3, column=0, sticky="nsew", padx=18)
+status = tk.Label(root, text="Webhook URLとメッセージを入力してください。", anchor="w")
+status.grid(row=4, column=0, sticky="ew", padx=18, pady=8)
+
+def send_message():
+    webhook = webhook_input.get().strip()
+    content = message_input.get("1.0", "end-1c").strip()
+    parsed = urlparse(webhook)
+    if parsed.scheme != "https" or parsed.netloc not in ("discord.com", "discordapp.com") or not parsed.path.startswith("/api/webhooks/"):
+        messagebox.showerror("URLエラー", "DiscordのWebhook URLを入力してください。")
+        return
+    if not content:
+        messagebox.showerror("入力エラー", "送信するメッセージを入力してください。")
+        return
+    if len(content) > 2000:
+        messagebox.showerror("入力エラー", "メッセージは2000文字以内にしてください。")
+        return
+    request = Request(webhook, data=json.dumps({"content": content}).encode("utf-8"),
+                      headers={"Content-Type": "application/json"}, method="POST")
+    try:
+        with urlopen(request, timeout=15) as response:
+            if response.status not in (200, 204):
+                raise RuntimeError(f"Discordから予期しない応答がありました: {response.status}")
+        status.config(text="送信しました。")
+    except HTTPError as error:
+        messagebox.showerror("Discordエラー", f"HTTP {error.code}: {error.read().decode('utf-8', errors='replace')[:500]}")
+    except (URLError, TimeoutError, RuntimeError) as error:
+        messagebox.showerror("送信エラー", str(error))
+
+tk.Button(root, text="Discordへ送信", command=send_message,
+          font=("Meiryo UI", 12, "bold"), padx=24, pady=10).grid(
+              row=5, column=0, sticky="e", padx=18, pady=(0, 16)
+          )
+root.mainloop()
+'''
+    },
+    {
+        "category": "少し背伸びした作品", "name": "LINE通知（公式Messaging API）", "kind": "code",
+        "description": "LINE公式APIでメッセージを送信するGUIです。チャネルアクセストークンと送信先IDが必要です。Webhook URLだけでは公式LINEへ送信できません。",
+        "code": '''import json
+from urllib.error import HTTPError, URLError
+from urllib.request import Request, urlopen
+import tkinter as tk
+from tkinter import messagebox
+
+root = tk.Tk()
+root.title("LINE メッセージ送信")
+root.geometry("620x520")
+root.minsize(540, 470)
+root.grid_columnconfigure(0, weight=1)
+root.grid_rowconfigure(7, weight=1)
+
+tk.Label(root, text="LINE Messaging APIでメッセージ送信", font=("Meiryo UI", 14, "bold")).grid(
+    row=0, column=0, sticky="w", padx=18, pady=(18, 4)
+)
+tk.Label(root, text="Webhook URLではなく、チャネルアクセストークンと送信先IDを使います。",
+         wraplength=570, justify="left").grid(row=1, column=0, sticky="w", padx=18, pady=(0, 10))
+tk.Label(root, text="チャネルアクセストークン", font=("Meiryo UI", 10, "bold")).grid(
+    row=2, column=0, sticky="w", padx=18, pady=(4, 3)
+)
+token_input = tk.Entry(root, show="*", font=("Consolas", 10))
+token_input.grid(row=3, column=0, sticky="ew", padx=18)
+tk.Label(root, text="送信先のユーザーIDまたはグループID", font=("Meiryo UI", 10, "bold")).grid(
+    row=4, column=0, sticky="w", padx=18, pady=(10, 3)
+)
+recipient_input = tk.Entry(root, font=("Consolas", 10))
+recipient_input.grid(row=5, column=0, sticky="ew", padx=18)
+tk.Label(root, text="メッセージ", font=("Meiryo UI", 10, "bold")).grid(
+    row=6, column=0, sticky="w", padx=18, pady=(8, 3)
+)
+message_input = tk.Text(root, height=5, wrap="word", font=("Meiryo UI", 11))
+message_input.grid(row=7, column=0, sticky="nsew", padx=18)
+status = tk.Label(root, text="入力したトークンは保存しません。", anchor="w")
+status.grid(row=8, column=0, sticky="ew", padx=18, pady=8)
+
+def send_message():
+    token = token_input.get().strip()
+    recipient = recipient_input.get().strip()
+    content = message_input.get("1.0", "end-1c").strip()
+    if not token or not recipient or not content:
+        messagebox.showerror("入力エラー", "トークン、送信先ID、メッセージをすべて入力してください。")
+        return
+    payload = {"to": recipient, "messages": [{"type": "text", "text": content}]}
+    request = Request(
+        "https://api.line.me/v2/bot/message/push",
+        data=json.dumps(payload, ensure_ascii=False).encode("utf-8"),
+        headers={"Content-Type": "application/json", "Authorization": f"Bearer {token}"},
+        method="POST",
+    )
+    try:
+        with urlopen(request, timeout=15) as response:
+            if response.status != 200:
+                raise RuntimeError(f"LINEから予期しない応答がありました: {response.status}")
+        status.config(text="LINEへ送信しました。")
+    except HTTPError as error:
+        messagebox.showerror("LINE APIエラー", f"HTTP {error.code}: {error.read().decode('utf-8', errors='replace')[:500]}")
+    except (URLError, TimeoutError, RuntimeError) as error:
+        messagebox.showerror("送信エラー", str(error))
+
+tk.Button(root, text="LINEへ送信", command=send_message,
+          font=("Meiryo UI", 12, "bold"), padx=24, pady=10).grid(
+              row=9, column=0, sticky="e", padx=18, pady=(0, 16)
+          )
+root.mainloop()
+'''
+    },
+    {
+        "category": "少し背伸びした作品", "name": "GUIフォーム（デザイナー）", "kind": "designer",
+        "description": "ボタン・ラベル・入力欄を配置してGUIを作ります。フォーム作成タブへ移動します。",
+        "code": ""
+    },
+]
+
+def load_project_code(code):
+    global last_saved_content, text_modified
+    if text_modified:
+        answer = messagebox.askyesnocancel("未保存の変更", "現在のコードを保存してから作品を読み込みますか？")
+        if answer is None:
+            return False
+        if answer and not quick_save():
+            return False
+    text.delete("1.0", tk.END)
+    text.insert("1.0", code.rstrip() + "\n")
+    quick_save.current_file_path = None
+    last_saved_content = ""
+    text_modified = True
+    apply_syntax_highlighting()
+    update_line_numbers()
+    update_status_bar()
+    top_notebook.select(tab_editor)
+    return True
+
+def open_project_catalog():
+    win = tk.Toplevel(root)
+    win.title("初心者向け 作品一覧")
+    win.geometry("930x600")
+    win.minsize(760, 480)
+    win.transient(root)
+
+    main = tk.Frame(win, padx=12, pady=12)
+    main.pack(fill="both", expand=True)
+    tk.Label(main, text="作りたいものを選んでください", font=("Meiryo UI", 15, "bold")).pack(anchor="w", pady=(0, 10))
+    body = tk.Frame(main)
+    body.pack(fill="both", expand=True)
+    tree = ttk.Treeview(body, show="tree", selectmode="browse")
+    tree.column("#0", width=250, minwidth=200, stretch=False)
+    tree.pack(side="left", fill="y")
+    tree_scroll = ttk.Scrollbar(body, orient="vertical", command=tree.yview)
+    tree_scroll.pack(side="left", fill="y")
+    tree.configure(yscrollcommand=tree_scroll.set)
+
+    details = tk.Frame(body, padx=14)
+    details.pack(side="left", fill="both", expand=True)
+    name_label = tk.Label(details, text="作品を選択してください", anchor="w", font=("Meiryo UI", 13, "bold"))
+    name_label.pack(fill="x", pady=(0, 6))
+    description = tk.Label(details, text="", anchor="nw", justify="left", wraplength=580)
+    description.pack(fill="x", pady=(0, 8))
+    preview = tk.Text(details, wrap="word", height=18, font=("Consolas", 9), state="disabled")
+    preview.pack(fill="both", expand=True)
+
+    item_projects = {}
+    category_items = {}
+    for project in PROJECT_EXAMPLES:
+        category = project["category"]
+        if category not in category_items:
+            category_items[category] = tree.insert("", "end", text=category, open=True)
+        item = tree.insert(category_items[category], "end", text=project["name"])
+        item_projects[item] = project
+
+    selected_project = {"value": None}
+    buttons = tk.Frame(main)
+    buttons.pack(fill="x", pady=(10, 0))
+    load_button = tk.Button(buttons, text="コードをエディターに読み込む", state="disabled")
+    load_button.pack(side="right", padx=(6, 0))
+    designer_button = tk.Button(buttons, text="フォーム作成を開く", state="disabled")
+    designer_button.pack(side="right")
+    tk.Button(buttons, text="閉じる", command=win.destroy).pack(side="left")
+
+    def show_selection(event=None):
+        selection = tree.selection()
+        project = item_projects.get(selection[0]) if selection else None
+        if project is None and selection:
+            children = tree.get_children(selection[0])
+            if children:
+                tree.item(selection[0], open=True)
+                tree.selection_set(children[0])
+                tree.focus(children[0])
+                project = item_projects.get(children[0])
+        selected_project["value"] = project
+        if project is None:
+            return
+        name_label.config(text=project["name"])
+        description.config(text=project["description"])
+        preview.config(state="normal")
+        preview.delete("1.0", tk.END)
+        preview.insert("1.0", project["code"] or "この作品はフォーム作成タブを使います。")
+        preview.config(state="disabled")
+        is_designer = project["kind"] == "designer"
+        load_button.config(state="disabled" if is_designer else "normal")
+        designer_button.config(state="normal" if is_designer else "disabled")
+
+    def load_selected():
+        project = selected_project["value"]
+        if project and load_project_code(project["code"]):
+            win.destroy()
+            if project["kind"] == "guide":
+                messagebox.showinfo("セットアップ案内", "この作品は外部サービスの設定が必要です。コード内のコメントを確認してください。")
+
+    def open_designer():
+        top_notebook.select(tab_designer)
+        win.destroy()
+
+    load_button.config(command=load_selected)
+    designer_button.config(command=open_designer)
+    tree.bind("<<TreeviewSelect>>", show_selection)
+    for category_item in category_items.values():
+        tree.item(category_item, open=True)
+    first_project = next(iter(item_projects), None)
+    if first_project:
+        tree.selection_set(first_project)
+        tree.focus(first_project)
+        show_selection()
 
 def undo_action():
     try:
@@ -353,11 +1098,21 @@ def format_code():
     if not code:
         return
     try:
-        import autopep8
-    except ImportError:
+        venv_python = get_virtualenv_python()
+    except Exception as e:
+        messagebox.showerror("エラー", f"仮想環境を準備できませんでした:\n{e}")
+        return
+    try:
+        availability = subprocess.run([venv_python, "-m", "autopep8", "--version"],
+                                      capture_output=True, text=True, timeout=15)
+    except Exception as e:
+        messagebox.showerror("エラー", f"autopep8 の確認に失敗しました:\n{e}")
+        return
+    if availability.returncode != 0:
         if messagebox.askyesno("確認", "autopep8 がインストールされていません。\nインストールしますか？"):
             try:
-                subprocess.run([sys.executable, "-m", "pip", "install", "autopep8"], check=True, timeout=60)
+                subprocess.run([venv_python, "-m", "pip", "install", "autopep8"],
+                               check=True, capture_output=True, text=True, timeout=60)
             except Exception as e:
                 messagebox.showerror("エラー", f"インストール失敗:\n{e}")
                 return
@@ -367,8 +1122,8 @@ def format_code():
         with tempfile.NamedTemporaryFile(suffix=".py", delete=False, mode="w", encoding="utf-8") as tf:
             tf.write(code)
             tpath = tf.name
-        subprocess.run([sys.executable, "-m", "autopep8", "--in-place", "--aggressive", tpath],
-                       capture_output=True, text=True, timeout=15)
+        subprocess.run([venv_python, "-m", "autopep8", "--in-place", "--aggressive", tpath],
+                       check=True, capture_output=True, text=True, timeout=15)
         with open(tpath, "r", encoding="utf-8") as f:
             formatted = f.read()
         text.delete("1.0", tk.END)
@@ -394,13 +1149,18 @@ def test_python_code():
     code = text.get("1.0", tk.END).strip()
     if not code:
         return
+    try:
+        python_executable = get_virtualenv_python()
+    except Exception as e:
+        messagebox.showerror("エラー", f"仮想環境を準備できませんでした:\n{e}")
+        return
     with tempfile.NamedTemporaryFile(suffix=".py", delete=False, mode="w", encoding="utf-8") as tf:
         tf.write(code)
         tpath = tf.name
 
     def run():
         try:
-            res = subprocess.run([sys.executable, tpath], capture_output=True, text=True, timeout=test_timeout_seconds)
+            res = subprocess.run([python_executable, tpath], capture_output=True, text=True, timeout=test_timeout_seconds)
             error_output = res.stderr.strip() or res.stdout.strip() or f"終了コード: {res.returncode}"
             out = res.stdout if res.returncode == 0 else f"【エラー】\n{error_output}"
             if res.returncode == 0 and not out.strip():
@@ -434,7 +1194,19 @@ def parse_and_install_code_modules():
         'hashlib', 'hmac', 'uuid', 'smtplib', 'imaplib', 'http', 'socket', 'asyncio', 'logging',
         'platform', 'typing', 'dataclasses', 'enum', 'abc', 'copy', 'pprint', 'argparse'
     }
-    target_modules = [m for m in modules if m not in stdlib_set and importlib.util.find_spec(m) is None]
+    candidate_modules = [m for m in modules if m not in stdlib_set]
+    if not candidate_modules:
+        messagebox.showinfo("確認", "追加でインストールが必要な未導入の外部モジュールは見つかりませんでした！")
+        return
+    try:
+        python_executable = get_virtualenv_python()
+        check_script = "import importlib.util, json, sys; names=json.loads(sys.argv[1]); print(json.dumps([name for name in names if importlib.util.find_spec(name) is None]))"
+        result = subprocess.run([python_executable, "-c", check_script, json.dumps(candidate_modules)],
+                                check=True, capture_output=True, text=True, timeout=30)
+        target_modules = json.loads(result.stdout)
+    except Exception as e:
+        messagebox.showerror("エラー", f"仮想環境のモジュール確認に失敗しました:\n{e}")
+        return
     if not target_modules:
         messagebox.showinfo("確認", "追加でインストールが必要な未導入の外部モジュールは見つかりませんでした！")
         return
@@ -466,7 +1238,8 @@ def parse_and_install_code_modules():
         for idx in selected_indices:
             mname = lb.get(idx)
             try:
-                res = subprocess.run([sys.executable, "-m", "pip", "install", mname], capture_output=True, text=True, timeout=90)
+                res = subprocess.run([python_executable, "-m", "pip", "install", mname],
+                                     capture_output=True, text=True, timeout=90)
                 if res.returncode == 0:
                     success_list.append(mname)
                 else:
@@ -484,7 +1257,7 @@ def parse_and_install_code_modules():
 
 # ==================== メインUI ====================
 root = tk.Tk()
-root.title("Python工房 - コード編集とフォーム作成")
+root.title("Python Studio - Code & Form Designer")
 
 original_showerror = messagebox.showerror
 
@@ -543,6 +1316,7 @@ def add_btn(parent, text, cmd, bg="#333333", fg="white"):
     return b
 
 add_btn(top_btn_frame, "📄 新規", new_file, "#495057")
+add_btn(top_btn_frame, "🧩 作品一覧", open_project_catalog, "#0f766e")
 add_btn(top_btn_frame, "📂 開く", open_file, "#495057")
 add_btn(top_btn_frame, "💾 保存", quick_save, "#0d6efd")
 add_btn(top_btn_frame, "✨ 自動整形", format_code, "#6c757d")
@@ -1261,23 +2035,69 @@ def generate_code_from_designer():
     else:
         geometry_code = f"root.geometry('{form_window_width}x{form_window_height}+{form_pos_x}+{form_pos_y}')"
 
+    actions = {
+        comp["action"] for comp in designer_components
+        if comp["type"] == "Button"
+    }
+    browser_actions = {
+        "open_url", "open_x", "open_abema", "google_search",
+        "youtube_search", "google_translate", "google_maps",
+    }
+    needs_browser = bool(actions & browser_actions)
+    browser_configs = {
+        (comp.get("browser_choice", "既定のブラウザ"), comp.get("browser_window_mode", "最大化"))
+        for comp in designer_components
+        if comp["type"] == "Button" and comp["action"] in browser_actions
+    }
+    simple_browser = browser_configs == {("既定のブラウザ", "最大化")}
+    imports = ["import tkinter as tk"]
+    if actions & {
+        "copy_file", "copy_folder", "move_file", "delete_file",
+        "create_folder", "create_text_file", "open_folder",
+        "open_file_default", "open_desktop", "open_documents",
+        "open_downloads", "open_explorer", "open_notepad", "open_calc",
+        "open_terminal",
+    } or needs_browser:
+        imports.append("import os")
+    if actions & {
+        "copy_file", "copy_folder", "move_file", "delete_file",
+        "create_folder", "create_text_file", "show_msg", "ask_yesno",
+        "copy_clipboard", "copy_time", "show_time", "random_num",
+        "dice_roll", "omikuji", "gen_password",
+    } or needs_browser:
+        imports.append("from tkinter import messagebox")
+    if actions & {
+        "move_file", "delete_file", "create_folder", "create_text_file",
+        "open_folder", "open_file_default",
+    }:
+        imports.append("from tkinter import filedialog")
+    if actions & {"copy_file", "copy_folder", "move_file"} or (needs_browser and not simple_browser):
+        imports.append("import shutil")
+    if actions & {
+        "open_folder", "open_file_default", "open_explorer", "open_notepad",
+        "open_calc", "open_terminal",
+    } or (needs_browser and not simple_browser):
+        imports.append("import subprocess")
+    if needs_browser:
+        imports.append("import webbrowser")
+        if not simple_browser:
+            imports.append("import time")
+    if actions & {"google_search", "youtube_search", "google_translate", "google_maps"}:
+        imports.append("import urllib.parse")
+    if actions & {"copy_time", "show_time"}:
+        imports.append("import datetime")
+    if actions & {"random_num", "dice_roll", "omikuji", "gen_password"}:
+        imports.append("import random")
+    if "beep" in actions:
+        imports.extend([
+            "try:",
+            "    import winsound",
+            "except ImportError:",
+            "    winsound = None",
+        ])
+
     code = [
-        "import tkinter as tk",
-        "from tkinter import messagebox, filedialog",
-        "import webbrowser",
-        "import datetime",
-        "import random",
-        "import time",
-        "import urllib.parse",
-        "import subprocess",
-        "import os",
-        "import shutil",
-        "import platform",
-        "",
-        "try:",
-        "    import winsound",
-        "except ImportError:",
-        "    winsound = None",
+        *imports,
         "",
         "root = tk.Tk()",
         "root.title('作成したフォームアプリ')",
@@ -1407,6 +2227,35 @@ def generate_code_from_designer():
         ""
     ]
 
+    browser_start = code.index("def open_browser(url, browser_choice, browser_window_mode):")
+    browser_end = code.index("", browser_start)
+    if not needs_browser:
+        del code[browser_start:browser_end + 1]
+    elif simple_browser:
+        code[browser_start:browser_end + 1] = [
+            "def open_browser(url):",
+            "    try:",
+            "        root.iconify()",
+            "        if os.name == 'nt':",
+            "            import ctypes",
+            "            shell_execute = ctypes.windll.shell32.ShellExecuteW",
+            "            shell_execute.argtypes = [ctypes.c_void_p, ctypes.c_wchar_p, ctypes.c_wchar_p, ctypes.c_wchar_p, ctypes.c_wchar_p, ctypes.c_int]",
+            "            shell_execute.restype = ctypes.c_void_p",
+            "            result = shell_execute(None, 'open', url, None, None, 3)",
+            "            if not result or result <= 32:",
+            "                raise OSError('ブラウザを起動できませんでした。')",
+            "        elif not webbrowser.open(url, new=2):",
+            "            raise RuntimeError('ブラウザを起動できませんでした。')",
+            "        return True",
+            "    except Exception as e:",
+            "        root.deiconify()",
+            "        root.lift()",
+            "        root.focus_force()",
+            "        messagebox.showerror('ブラウザ起動エラー', str(e), parent=root)",
+            "        return False",
+            "",
+        ]
+
     for i, comp in enumerate(designer_components):
         w = comp["wrapper"]
         x, y = w.winfo_x(), w.winfo_y()
@@ -1416,6 +2265,7 @@ def generate_code_from_designer():
         destination_path = comp.get("destination_path", "").strip()
         browser_choice = comp.get("browser_choice", "既定のブラウザ")
         browser_window_mode = comp.get("browser_window_mode", "最大化")
+        browser_call_args = "" if simple_browser else f", {browser_choice!r}, {browser_window_mode!r}"
         bg, fg, f_size = comp["bg_color"], comp["fg_color"], comp["font_size"]
         font_str = f"('Meiryo UI', {f_size})"
 
@@ -1522,27 +2372,27 @@ def generate_code_from_designer():
                     code.append("    else:")
                     code.append("        subprocess.Popen(['xdg-open', os.path.expanduser('~')])")
                 elif act == "open_url":
-                    code.append(f"    if not open_browser({(param or 'https://www.google.com')!r}, {browser_choice!r}, {browser_window_mode!r}): return")
+                    code.append(f"    if not open_browser({(param or 'https://www.google.com')!r}{browser_call_args}): return")
                 elif act == "open_x":
-                    code.append(f"    if not open_browser('https://x.com/', {browser_choice!r}, {browser_window_mode!r}): return")
+                    code.append(f"    if not open_browser('https://x.com/'{browser_call_args}): return")
                 elif act == "open_abema":
-                    code.append(f"    if not open_browser('https://abema.tv/', {browser_choice!r}, {browser_window_mode!r}): return")
+                    code.append(f"    if not open_browser('https://abema.tv/'{browser_call_args}): return")
                 elif act == "google_search":
-                    code.append(f"    if not open_browser(f'https://www.google.com/search?q={{urllib.parse.quote(\"{param or ''}\")}}', {browser_choice!r}, {browser_window_mode!r}): return")
+                    code.append(f"    if not open_browser('https://www.google.com/search?q=' + urllib.parse.quote({param!r}){browser_call_args}): return")
                 elif act == "youtube_search":
-                    code.append(f"    if not open_browser(f'https://www.youtube.com/results?search_query={{urllib.parse.quote(\"{param or ''}\")}}', {browser_choice!r}, {browser_window_mode!r}): return")
+                    code.append(f"    if not open_browser('https://www.youtube.com/results?search_query=' + urllib.parse.quote({param!r}){browser_call_args}): return")
                 elif act == "google_translate":
-                    code.append(f"    if not open_browser(f'https://translate.google.co.jp/?hl=ja&sl=auto&tl=ja&text={{urllib.parse.quote(\"{param or ''}\")}}', {browser_choice!r}, {browser_window_mode!r}): return")
+                    code.append(f"    if not open_browser('https://translate.google.co.jp/?hl=ja&sl=auto&tl=ja&text=' + urllib.parse.quote({param!r}){browser_call_args}): return")
                 elif act == "google_maps":
-                    code.append(f"    if not open_browser(f'https://www.google.com/maps/search/{{urllib.parse.quote(\"{param or ''}\")}}', {browser_choice!r}, {browser_window_mode!r}): return")
+                    code.append(f"    if not open_browser('https://www.google.com/maps/search/' + urllib.parse.quote({param!r}){browser_call_args}): return")
                 elif act == "show_msg":
-                    code.append(f"    messagebox.showinfo('通知', '{param or 'こんにちは！'}')")
+                    code.append(f"    messagebox.showinfo('通知', {(param or 'こんにちは！')!r})")
                 elif act == "ask_yesno":
-                    code.append(f"    res = messagebox.askyesno('確認', '{param or '実行しますか？'}')")
+                    code.append(f"    res = messagebox.askyesno('確認', {(param or '実行しますか？')!r})")
                     code.append("    messagebox.showinfo('結果', f'選択結果: {res}')")
                 elif act == "copy_clipboard":
                     code.append("    root.clipboard_clear()")
-                    code.append(f"    root.clipboard_append('{param or ''}')")
+                    code.append(f"    root.clipboard_append({param!r})")
                     code.append("    messagebox.showinfo('コピー', 'クリップボードにコピーしました')")
                 elif act == "copy_time":
                     code.append("    now = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')")
@@ -1592,13 +2442,13 @@ def generate_code_from_designer():
             else:
                 cmd_str = ""
 
-            code.append(f"btn_{i} = tk.Button(root, text='{label_text}', bg='{bg}', fg='{fg}', font={font_str}{cmd_str})")
+            code.append(f"btn_{i} = tk.Button(root, text={label_text!r}, bg={bg!r}, fg={fg!r}, font={font_str}{cmd_str})")
             code.append(f"btn_{i}.place(x={x}, y={y}, width={width}, height={height})")
         elif ctype == "Label":
-            code.append(f"lbl_{i} = tk.Label(root, text='{label_text}', bg='{bg}', fg='{fg}', font={font_str})")
+            code.append(f"lbl_{i} = tk.Label(root, text={label_text!r}, bg={bg!r}, fg={fg!r}, font={font_str})")
             code.append(f"lbl_{i}.place(x={x}, y={y}, width={width}, height={height})")
         elif ctype == "Entry":
-            code.append(f"ent_{i} = tk.Entry(root, bg='{bg}', fg='{fg}', font={font_str})")
+            code.append(f"ent_{i} = tk.Entry(root, bg={bg!r}, fg={fg!r}, font={font_str})")
             code.append(f"ent_{i}.place(x={x}, y={y}, width={width}, height={height})")
 
     code.extend(["", "root.mainloop()"])
@@ -1615,25 +2465,26 @@ def generate_code_from_designer():
     messagebox.showinfo("生成完了", "フォームのコードでエディター内容を置き換えました！\nファイル操作系は実行時に選択画面が出ます。")
 
 # ツールバーボタン
-tk.Button(designer_toolbar, text="＋ ボタン", command=lambda: add_component("Button"),
-          bg="#1769aa", fg="white", activebackground="#12558a", activeforeground="white",
-          relief="flat", font=("Meiryo UI", 9, "bold"), padx=10, pady=6, cursor="hand2").pack(side="left", padx=3)
-tk.Button(designer_toolbar, text="＋ ラベル", command=lambda: add_component("Label"),
-          bg="#0f766e", fg="white", activebackground="#0b5c56", activeforeground="white",
-          relief="flat", font=("Meiryo UI", 9, "bold"), padx=10, pady=6, cursor="hand2").pack(side="left", padx=3)
-tk.Button(designer_toolbar, text="＋ 入力欄", command=lambda: add_component("Entry"),
-          bg="#3a7d44", fg="white", activebackground="#2d6335", activeforeground="white",
-          relief="flat", font=("Meiryo UI", 9, "bold"), padx=10, pady=6, cursor="hand2").pack(side="left", padx=3)
-tk.Button(designer_toolbar, text="⚙ ウィンドウ位置", command=open_window_position_dialog,
-          bg="#6610f2", fg="white", relief="flat", font=("Meiryo UI", 9, "bold")).pack(side="left", padx=8)
-tk.Button(designer_toolbar, text="⚙ 詳細設定", command=lambda: open_properties_dialog(selected_component) if selected_component else messagebox.showwarning("注意", "部品を選んでください"),
-          bg="#ffc107", fg="#000", relief="flat", font=("Meiryo UI", 9, "bold")).pack(side="left", padx=2)
-tk.Button(designer_toolbar, text="🗑 削除", command=delete_component,
-          bg="#dc3545", fg="white", relief="flat", font=("Meiryo UI", 9)).pack(side="left", padx=8)
-tk.Button(designer_toolbar, text="🧹 全消去", command=clear_designer,
-          bg="#6c757d", fg="white", relief="flat", font=("Meiryo UI", 9)).pack(side="left", padx=2)
-tk.Button(designer_toolbar, text="📝 コード生成して転送", command=generate_code_from_designer,
-          bg="#0d6efd", fg="white", relief="flat", font=("Meiryo UI", 9, "bold")).pack(side="left", padx=2)
+def add_designer_toolbar_button(label, command, bg, fg="white", active_bg=None):
+    options = {
+        "text": label, "command": command, "bg": bg, "fg": fg,
+        "relief": "flat", "font": ("Meiryo UI", 9, "bold"),
+        "width": 12, "height": 2, "wraplength": 100,
+        "padx": 6, "pady": 5, "cursor": "hand2",
+    }
+    if active_bg:
+        options["activebackground"] = active_bg
+        options["activeforeground"] = fg
+    tk.Button(designer_toolbar, **options).pack(side="left", padx=3)
+
+add_designer_toolbar_button("＋ ボタン", lambda: add_component("Button"), "#1769aa", active_bg="#12558a")
+add_designer_toolbar_button("＋ ラベル", lambda: add_component("Label"), "#0f766e", active_bg="#0b5c56")
+add_designer_toolbar_button("＋ 入力欄", lambda: add_component("Entry"), "#3a7d44", active_bg="#2d6335")
+add_designer_toolbar_button("⚙ ウィンドウ位置", open_window_position_dialog, "#6610f2")
+add_designer_toolbar_button("⚙ 詳細設定", lambda: open_properties_dialog(selected_component) if selected_component else messagebox.showwarning("注意", "部品を選んでください"), "#ffc107", fg="#000")
+add_designer_toolbar_button("🗑 削除", delete_component, "#dc3545")
+add_designer_toolbar_button("🧹 全消去", clear_designer, "#6c757d")
+add_designer_toolbar_button("📝 コード生成して転送", generate_code_from_designer, "#0d6efd")
 
 
 # ---------- タブ4：ツール ----------
@@ -1643,6 +2494,8 @@ tk.Label(tools_frame, text="🛠 開発環境およびツール管理",
          font=("Meiryo UI", 12, "bold"), bg=THEMES[current_theme]['bg'],
          fg=THEMES[current_theme]['text_fg']).pack(anchor="w", pady=(0, 10))
 tk.Label(tools_frame, text=f"Python 実行パス: {sys.executable}", font=("Consolas", 9),
+         bg=THEMES[current_theme]['bg'], fg=THEMES[current_theme]['text_fg']).pack(anchor="w", pady=2)
+tk.Label(tools_frame, text=f"モジュール用仮想環境: {get_virtualenv_path()}", font=("Consolas", 9),
          bg=THEMES[current_theme]['bg'], fg=THEMES[current_theme]['text_fg']).pack(anchor="w", pady=2)
 tk.Label(tools_frame, text=f"設定保存フォルダ: {SETTINGS_FOLDER}", font=("Consolas", 9),
          bg=THEMES[current_theme]['bg'], fg=THEMES[current_theme]['text_fg']).pack(anchor="w", pady=2)
@@ -1664,7 +2517,9 @@ def install_custom_module():
         messagebox.showwarning("注意", "インストールするモジュール名を入力してください。")
         return
     try:
-        res = subprocess.run([sys.executable, "-m", "pip", "install", mname], capture_output=True, text=True, timeout=90)
+        python_executable = get_virtualenv_python()
+        res = subprocess.run([python_executable, "-m", "pip", "install", mname],
+                             capture_output=True, text=True, timeout=90)
         if res.returncode == 0:
             messagebox.showinfo("インストール成功", f"モジュール '{mname}' のインストールが完了しました！")
         else:
@@ -1675,6 +2530,44 @@ def install_custom_module():
 tk.Button(mod_frame, text="pip install 実行", command=install_custom_module,
           bg="#198754", fg="white", relief="flat", font=("Meiryo UI", 9, "bold"),
           padx=10, pady=4).pack(side="left", padx=15)
+
+def open_settings_dialog():
+    dialog = tk.Toplevel(root)
+    dialog.title("設定")
+    dialog.resizable(False, False)
+    dialog.transient(root)
+    dialog.grab_set()
+
+    timeout_value = tk.StringVar(value=str(test_timeout_seconds))
+    content = tk.Frame(dialog, padx=20, pady=18)
+    content.pack(fill="both", expand=True)
+    tk.Label(content, text="テストランのタイムアウト", font=("Meiryo UI", 10, "bold")).grid(
+        row=0, column=0, sticky="w", padx=(0, 12), pady=6
+    )
+    ttk.Spinbox(content, from_=1, to=3600, increment=1, textvariable=timeout_value,
+                width=8).grid(row=0, column=1, sticky="w", pady=6)
+    tk.Label(content, text="秒（1〜3600秒）").grid(row=0, column=2, sticky="w", padx=(6, 0))
+
+    def save_timeout_setting():
+        global test_timeout_seconds
+        try:
+            timeout = int(timeout_value.get())
+        except ValueError:
+            messagebox.showerror("入力エラー", "タイムアウトは整数で入力してください。", parent=dialog)
+            return
+        if not 1 <= timeout <= 3600:
+            messagebox.showerror("入力エラー", "1〜3600秒の範囲で入力してください。", parent=dialog)
+            return
+        test_timeout_seconds = timeout
+        save_settings()
+        dialog.destroy()
+        messagebox.showinfo("設定", f"テストランのタイムアウトを{timeout}秒に設定しました。", parent=root)
+
+    buttons = tk.Frame(content)
+    buttons.grid(row=1, column=0, columnspan=3, sticky="e", pady=(12, 0))
+    ttk.Button(buttons, text="キャンセル", command=dialog.destroy).pack(side="right", padx=(6, 0))
+    ttk.Button(buttons, text="保存", command=save_timeout_setting).pack(side="right")
+    dialog.bind("<Return>", lambda event: save_timeout_setting())
 
 
 # メニューバー
@@ -1697,6 +2590,10 @@ edit_menu.add_command(label="検索 (Ctrl+F)", command=open_search_dialog)
 edit_menu.add_command(label="全選択 (Ctrl+A)", command=select_all)
 menubar.add_cascade(label="編集", menu=edit_menu)
 
+settings_menu = tk.Menu(menubar, tearoff=0)
+settings_menu.add_command(label="テストランのタイムアウト...", command=open_settings_dialog)
+menubar.add_cascade(label="設定", menu=settings_menu)
+
 root.config(menu=menubar)
 
 apply_theme(current_theme)
@@ -1704,3 +2601,4 @@ update_line_numbers()
 update_status_bar()
 root.protocol("WM_DELETE_WINDOW", safe_exit)
 root.mainloop()
+
