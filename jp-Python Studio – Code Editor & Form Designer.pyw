@@ -1914,6 +1914,12 @@ top_notebook.pack(expand=True, fill="both", padx=6, pady=6)
 tab_editor = ttk.Frame(top_notebook)
 top_notebook.add(tab_editor, text="📝 コードエディター")
 
+tab_samples = ttk.Frame(top_notebook)
+top_notebook.add(tab_samples, text="🧩 サンプル一覧")
+
+tab_hotkey = ttk.Frame(top_notebook)
+top_notebook.add(tab_hotkey, text="⌨ ホットキー作成")
+
 tab_designer = ttk.Frame(top_notebook)
 top_notebook.add(tab_designer, text="🎨 フォーム作成")
 
@@ -1932,8 +1938,6 @@ def add_btn(parent, text, cmd, bg="#333333", fg="white"):
     return b
 
 add_btn(top_btn_frame, "📄 新規", new_file, "#495057")
-add_btn(top_btn_frame, "🧩 作品一覧", open_project_catalog, "#0f766e")
-add_btn(top_btn_frame, "⌨ ホットキー作成", open_hotkey_builder, "#1769aa")
 add_btn(top_btn_frame, "📂 開く", open_file, "#495057")
 add_btn(top_btn_frame, "💾 保存", quick_save, "#0d6efd")
 add_btn(top_btn_frame, "✨ 自動整形", format_code, "#6c757d")
@@ -1995,7 +1999,756 @@ root.bind("<Control-z>", lambda e: undo_action())
 root.bind("<Control-y>", lambda e: redo_action())
 
 
-# ---------- タブ2：ビジュアルフォーム作成 ----------
+# ---------- タブ2：サンプル一覧 ----------
+samples_content = tk.Frame(tab_samples, padx=12, pady=12)
+samples_content.pack(fill="both", expand=True)
+tk.Label(samples_content, text="作りたいものを選んでください", font=("Meiryo UI", 15, "bold")).pack(anchor="w", pady=(0, 10))
+samples_body = tk.Frame(samples_content)
+samples_body.pack(fill="both", expand=True)
+samples_tree = ttk.Treeview(samples_body, show="tree", selectmode="browse")
+samples_tree.column("#0", width=250, minwidth=200, stretch=False)
+samples_tree.pack(side="left", fill="y")
+samples_tree_scroll = ttk.Scrollbar(samples_body, orient="vertical", command=samples_tree.yview)
+samples_tree_scroll.pack(side="left", fill="y")
+samples_tree.configure(yscrollcommand=samples_tree_scroll.set)
+
+samples_details = tk.Frame(samples_body, padx=14)
+samples_details.pack(side="left", fill="both", expand=True)
+samples_name_label = tk.Label(samples_details, text="作品を選択してください", anchor="w", font=("Meiryo UI", 13, "bold"))
+samples_name_label.pack(fill="x", pady=(0, 6))
+samples_description = tk.Label(samples_details, text="", anchor="nw", justify="left", wraplength=580)
+samples_description.pack(fill="x", pady=(0, 8))
+samples_preview = tk.Text(samples_details, wrap="word", height=18, font=("Consolas", 9), state="disabled")
+samples_preview.pack(fill="both", expand=True)
+
+samples_item_projects = {}
+samples_category_items = {}
+for project in PROJECT_EXAMPLES:
+    category = project["category"]
+    if category not in samples_category_items:
+        samples_category_items[category] = samples_tree.insert("", "end", text=category, open=True)
+    item = samples_tree.insert(samples_category_items[category], "end", text=project["name"])
+    samples_item_projects[item] = project
+
+samples_selected_project = {"value": None}
+samples_buttons = tk.Frame(samples_content)
+samples_buttons.pack(fill="x", pady=(10, 0))
+samples_load_button = tk.Button(samples_buttons, text="コードをエディターに読み込む", state="disabled")
+samples_load_button.pack(side="right", padx=(6, 0))
+samples_designer_button = tk.Button(samples_buttons, text="フォーム作成を開く", state="disabled")
+samples_designer_button.pack(side="right")
+
+def samples_show_selection(event=None):
+    selection = samples_tree.selection()
+    project = samples_item_projects.get(selection[0]) if selection else None
+    if project is None and selection:
+        children = samples_tree.get_children(selection[0])
+        if children:
+            samples_tree.item(selection[0], open=True)
+            samples_tree.selection_set(children[0])
+            samples_tree.focus(children[0])
+            project = samples_item_projects.get(children[0])
+    samples_selected_project["value"] = project
+    if project is None:
+        return
+    samples_name_label.config(text=project["name"])
+    samples_description.config(text=project["description"])
+    samples_preview.config(state="normal")
+    samples_preview.delete("1.0", tk.END)
+    samples_preview.insert("1.0", project["code"] or "この作品はフォーム作成タブを使います。")
+    samples_preview.config(state="disabled")
+    is_designer = project["kind"] == "designer"
+    samples_load_button.config(state="disabled" if is_designer else "normal")
+    samples_designer_button.config(state="normal" if is_designer else "disabled")
+
+def samples_load_selected():
+    project = samples_selected_project["value"]
+    if project and load_project_code(project["code"]):
+        if project["kind"] == "guide":
+            messagebox.showinfo("セットアップ案内", "この作品は外部サービスの設定が必要です。コード内のコメントを確認してください。")
+
+def samples_open_designer():
+    top_notebook.select(tab_designer)
+
+samples_load_button.config(command=samples_load_selected)
+samples_designer_button.config(command=samples_open_designer)
+samples_tree.bind("<<TreeviewSelect>>", samples_show_selection)
+for category_item in samples_category_items.values():
+    samples_tree.item(category_item, open=True)
+first_project = next(iter(samples_item_projects), None)
+if first_project:
+    samples_tree.selection_set(first_project)
+    samples_tree.focus(first_project)
+    samples_show_selection()
+
+
+# ---------- タブ3：ホットキー作成 ----------
+hotkey_content = tk.Frame(tab_hotkey, padx=14, pady=12)
+hotkey_content.pack(fill="both", expand=True)
+tk.Label(hotkey_content, text="ホットキーとボタンの動作を登録", font=("Meiryo UI", 14, "bold")).pack(anchor="w")
+
+hotkey_settings = tk.Frame(hotkey_content)
+hotkey_settings.pack(fill="x", pady=(10, 8))
+tk.Label(hotkey_settings, text="ウィンドウ名").pack(side="left")
+hotkey_title_value = tk.StringVar(value="かんたんホットキー")
+ttk.Entry(hotkey_settings, textvariable=hotkey_title_value, width=24).pack(side="left", padx=(6, 16))
+tk.Label(hotkey_settings, text="幅").pack(side="left")
+hotkey_width_value = tk.StringVar(value="240")
+ttk.Entry(hotkey_settings, textvariable=hotkey_width_value, width=7).pack(side="left", padx=6)
+tk.Label(hotkey_settings, text="高さ").pack(side="left")
+hotkey_height_value = tk.StringVar(value="420")
+ttk.Entry(hotkey_settings, textvariable=hotkey_height_value, width=7).pack(side="left", padx=6)
+tk.Label(hotkey_settings, text="アイコン操作").pack(side="left", padx=(10, 4))
+hotkey_tray_click_value = tk.StringVar(value="double")
+ttk.Combobox(hotkey_settings, textvariable=hotkey_tray_click_value,
+             values=("シングルクリックで終了", "ダブルクリックで終了"),
+             state="readonly", width=22).pack(side="left")
+if hotkey_tray_click_value.get() not in ("シングルクリックで終了", "ダブルクリックで終了"):
+    hotkey_tray_click_value.set("ダブルクリックで終了")
+
+hotkey_icon_settings = tk.Frame(hotkey_content)
+hotkey_icon_settings.pack(fill="x", pady=(0, 8))
+tk.Label(hotkey_icon_settings, text="トレイアイコン").pack(side="left")
+hotkey_tray_icon_style_value = tk.StringVar(value="オリジナル（H）")
+hotkey_icon_style_options = ("オリジナル（H）", "情報", "警告", "エラー", "ICOファイル")
+if hotkey_tray_icon_style_value.get() not in hotkey_icon_style_options:
+    hotkey_tray_icon_style_value.set(hotkey_icon_style_options[0])
+ttk.Combobox(hotkey_icon_settings, textvariable=hotkey_tray_icon_style_value,
+             values=hotkey_icon_style_options, state="readonly", width=17).pack(side="left", padx=6)
+hotkey_tray_icon_path_value = tk.StringVar(value="")
+ttk.Entry(hotkey_icon_settings, textvariable=hotkey_tray_icon_path_value, state="readonly").pack(
+    side="left", fill="x", expand=True, padx=6
+)
+
+def hotkey_choose_tray_icon():
+    selected_path = filedialog.askopenfilename(
+        title="トレイアイコンを選択", filetypes=[("アイコンファイル", "*.ico")]
+    )
+    if selected_path:
+        hotkey_tray_icon_path_value.set(selected_path)
+        hotkey_tray_icon_style_value.set("ICOファイル")
+
+ttk.Button(hotkey_icon_settings, text="ICOを選択...", command=hotkey_choose_tray_icon).pack(side="left")
+
+hotkey_body = tk.Frame(hotkey_content)
+hotkey_body.pack(fill="both", expand=True)
+hotkey_columns = ("shortcut", "button", "kind", "target")
+hotkey_table = ttk.Treeview(hotkey_body, columns=hotkey_columns, show="headings", height=9, selectmode="browse")
+for column, label, width in (("shortcut", "ホットキー", 125), ("button", "ボタン名", 145), ("kind", "動作", 145), ("target", "内容", 400)):
+    hotkey_table.heading(column, text=label)
+    hotkey_table.column(column, width=width, minwidth=70, stretch=column == "target")
+hotkey_table.pack(side="left", fill="both", expand=True)
+hotkey_table_scroll = ttk.Scrollbar(hotkey_body, orient="vertical", command=hotkey_table.yview)
+hotkey_table_scroll.pack(side="right", fill="y")
+hotkey_table.configure(yscrollcommand=hotkey_table_scroll.set)
+
+hotkey_form = tk.LabelFrame(hotkey_content, text="動作の追加・編集", padx=10, pady=8)
+hotkey_form.pack(fill="x", pady=(10, 4))
+hotkey_shortcut_value = tk.StringVar()
+hotkey_button_value = tk.StringVar()
+hotkey_kind_value = tk.StringVar(value="URLを開く")
+hotkey_target_value = tk.StringVar()
+hotkey_wait_value = tk.StringVar(value="0")
+hotkey_followup_value = tk.StringVar()
+
+tk.Label(hotkey_form, text="キー (例: Alt+a)").grid(row=0, column=0, sticky="w", padx=4, pady=3)
+ttk.Entry(hotkey_form, textvariable=hotkey_shortcut_value, width=20).grid(row=0, column=1, sticky="ew", padx=4, pady=3)
+tk.Label(hotkey_form, text="ボタン名 (任意)").grid(row=0, column=2, sticky="w", padx=4, pady=3)
+ttk.Entry(hotkey_form, textvariable=hotkey_button_value, width=24).grid(row=0, column=3, sticky="ew", padx=4, pady=3)
+tk.Label(hotkey_form, text="動作").grid(row=1, column=0, sticky="w", padx=4, pady=3)
+hotkey_kind_menu = ttk.Combobox(hotkey_form, textvariable=hotkey_kind_value, values=("URLを開く", "アプリ/ファイル起動", "キー送信", "コマンド実行"), state="readonly", width=18)
+hotkey_kind_menu.grid(row=1, column=1, sticky="ew", padx=4, pady=3)
+tk.Label(hotkey_form, text="URL / パス / キー / コマンド").grid(row=1, column=2, sticky="w", padx=4, pady=3)
+ttk.Entry(hotkey_form, textvariable=hotkey_target_value).grid(row=1, column=3, sticky="ew", padx=4, pady=3)
+tk.Label(hotkey_form, text="実行後に待つ秒数").grid(row=2, column=0, sticky="w", padx=4, pady=3)
+ttk.Entry(hotkey_form, textvariable=hotkey_wait_value, width=10).grid(row=2, column=1, sticky="w", padx=4, pady=3)
+tk.Label(hotkey_form, text="待機後に送るキー (任意)").grid(row=2, column=2, sticky="w", padx=4, pady=3)
+ttk.Entry(hotkey_form, textvariable=hotkey_followup_value).grid(row=2, column=3, sticky="ew", padx=4, pady=3)
+hotkey_form.columnconfigure(1, weight=1)
+hotkey_form.columnconfigure(3, weight=2)
+tk.Label(hotkey_content, text="キー送信の例: Ctrl+w、Alt+F4、Left。キー欄を空にするとボタンだけで実行します。", anchor="w").pack(fill="x", pady=(2, 4))
+
+hotkey_actions = []
+
+def hotkey_load_from_code():
+    code = text.get("1.0", tk.END)
+    if not code.strip():
+        return False
+    
+    import re
+    actions_match = re.search(r'ACTIONS\s*=\s*(\[.*?\])', code, re.DOTALL)
+    if not actions_match:
+        return False
+    
+    try:
+        actions_data = json.loads(actions_match.group(1))
+        if not isinstance(actions_data, list):
+            return False
+        
+        global hotkey_actions
+        hotkey_actions = []
+        for item in actions_data:
+            if not isinstance(item, dict):
+                continue
+            try:
+                wait_seconds = float(item.get("wait", 0))
+            except (TypeError, ValueError):
+                continue
+            if not 0 <= wait_seconds <= 3600:
+                continue
+            hotkey_actions.append({
+                "shortcut": str(item.get("shortcut", "")), "button": str(item.get("button", "")),
+                "kind": str(item.get("kind", "URLを開く")), "target": str(item.get("target", "")),
+                "wait": wait_seconds, "followup": str(item.get("followup", ""))
+            })
+        
+        title_match = re.search(r'WINDOW_TITLE\s*=\s*[\'"]([^\'"]+)[\'"]', code)
+        if title_match:
+            hotkey_title_value.set(title_match.group(1))
+        
+        width_match = re.search(r'WINDOW_WIDTH\s*=\s*(\d+)', code)
+        if width_match:
+            hotkey_width_value.set(width_match.group(1))
+        
+        height_match = re.search(r'WINDOW_HEIGHT\s*=\s*(\d+)', code)
+        if height_match:
+            hotkey_height_value.set(height_match.group(1))
+        
+        tray_exit_match = re.search(r'TRAY_EXIT_ON\s*=\s*[\'"]([^\'"]+)[\'"]', code)
+        if tray_exit_match:
+            exit_value = tray_exit_match.group(1)
+            if exit_value == "single":
+                hotkey_tray_click_value.set("シングルクリックで終了")
+            else:
+                hotkey_tray_click_value.set("ダブルクリックで終了")
+        
+        tray_style_match = re.search(r'TRAY_ICON_STYLE\s*=\s*[\'"]([^\'"]+)[\'"]', code)
+        if tray_style_match:
+            style = tray_style_match.group(1)
+            if style in hotkey_icon_style_options:
+                hotkey_tray_icon_style_value.set(style)
+        
+        tray_path_match = re.search(r'TRAY_ICON_PATH\s*=\s*[\'"]([^\'"]+)[\'"]', code)
+        if tray_path_match:
+            hotkey_tray_icon_path_value.set(tray_path_match.group(1))
+        
+        return True
+    except (json.JSONDecodeError, ValueError):
+        return False
+
+def hotkey_load_from_code_with_ui():
+    if hotkey_load_from_code():
+        hotkey_refresh_table()
+        hotkey_clear_form()
+        messagebox.showinfo("読み込み完了", f"{len(hotkey_actions)}件のホットキー設定を読み込みました。")
+    else:
+        messagebox.showerror("エラー", "コード内にACTIONS設定が見つかりませんでした。")
+
+def hotkey_configuration_data():
+    return {"title": hotkey_title_value.get(), "width": hotkey_width_value.get(),
+            "height": hotkey_height_value.get(), "tray_click_exit": hotkey_tray_click_value.get(),
+            "tray_icon_style": hotkey_tray_icon_style_value.get(),
+            "tray_icon_path": hotkey_tray_icon_path_value.get(),
+            "actions": hotkey_actions}
+
+def hotkey_persist_configuration():
+    path = get_settings_path(HOTKEY_BUILDER_SETTINGS_FILE)
+    try:
+        with open(path, "w", encoding="utf-8") as config_file:
+            json.dump(hotkey_configuration_data(), config_file, ensure_ascii=False, indent=2)
+    except OSError as error:
+        messagebox.showerror("設定保存エラー", str(error))
+
+def hotkey_save_configuration_as():
+    path = filedialog.asksaveasfilename(
+        title="ホットキー設定を保存", defaultextension=".json",
+        filetypes=[("JSON設定", "*.json"), ("すべてのファイル", "*.*")]
+    )
+    if not path:
+        return
+    try:
+        with open(path, "w", encoding="utf-8") as config_file:
+            json.dump(hotkey_configuration_data(), config_file, ensure_ascii=False, indent=2)
+        hotkey_persist_configuration()
+        messagebox.showinfo("設定保存", "設定を保存しました。")
+    except OSError as error:
+        messagebox.showerror("設定保存エラー", str(error))
+
+def hotkey_load_configuration():
+    path = filedialog.askopenfilename(
+        title="ホットキー設定を読み込み", filetypes=[("JSON設定", "*.json"), ("すべてのファイル", "*.*")]
+    )
+    if not path:
+        return
+    try:
+        with open(path, "r", encoding="utf-8") as config_file:
+            loaded = json.load(config_file)
+        if not isinstance(loaded, dict) or not isinstance(loaded.get("actions"), list):
+            raise ValueError("設定ファイルの形式が正しくありません。")
+        loaded_actions = loaded["actions"]
+        normalized_actions = []
+        for item in loaded_actions:
+            if not isinstance(item, dict):
+                raise ValueError("動作一覧の形式が正しくありません。")
+            wait_seconds = float(item.get("wait", 0))
+            if not 0 <= wait_seconds <= 3600:
+                raise ValueError("待ち時間は0から3600秒の範囲で指定してください。")
+            normalized_actions.append({
+                "shortcut": str(item.get("shortcut", "")), "button": str(item.get("button", "")),
+                "kind": str(item.get("kind", "URLを開く")), "target": str(item.get("target", "")),
+                "wait": wait_seconds, "followup": str(item.get("followup", ""))
+            })
+        hotkey_actions[:] = normalized_actions
+        hotkey_title_value.set(str(loaded.get("title", "かんたんホットキー")))
+        hotkey_width_value.set(str(loaded.get("width", 240)))
+        hotkey_height_value.set(str(loaded.get("height", 420)))
+        hotkey_tray_click_value.set(loaded.get("tray_click_exit", "ダブルクリックで終了"))
+        if hotkey_tray_click_value.get() not in ("シングルクリックで終了", "ダブルクリックで終了"):
+            hotkey_tray_click_value.set("ダブルクリックで終了")
+        hotkey_tray_icon_style_value.set(loaded.get("tray_icon_style", "オリジナル（H）"))
+        if hotkey_tray_icon_style_value.get() not in hotkey_icon_style_options:
+            hotkey_tray_icon_style_value.set(hotkey_icon_style_options[0])
+        hotkey_tray_icon_path_value.set(str(loaded.get("tray_icon_path", "")))
+        hotkey_refresh_table()
+        hotkey_clear_form()
+        hotkey_persist_configuration()
+    except (OSError, json.JSONDecodeError, TypeError, ValueError) as error:
+        messagebox.showerror("設定読み込みエラー", str(error))
+
+def hotkey_refresh_table(select_index=None):
+    hotkey_table.delete(*hotkey_table.get_children())
+    for index, item in enumerate(hotkey_actions):
+        hotkey_table.insert("", "end", iid=str(index), values=(item["shortcut"], item["button"], item["kind"], item["target"]))
+    if select_index is not None and 0 <= select_index < len(hotkey_actions):
+        hotkey_table.selection_set(str(select_index))
+        hotkey_table.focus(str(select_index))
+
+def hotkey_clear_form():
+    hotkey_table.selection_remove(hotkey_table.selection())
+    hotkey_shortcut_value.set("")
+    hotkey_button_value.set("")
+    hotkey_kind_value.set("URLを開く")
+    hotkey_target_value.set("")
+    hotkey_wait_value.set("0")
+    hotkey_followup_value.set("")
+
+def hotkey_show_selected(event=None):
+    selection = hotkey_table.selection()
+    if not selection:
+        return
+    item = hotkey_actions[int(selection[0])]
+    hotkey_shortcut_value.set(item["shortcut"])
+    hotkey_button_value.set(item["button"])
+    hotkey_kind_value.set(item["kind"])
+    hotkey_target_value.set(item["target"])
+    hotkey_wait_value.set(str(item["wait"]))
+    hotkey_followup_value.set(item["followup"])
+
+def hotkey_save_action():
+    shortcut = hotkey_shortcut_value.get().strip()
+    button = hotkey_button_value.get().strip()
+    kind = hotkey_kind_value.get()
+    target = hotkey_target_value.get().strip()
+    if not shortcut and not button:
+        messagebox.showerror("入力エラー", "ホットキーまたはボタン名を入力してください。")
+        return
+    if not target:
+        messagebox.showerror("入力エラー", "動作の内容を入力してください。")
+        return
+    try:
+        wait = float(hotkey_wait_value.get())
+        if not 0 <= wait <= 3600:
+            raise ValueError
+    except ValueError:
+        messagebox.showerror("入力エラー", "待ち時間は0から3600秒の数値で入力してください。")
+        return
+    item = {"shortcut": shortcut, "button": button, "kind": kind, "target": target,
+            "wait": wait, "followup": hotkey_followup_value.get().strip()}
+    selection = hotkey_table.selection()
+    if selection:
+        index = int(selection[0])
+        hotkey_actions[index] = item
+    else:
+        index = len(hotkey_actions)
+        hotkey_actions.append(item)
+    hotkey_refresh_table(index)
+
+def hotkey_delete_action():
+    selection = hotkey_table.selection()
+    if selection:
+        del hotkey_actions[int(selection[0])]
+        hotkey_refresh_table()
+        hotkey_clear_form()
+
+def hotkey_make_code():
+    if not hotkey_actions:
+        messagebox.showerror("入力エラー", "ホットキーまたはボタンを1つ以上登録してください。")
+        return
+    try:
+        window_width = int(hotkey_width_value.get())
+        window_height = int(hotkey_height_value.get())
+        if not 120 <= window_width <= 3000 or not 120 <= window_height <= 3000:
+            raise ValueError
+    except ValueError:
+        messagebox.showerror("入力エラー", "幅と高さは120から3000の整数で入力してください。")
+        return
+    seen_shortcuts = set()
+    for item in hotkey_actions:
+        key = item["shortcut"].lower().replace(" ", "")
+        if key and key in seen_shortcuts:
+            messagebox.showerror("入力エラー", f"ホットキーが重複しています: {item['shortcut']}")
+            return
+        seen_shortcuts.add(key)
+    if hotkey_tray_icon_style_value.get() == "ICOファイル" and not os.path.isfile(hotkey_tray_icon_path_value.get()):
+        messagebox.showerror("アイコンエラー", "選択したICOファイルが見つかりません。")
+        return
+
+    action_data = [{key: item[key] for key in ("shortcut", "button", "kind", "target", "wait", "followup")} for item in hotkey_actions]
+    source = r'''import ctypes
+from ctypes import wintypes
+import os
+import queue
+import subprocess
+import threading
+import time
+import tkinter as tk
+from tkinter import messagebox
+import webbrowser
+
+WINDOW_TITLE = __TITLE__
+WINDOW_WIDTH = __WIDTH__
+WINDOW_HEIGHT = __HEIGHT__
+TRAY_EXIT_ON = __TRAY_EXIT_ON__
+TRAY_ICON_STYLE = __TRAY_ICON_STYLE__
+TRAY_ICON_PATH = __TRAY_ICON_PATH__
+ACTIONS = __ACTIONS__
+
+MOD_ALT = 0x0001
+MOD_CONTROL = 0x0002
+MOD_SHIFT = 0x0004
+MOD_WIN = 0x0008
+MOD_NOREPEAT = 0x4000
+WM_HOTKEY = 0x0312
+WM_QUIT = 0x0012
+WM_APP = 0x8000
+WM_TRAYICON = WM_APP + 1
+WM_LBUTTONUP = 0x0202
+WM_LBUTTONDBLCLK = 0x0203
+WM_RBUTTONUP = 0x0205
+WM_GETICON = 0x007F
+ICON_SMALL = 0
+NIM_ADD = 0x00000000
+NIM_DELETE = 0x00000002
+NIF_MESSAGE = 0x00000001
+NIF_ICON = 0x00000002
+NIF_TIP = 0x00000004
+HOTKEY_MODIFIERS = {"alt": MOD_ALT, "ctrl": MOD_CONTROL, "control": MOD_CONTROL,
+                    "shift": MOD_SHIFT, "win": MOD_WIN, "windows": MOD_WIN}
+SPECIAL_KEYS = {"backspace": 0x08, "tab": 0x09, "enter": 0x0D, "return": 0x0D,
+                "esc": 0x1B, "escape": 0x1B, "space": 0x20, "left": 0x25,
+                "up": 0x026, "right": 0x027, "down": 0x028, "delete": 0x2E,
+                "home": 0x024, "end": 0x023, "pageup": 0x021, "pagedown": 0x022}
+for number in range(1, 13):
+    SPECIAL_KEYS[f"f{number}"] = 0x70 + number - 1
+
+user32 = ctypes.windll.user32
+kernel32 = ctypes.windll.kernel32
+shell32 = ctypes.windll.shell32
+hotkey_events = queue.Queue()
+hotkey_thread_id = 0
+tray_added = False
+previous_window_proc = None
+tray_click_after_id = None
+closing = False
+
+class GUID(ctypes.Structure):
+    _fields_ = [("Data1", wintypes.DWORD), ("Data2", wintypes.WORD),
+                ("Data3", wintypes.WORD), ("Data4", wintypes.BYTE * 8)]
+
+class TimeoutOrVersion(ctypes.Union):
+    _fields_ = [("uTimeout", wintypes.UINT), ("uVersion", wintypes.UINT)]
+
+class NOTIFYICONDATAW(ctypes.Structure):
+    _fields_ = [("cbSize", wintypes.DWORD), ("hWnd", wintypes.HWND),
+                ("uID", wintypes.UINT), ("uFlags", wintypes.UINT),
+                ("uCallbackMessage", wintypes.UINT), ("hIcon", wintypes.HICON),
+                ("szTip", wintypes.WCHAR * 128), ("dwState", wintypes.DWORD),
+                ("dwStateMask", wintypes.DWORD), ("szInfo", wintypes.WCHAR * 256),
+                ("timeout_or_version", TimeoutOrVersion),
+                ("szInfoTitle", wintypes.WCHAR * 64), ("dwInfoFlags", wintypes.DWORD),
+                ("guidItem", GUID), ("hBalloonIcon", wintypes.HICON)]
+
+WNDPROC = ctypes.WINFUNCTYPE(ctypes.c_ssize_t, wintypes.HWND, wintypes.UINT,
+                            wintypes.WPARAM, wintypes.LPARAM)
+set_window_long = getattr(user32, "SetWindowLongPtrW", user32.SetWindowLongW)
+set_window_long.argtypes = [wintypes.HWND, ctypes.c_int, ctypes.c_void_p]
+set_window_long.restype = ctypes.c_void_p
+user32.CallWindowProcW.argtypes = [ctypes.c_void_p, wintypes.HWND, wintypes.UINT,
+                                  wintypes.WPARAM, wintypes.LPARAM]
+user32.CallWindowProcW.restype = ctypes.c_ssize_t
+user32.SendMessageW.argtypes = [wintypes.HWND, wintypes.UINT, wintypes.WPARAM, wintypes.LPARAM]
+user32.SendMessageW.restype = ctypes.c_ssize_t
+shell32.Shell_NotifyIconW.argtypes = [wintypes.DWORD, ctypes.POINTER(NOTIFYICONDATAW)]
+shell32.Shell_NotifyIconW.restype = wintypes.BOOL
+
+def get_key_code(name):
+    name = name.strip().lower()
+    if name in SPECIAL_KEYS:
+        return SPECIAL_KEYS[name]
+    if len(name) == 1:
+        result = user32.VkKeyScanW(ord(name))
+        if result != -1:
+            return result & 0xFF
+    raise ValueError(f"未対応のキーです: {name}")
+
+def parse_hotkey(shortcut):
+    parts = [part.strip().lower() for part in shortcut.split("+") if part.strip()]
+    modifiers = 0
+    key = None
+    for part in parts:
+        if part in HOTKEY_MODIFIERS:
+            modifiers |= HOTKEY_MODIFIERS[part]
+        else:
+            if key is not None:
+                raise ValueError(f"キーは1つだけ指定してください: {shortcut}")
+            key = get_key_code(part)
+    if key is None:
+        raise ValueError(f"キーが指定されていません: {shortcut}")
+    return modifiers | MOD_NOREPEAT, key
+
+def send_keys(sequence):
+    names = [part.strip().lower() for part in sequence.split("+") if part.strip()]
+    modifier_codes = {"ctrl": 0x11, "control": 0x11, "alt": 0x12,
+                      "shift": 0x10, "win": 0x5B, "windows": 0x5B}
+    codes = [modifier_codes[name] if name in modifier_codes else get_key_code(name) for name in names]
+    for code in codes:
+        user32.keybd_event(code, 0, 0, 0)
+    for code in reversed(codes):
+        user32.keybd_event(code, 0, 0x0002, 0)
+
+def run_action(index):
+    action = ACTIONS[index]
+    try:
+        kind, target = action["kind"], action["target"]
+        if kind == "URLを開く":
+            webbrowser.open(target, new=2)
+        elif kind == "アプリ/ファイル起動":
+            os.startfile(target)
+        elif kind == "コマンド実行":
+            subprocess.Popen(target, shell=True)
+        elif kind == "キー送信":
+            send_keys(target)
+        if action["wait"]:
+            time.sleep(action["wait"])
+        if action["followup"]:
+            send_keys(action["followup"])
+    except Exception as error:
+        hotkey_events.put(("error", f"{action['button'] or action['shortcut']}: {error}"))
+
+def hotkey_loop():
+    global hotkey_thread_id
+    hotkey_thread_id = kernel32.GetCurrentThreadId()
+    registered = []
+    try:
+        for index, action in enumerate(ACTIONS):
+            if not action["shortcut"]:
+                continue
+            try:
+                modifiers, key = parse_hotkey(action["shortcut"])
+                if not user32.RegisterHotKey(None, index + 1, modifiers, key):
+                    raise OSError("このキーは登録できませんでした。別のアプリで使用中かもしれません。")
+                registered.append(index + 1)
+            except Exception as error:
+                hotkey_events.put(("error", f"{action['shortcut']}: {error}"))
+        message = wintypes.MSG()
+        while user32.GetMessageW(ctypes.byref(message), None, 0, 0) > 0:
+            if message.message == WM_HOTKEY:
+                hotkey_events.put(("run", message.wParam - 1))
+    finally:
+        for hotkey_id in registered:
+            user32.UnregisterHotKey(None, hotkey_id)
+
+root = tk.Tk()
+root.title(WINDOW_TITLE)
+root.geometry(f"{WINDOW_WIDTH}x{WINDOW_HEIGHT}")
+tray_image = tk.PhotoImage(width=32, height=32)
+tray_image.put("#1769aa", to=(0, 0, 32, 32))
+tray_image.put("#ffffff", to=(6, 6, 10, 26))
+tray_image.put("#ffffff", to=(22, 6, 26, 26))
+tray_image.put("#ffffff", to=(10, 16, 22, 20))
+tray_image.put("#f5c542", to=(13, 6, 19, 10))
+root.iconphoto(True, tray_image)
+for index, action in enumerate(ACTIONS):
+    if action["button"]:
+        tk.Button(root, text=action["button"], command=lambda i=index: threading.Thread(
+            target=run_action, args=(i,), daemon=True).start()).pack(fill="x", padx=8, pady=4)
+
+def process_events():
+    while not hotkey_events.empty():
+        kind, value = hotkey_events.get_nowait()
+        if kind == "run":
+            threading.Thread(target=run_action, args=(value,), daemon=True).start()
+        else:
+            messagebox.showerror("ホットキー", value, parent=root)
+    root.after(50, process_events)
+
+def restore_window():
+    root.deiconify()
+    root.state("normal")
+    root.lift()
+    root.focus_force()
+
+def show_tray_menu():
+    menu = tk.Menu(root, tearoff=0)
+    menu.add_command(label="ウィンドウを表示", command=restore_window)
+    menu.add_separator()
+    menu.add_command(label="終了", command=close_window)
+    try:
+        menu.tk_popup(root.winfo_pointerx(), root.winfo_pointery())
+    finally:
+        menu.grab_release()
+
+@WNDPROC
+def tray_window_proc(hwnd, message, wparam, lparam):
+    if message == WM_TRAYICON:
+        event = lparam & 0xFFFF
+        if event == WM_LBUTTONUP:
+            if TRAY_EXIT_ON == "single":
+                root.after(0, close_window)
+            else:
+                global tray_click_after_id
+                if not closing:
+                    tray_click_after_id = root.after(300, restore_window)
+            return 0
+        if event == WM_LBUTTONDBLCLK:
+            if TRAY_EXIT_ON == "double":
+                if tray_click_after_id is not None:
+                    root.after_cancel(tray_click_after_id)
+                    tray_click_after_id = None
+                root.after(0, close_window)
+            else:
+                root.after(0, restore_window)
+            return 0
+        if event == WM_RBUTTONUP:
+            root.after(0, show_tray_menu)
+            return 0
+    return user32.CallWindowProcW(previous_window_proc, hwnd, message, wparam, lparam)
+
+def install_tray_icon():
+    global previous_window_proc, tray_added
+    root.update_idletasks()
+    hwnd = wintypes.HWND(root.winfo_id())
+    icon_handle = 0
+    if TRAY_ICON_STYLE == "ICOファイル" and os.path.isfile(TRAY_ICON_PATH):
+        user32.LoadImageW.argtypes = [wintypes.HANDLE, wintypes.LPCWSTR, wintypes.UINT,
+                                      ctypes.c_int, ctypes.c_int, wintypes.UINT]
+        user32.LoadImageW.restype = wintypes.HICON
+        icon_handle = user32.LoadImageW(None, TRAY_ICON_PATH, 1, 0, 0, 0x0010)
+    elif TRAY_ICON_STYLE in ("情報", "警告", "エラー"):
+        user32.LoadIconW.restype = wintypes.HICON
+        stock_icons = {"情報": 32516, "警告": 32515, "エラー": 32513}
+        icon_handle = user32.LoadIconW(None, stock_icons[TRAY_ICON_STYLE])
+    if not icon_handle:
+        icon_handle = user32.SendMessageW(hwnd, WM_GETICON, ICON_SMALL, 0)
+    if not icon_handle:
+        user32.LoadIconW.restype = wintypes.HICON
+        icon_handle = user32.LoadIconW(None, 32512)
+    icon_data = NOTIFYICONDATAW()
+    icon_data.cbSize = ctypes.sizeof(NOTIFYICONDATAW)
+    icon_data.hWnd = hwnd
+    icon_data.uID = 1
+    icon_data.uFlags = NIF_MESSAGE | NIF_ICON | NIF_TIP
+    icon_data.uCallbackMessage = WM_TRAYICON
+    icon_data.hIcon = icon_handle
+    icon_data.szTip = f"{WINDOW_TITLE} - 起動中"
+    previous_window_proc = set_window_long(hwnd, -4, ctypes.cast(tray_window_proc, ctypes.c_void_p))
+    tray_added = bool(shell32.Shell_NotifyIconW(NIM_ADD, ctypes.byref(icon_data)))
+    if tray_added:
+        root.withdraw()
+    else:
+        root.deiconify()
+        messagebox.showerror("タスクトレイ", "通知領域へアイコンを登録できませんでした。ウィンドウを表示します。", parent=root)
+
+def close_window():
+    global closing, tray_click_after_id
+    if closing:
+        return
+    closing = True
+    if tray_click_after_id is not None:
+        try:
+            root.after_cancel(tray_click_after_id)
+        except tk.TclError:
+            pass
+        tray_click_after_id = None
+    if tray_added:
+        shell32.Shell_NotifyIconW(NIM_DELETE, ctypes.byref(icon_data))
+    if hotkey_thread_id:
+        user32.PostThreadMessageW(hotkey_thread_id, WM_QUIT, 0, 0)
+    root.destroy()
+
+icon_data = NOTIFYICONDATAW()
+icon_data.cbSize = ctypes.sizeof(NOTIFYICONDATAW)
+icon_data.hWnd = wintypes.HWND(root.winfo_id())
+icon_data.uID = 1
+icon_data.uFlags = NIF_MESSAGE | NIF_ICON | NIF_TIP
+icon_data.uCallbackMessage = WM_TRAYICON
+icon_data.hIcon = user32.SendMessageW(icon_data.hWnd, WM_GETICON, ICON_SMALL, 0)
+icon_data.szTip = f"{WINDOW_TITLE} - 起動中"
+root.protocol("WM_DELETE_WINDOW", close_window)
+threading.Thread(target=hotkey_loop, daemon=True).start()
+root.after(50, process_events)
+root.withdraw()
+root.after(100, install_tray_icon)
+root.mainloop()
+'''
+    source = source.replace("__TITLE__", repr(hotkey_title_value.get().strip() or "かんたんホットキー"))
+    source = source.replace("__WIDTH__", str(window_width)).replace("__HEIGHT__", str(window_height))
+    source = source.replace("__TRAY_EXIT_ON__", repr(
+        "single" if hotkey_tray_click_value.get() == "シングルクリックで終了" else "double"
+    ))
+    source = source.replace("__TRAY_ICON_STYLE__", repr(hotkey_tray_icon_style_value.get()))
+    source = source.replace("__TRAY_ICON_PATH__", repr(hotkey_tray_icon_path_value.get()))
+    source = source.replace("__ACTIONS__", json.dumps(action_data, ensure_ascii=False, indent=4))
+    if load_project_code(source):
+        messagebox.showinfo("生成完了", "ホットキーアプリのコードをエディターに転送しました！")
+
+hotkey_row_buttons = tk.Frame(hotkey_content)
+hotkey_row_buttons.pack(fill="x", pady=(4, 8))
+ttk.Button(hotkey_row_buttons, text="新しい行", command=hotkey_clear_form).pack(side="left")
+ttk.Button(hotkey_row_buttons, text="追加 / 更新", command=hotkey_save_action).pack(side="left", padx=6)
+ttk.Button(hotkey_row_buttons, text="選択行を削除", command=hotkey_delete_action).pack(side="left")
+ttk.Button(hotkey_row_buttons, text="設定を読み込み", command=hotkey_load_configuration).pack(side="left", padx=(12, 0))
+ttk.Button(hotkey_row_buttons, text="設定を保存", command=hotkey_save_configuration_as).pack(side="left", padx=6)
+ttk.Button(hotkey_row_buttons, text="コードから読み込み", command=hotkey_load_from_code_with_ui).pack(side="left", padx=6)
+ttk.Button(hotkey_row_buttons, text="コード生成", command=hotkey_make_code).pack(side="right")
+hotkey_load_from_code()
+hotkey_refresh_table()
+hotkey_clear_form()
+hotkey_table.bind("<<TreeviewSelect>>", hotkey_show_selected)
+
+def on_hotkey_tab_selected(event):
+    hotkey_load_from_code()
+    hotkey_refresh_table()
+
+top_notebook.bind("<<NotebookTabChanged>>", lambda e: on_hotkey_tab_selected(e) if top_notebook.select() == str(tab_hotkey) else None)
+
+def hotkey_configuration_data():
+    return {"title": hotkey_title_value.get(), "width": hotkey_width_value.get(),
+            "height": hotkey_height_value.get(), "tray_click_exit": hotkey_tray_click_value.get(),
+            "tray_icon_style": hotkey_tray_icon_style_value.get(),
+            "tray_icon_path": hotkey_tray_icon_path_value.get(),
+            "actions": hotkey_actions}
+
+def hotkey_persist_configuration():
+    path = get_settings_path(HOTKEY_BUILDER_SETTINGS_FILE)
+    try:
+        with open(path, "w", encoding="utf-8") as config_file:
+            json.dump(hotkey_configuration_data(), config_file, ensure_ascii=False, indent=2)
+    except OSError as error:
+        messagebox.showerror("設定保存エラー", str(error))
+
+
+# ---------- タブ4：ビジュアルフォーム作成 ----------
 designer_components = []
 selected_component = None
 
@@ -3252,4 +4005,3 @@ update_status_bar()
 root.protocol("WM_DELETE_WINDOW", safe_exit)
 root.mainloop()
 
-                                 
