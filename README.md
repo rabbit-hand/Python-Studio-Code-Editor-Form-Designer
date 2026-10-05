@@ -114,6 +114,7 @@ Visual Basic や Delphi のような **ドラッグ配置型 GUI 開発**を Pyt
 
 ---
 <img width="1599" height="850" alt="image" src="https://github.com/user-attachments/assets/e24eeef4-500e-4c50-aaf5-ee5263ba795a" />
+<img width="1599" height="850" alt="image" src="https://github.com/user-attachments/assets/c6041d25-cb2f-4528-826c-a205987bd727" />
 
 ---
 
