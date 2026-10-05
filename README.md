@@ -113,6 +113,7 @@ Visual Basic や Delphi のような **ドラッグ配置型 GUI 開発**を Pyt
 - File: jp-Python Studio – Code Editor & Form Designer.pyw  
 
 ---
+<img width="1599" height="850" alt="image" src="https://github.com/user-attachments/assets/e24eeef4-500e-4c50-aaf5-ee5263ba795a" />
 
 ---
 
