@@ -89,6 +89,10 @@ Visual Basic や Delphi のような **ドラッグ配置型 GUI 開発**を Pyt
 - 設定はコードに反映されます
 
 ---
+⚠️ 注意事項（公式との関係について）  
+本プロジェクトは Python 本体・Python公式運営とは一切関係ありません。
+個人による独自開発であり、Python公式からのサポート・保証はありません。
+すべて利用者自身の判断と責任でご使用ください。
 
 ## ⚠️ 免責事項
 このソフトウェアは **「現状のまま」提供** されます。
@@ -197,6 +201,10 @@ python "jp-Python Studio – Code Editor & Form Designer.pyw"
 - Settings are reflected in the generated code
 
 ---
+⚠️ Notice (Regarding Official Affiliation)  
+This project is not affiliated with Python, the Python Software Foundation, or any official Python organization.
+It is an independently developed personal project, and no official support or warranty is provided.
+Use this software at your own discretion and responsibility.
 
 ## ⚠️ Disclaimer
 This software is provided **“as is”** without warranty of any kind.
