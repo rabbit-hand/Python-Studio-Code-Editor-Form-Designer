@@ -103,11 +103,6 @@ Visual Basic や Delphi のような **ドラッグ配置型 GUI 開発**を Pyt
 
 ---
 
-## 📄 ライセンス
-リポジトリ内の `LICENSE` を参照してください。
-
----
-
 ## 👤 クレジット
 - Repository: rabbit-hand / Python-Studio-Code-Editor-Form-Designer  
 - File: jp-Python Studio – Code Editor & Form Designer.pyw  
@@ -115,7 +110,7 @@ Visual Basic や Delphi のような **ドラッグ配置型 GUI 開発**を Pyt
 ---
 <img width="1599" height="850" alt="image" src="https://github.com/user-attachments/assets/e24eeef4-500e-4c50-aaf5-ee5263ba795a" />
 <img width="1599" height="850" alt="image" src="https://github.com/user-attachments/assets/c6041d25-cb2f-4528-826c-a205987bd727" />
-
+<img width="1599" height="850" alt="image" src="https://github.com/user-attachments/assets/b8c2691b-75dd-45f6-9aa3-159aa2bad3b2" />
 ---
 
 # 🇺🇸 **English Version README**
@@ -213,11 +208,6 @@ This software is provided **“as is”** without warranty of any kind.
 - No support or compensation  
 
 Use at your own risk.
-
----
-
-## 📄 License
-See the `LICENSE` file in the repository.
 
 ---
 
