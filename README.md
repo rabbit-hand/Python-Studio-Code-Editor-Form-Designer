@@ -89,21 +89,23 @@ Visual Basic や Delphi のような **ドラッグ配置型 GUI 開発**を Pyt
 - 設定はコードに反映されます
 
 ---
-⚠️ 注意事項（公式との関係について）  
-本プロジェクトは Python 本体・Python公式運営とは一切関係ありません。
-個人による独自開発であり、Python公式からのサポート・保証はありません。
+⚠️ 本プロジェクトは Python 本体・Python公式運営とは一切関係ありません。
+個人による独自開発であり、Python公式からのサポート・保証は提供されません。
+
+また、このソフトウェアは 「現状のまま」提供 されます。
+以下の点について、いかなる保証も行いません。
+
+動作の保証なし
+
+バグ・不具合の保証なし
+
+データ消失に対する責任なし
+
+商用利用・教育利用によるトラブルの責任なし
+
+サポート・補償なし
+
 すべて利用者自身の判断と責任でご使用ください。
-
-## ⚠️ 免責事項
-このソフトウェアは **「現状のまま」提供** されます。
-
-- 動作保証なし  
-- バグ・不具合の保証なし  
-- データ消失の責任なし  
-- 商用利用・教育利用によるトラブルの責任なし  
-- サポート・補償なし  
-
-すべて利用者自身の判断と責任で使用してください。
 
 ---
 
@@ -201,21 +203,22 @@ python "jp-Python Studio – Code Editor & Form Designer.pyw"
 - Settings are reflected in the generated code
 
 ---
-⚠️ Notice (Regarding Official Affiliation)  
-This project is not affiliated with Python, the Python Software Foundation, or any official Python organization.
+⚠️This project is not affiliated with Python, the Python Software Foundation, or any official Python organization.
 It is an independently developed personal project, and no official support or warranty is provided.
+
+This software is provided “as is”, without any guarantees or warranties of any kind.
+
+No guarantee of correct operation
+
+No guarantee against bugs or defects
+
+No responsibility for data loss
+
+No responsibility for issues arising from commercial or educational use
+
+No support or compensation
+
 Use this software at your own discretion and responsibility.
-
-## ⚠️ Disclaimer
-This software is provided **“as is”** without warranty of any kind.
-
-- No guarantee of operation  
-- No guarantee against bugs  
-- No responsibility for data loss  
-- No liability for commercial or educational use  
-- No support or compensation  
-
-Use at your own risk.
 
 ---
 
