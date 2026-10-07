@@ -1,7 +1,6 @@
 ---
 
 # 📘 **Python Studio – Code Editor & Form Designer**  
-### **README（日本語版 & English Version）**
 
 ---
 
@@ -119,98 +118,7 @@ Visual Basic や Delphi のような **ドラッグ配置型 GUI 開発**を Pyt
 <img width="1599" height="850" alt="image" src="https://github.com/user-attachments/assets/b8c2691b-75dd-45f6-9aa3-159aa2bad3b2" />
 ---
 
-# 🇺🇸 **English Version README**
-
-## 📌 Overview
-**Python Studio** is a lightweight **IDE & GUI Form Designer** that runs entirely from a single `.pyw` file.  
-It provides a Visual Basic / Delphi–style **drag-and-drop GUI development experience** within Python, combining a code editor and a form designer in one environment.
-
----
-
-## 🧩 Features
-
-### 🎨 GUI Form Designer
-- Drag-and-drop widget placement  
-- Property editor (position, size, text, color, etc.)  
-- Automatically generates Python code  
-- Edit form and code in the same window  
-- Hotkey Builder for assigning shortcuts  
-
-### ✏️ Code Editor
-- Python syntax highlighting  
-- Undo / Redo  
-- Search & Replace  
-- Auto indentation  
-- Supports loading and saving `.py` and `.pyw` files  
-- Integrated with form-generated code  
-
-### ⚙️ Environment Check
-- Detects Python interpreter  
-- Checks required modules  
-- Portable single-file design  
-
----
-
-## 📁 File Structure
-This project consists of **one `.pyw` file**:
-
-- `jp-Python Studio – Code Editor & Form Designer.pyw`  
-  - Main window  
-  - Code editor  
-  - Form designer  
-  - Hotkey builder  
-  - Property editor  
-  - Event manager  
-  - File I/O (`.py` / `.pyw` support)  
-  - Python environment check  
-
----
-
-## 🔧 Requirements
-- **OS:** Windows recommended  
-- **Python:** 3.x  
-- **Libraries:** Standard libraries only (tkinter, etc.)
-
----
-
-## 📥 Installation
-1. Download the `.pyw` file  
-2. Ensure Python is installed  
-3. Launch by double-clicking or via command:
-
-```bash
-python "jp-Python Studio – Code Editor & Form Designer.pyw"
-```
-
----
-
-## 🖱️ Usage
-
-### 1. Create a GUI Form
-- Drag widgets onto the canvas  
-- Edit properties (size, color, text)  
-- Assign shortcuts using Hotkey Builder  
-
-### 2. Edit Code
-- Review auto-generated Python code  
-- Add event handlers  
-- Save as `.py` or `.pyw`  
-- Run the saved file directly with Python
-
-### 3. Hotkey Builder
-- Configure shortcuts for GUI operations  
-- Bind them to form events  
-- Settings are reflected in the generated code
-
----
-⚠️This project is not affiliated with Python, the Python Software Foundation, or any official Python organization.
-It is an independently developed personal project, and no official support or warranty is provided.
-
-This software is provided “as is”, without any guarantees or warranties of any kind.
-
-No guarantee of correct operation
-
-No guarantee against bugs or defects
+gs or defects
 
 No responsibility for data loss
 
