@@ -110,3 +110,9 @@ A. No. Just double‑click the file.
 
 Q. Does it support PyQt or wxPython?  
 A. Currently, only Tkinter is supported.
+
+---
+<img width="1599" height="850" alt="image" src="https://github.com/user-attachments/assets/e24eeef4-500e-4c50-aaf5-ee5263ba795a" />
+<img width="1599" height="850" alt="image" src="https://github.com/user-attachments/assets/c6041d25-cb2f-4528-826c-a205987bd727" />
+<img width="1599" height="850" alt="image" src="https://github.com/user-attachments/assets/b8c2691b-75dd-45f6-9aa3-159aa2bad3b2" />
+---
