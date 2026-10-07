@@ -9,32 +9,29 @@ Beginners can build GUIs, and advanced users can directly edit the code.
 ---
 
 ## 💡 Why I Created Python Studio
-Python is a wonderful programming language loved around the world, but beginners often struggle when they try to jump directly into Python.
+
+Python is a wonderful programming language loved around the world, but beginners often struggle when they try to jump directly from Scratch to Python.
 
 I once talked with an elementary school student in a chat.  
 He said, “I use Scratch, so programming is easy for me.”  
 I asked him, “Do you know what a comment symbol is?”  
-His answer was, “What’s that?”
+He replied, “What’s that?”
 
-This experience made me realize how high the wall is when moving from Scratch to Python.
+This moment made me realize how high the wall is when moving from Scratch to Python.
 
-Python introduces many challenges at once: comment symbols, indentation rules, the meaning of symbols, English technical terms, and logical structure.  
+Scratch allows children to create programs visually, without needing to understand symbols, indentation rules, or English technical terms.  
+Python, on the other hand, introduces many challenges at once: comment symbols, indentation, the meaning of symbols, logical structure, and vocabulary.  
 For beginners who have not yet developed logical thinking, this becomes a steep cliff they can easily fall from.
 
-Many people say that Japanese programming languages are unnecessary if someone wants to learn professional programming.  
-However, if beginners are forced to climb a huge wall without preparation, it is natural that they will fail.
+I felt that beginners should not be forced to climb this wall immediately.  
+There should be a safe and enjoyable step between Scratch and Python.
 
-I have always felt that this is dangerous.
-
-There is no need to climb the Python wall immediately.  
-A fun and safe environment should come first.
-
-Even if beginners give up halfway, having the experience of creating a GUI by themselves becomes a valuable foundation for the future.
-
-Python Studio was created to serve as that foundation, helping beginners avoid frustration and encouraging them to try again someday.
+Python Studio was created to serve as that step.  
+It allows beginners to build GUI applications visually, while gradually becoming familiar with Python code.  
+Even if they give up halfway, the experience of creating something on their own becomes a valuable foundation for the future.
 
 Without AI, I could never have built this tool.  
-But if AI can help create an environment where beginners can learn without fear, then it is truly meaningful.
+But with AI assisting the development, it became possible to create an environment where beginners can learn Python without fear and without facing an overwhelming wall all at once.
 
 ---
 
