@@ -108,6 +108,7 @@ A. No. Just double‑click the file and it will run.
 A. Currently, only Tkinter is supported.
 
 ---
-<img width="1599" height="850" alt="image" src="https://github.com/user-attachments/assets/e24eeef4-500e-4c50-aaf5-ee5263ba795a" />
-<img width="1599" height="850" alt="image" src="https://github.com/user-attachments/assets/c6041d25-cb2f-4528-826c-a205987bd727" />
-<img width="1599" height="850" alt="image" src="https://github.com/user-attachments/assets/b8c2691b-75dd-45f6-9aa3-159aa2bad3b2" />
+<img width="1599" height="851" alt="image" src="https://github.com/user-attachments/assets/9b7916b7-69f0-48fc-ada1-ebe5fdd9f587" />
+<img width="1599" height="850" alt="image" src="https://github.com/user-attachments/assets/9e6266c8-c890-4775-a1ad-99009a6afb10" />
+<img width="1599" height="850" alt="image" src="https://github.com/user-attachments/assets/e9321fc4-513e-481b-9973-4d56139fcb9e" />
+
