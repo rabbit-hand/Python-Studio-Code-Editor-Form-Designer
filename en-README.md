@@ -110,5 +110,4 @@ A. Currently, only Tkinter is supported.
 ---
 <img width="1599" height="851" alt="image" src="https://github.com/user-attachments/assets/9b7916b7-69f0-48fc-ada1-ebe5fdd9f587" />
 <img width="1599" height="850" alt="image" src="https://github.com/user-attachments/assets/9e6266c8-c890-4775-a1ad-99009a6afb10" />
-<img width="1599" height="850" alt="image" src="https://github.com/user-attachments/assets/e9321fc4-513e-481b-9973-4d56139fcb9e" />
-
+<img width="1599" height="850" alt="image" src="https://github.com/user-attachments/assets/705255a3-b524-4f97-bf1f-96113ed82f3f" />
