@@ -1899,7 +1899,10 @@ else:
     try:
         root.attributes('-zoomed', True)
     except Exception:
-        root.geometry("1200x800")
+        root.geometry("1400x900")
+
+# 最小サイズを設定
+root.minsize(1200, 800)
 
 load_settings()
 
@@ -1922,6 +1925,9 @@ top_notebook.add(tab_hotkey, text="⌨ ホットキー作成")
 
 tab_designer = ttk.Frame(top_notebook)
 top_notebook.add(tab_designer, text="🎨 フォーム作成")
+
+tab_robot = ttk.Frame(top_notebook)
+top_notebook.add(tab_robot, text="🚁 ドローン・ロボット制御")
 
 tab_tools = ttk.Frame(top_notebook)
 top_notebook.add(tab_tools, text="🛠 ツール・環境情報")
@@ -2000,10 +2006,11 @@ root.bind("<Control-y>", lambda e: redo_action())
 
 
 # ---------- タブ2：サンプル一覧 ----------
-samples_content = tk.Frame(tab_samples, padx=12, pady=12)
+samples_content = tk.Frame(tab_samples, padx=12, pady=12, bg=THEMES[current_theme]['bg'])
 samples_content.pack(fill="both", expand=True)
-tk.Label(samples_content, text="作りたいものを選んでください", font=("Meiryo UI", 15, "bold")).pack(anchor="w", pady=(0, 10))
-samples_body = tk.Frame(samples_content)
+tk.Label(samples_content, text="作りたいものを選んでください", font=("Meiryo UI", 15, "bold"),
+         bg=THEMES[current_theme]['bg'], fg=THEMES[current_theme]['text_fg']).pack(anchor="w", pady=(0, 10))
+samples_body = tk.Frame(samples_content, bg=THEMES[current_theme]['bg'])
 samples_body.pack(fill="both", expand=True)
 samples_tree = ttk.Treeview(samples_body, show="tree", selectmode="browse")
 samples_tree.column("#0", width=250, minwidth=200, stretch=False)
@@ -2012,11 +2019,13 @@ samples_tree_scroll = ttk.Scrollbar(samples_body, orient="vertical", command=sam
 samples_tree_scroll.pack(side="left", fill="y")
 samples_tree.configure(yscrollcommand=samples_tree_scroll.set)
 
-samples_details = tk.Frame(samples_body, padx=14)
+samples_details = tk.Frame(samples_body, padx=14, bg=THEMES[current_theme]['bg'])
 samples_details.pack(side="left", fill="both", expand=True)
-samples_name_label = tk.Label(samples_details, text="作品を選択してください", anchor="w", font=("Meiryo UI", 13, "bold"))
+samples_name_label = tk.Label(samples_details, text="作品を選択してください", anchor="w", font=("Meiryo UI", 13, "bold"),
+                            bg=THEMES[current_theme]['bg'], fg=THEMES[current_theme]['text_fg'])
 samples_name_label.pack(fill="x", pady=(0, 6))
-samples_description = tk.Label(samples_details, text="", anchor="nw", justify="left", wraplength=580)
+samples_description = tk.Label(samples_details, text="", anchor="nw", justify="left", wraplength=580,
+                               bg=THEMES[current_theme]['bg'], fg=THEMES[current_theme]['text_fg'])
 samples_description.pack(fill="x", pady=(0, 8))
 samples_preview = tk.Text(samples_details, wrap="word", height=18, font=("Consolas", 9), state="disabled")
 samples_preview.pack(fill="both", expand=True)
@@ -2031,7 +2040,7 @@ for project in PROJECT_EXAMPLES:
     samples_item_projects[item] = project
 
 samples_selected_project = {"value": None}
-samples_buttons = tk.Frame(samples_content)
+samples_buttons = tk.Frame(samples_content, bg=THEMES[current_theme]['bg'])
 samples_buttons.pack(fill="x", pady=(10, 0))
 samples_load_button = tk.Button(samples_buttons, text="コードをエディターに読み込む", state="disabled")
 samples_load_button.pack(side="right", padx=(6, 0))
@@ -2083,22 +2092,23 @@ if first_project:
 
 
 # ---------- タブ3：ホットキー作成 ----------
-hotkey_content = tk.Frame(tab_hotkey, padx=14, pady=12)
+hotkey_content = tk.Frame(tab_hotkey, padx=14, pady=12, bg=THEMES[current_theme]['bg'])
 hotkey_content.pack(fill="both", expand=True)
-tk.Label(hotkey_content, text="ホットキーとボタンの動作を登録", font=("Meiryo UI", 14, "bold")).pack(anchor="w")
+tk.Label(hotkey_content, text="ホットキーとボタンの動作を登録", font=("Meiryo UI", 14, "bold"),
+         bg=THEMES[current_theme]['bg'], fg=THEMES[current_theme]['text_fg']).pack(anchor="w")
 
-hotkey_settings = tk.Frame(hotkey_content)
+hotkey_settings = tk.Frame(hotkey_content, bg=THEMES[current_theme]['bg'])
 hotkey_settings.pack(fill="x", pady=(10, 8))
-tk.Label(hotkey_settings, text="ウィンドウ名").pack(side="left")
+tk.Label(hotkey_settings, text="ウィンドウ名", bg=THEMES[current_theme]['bg'], fg=THEMES[current_theme]['text_fg']).pack(side="left")
 hotkey_title_value = tk.StringVar(value="かんたんホットキー")
 ttk.Entry(hotkey_settings, textvariable=hotkey_title_value, width=24).pack(side="left", padx=(6, 16))
-tk.Label(hotkey_settings, text="幅").pack(side="left")
+tk.Label(hotkey_settings, text="幅", bg=THEMES[current_theme]['bg'], fg=THEMES[current_theme]['text_fg']).pack(side="left")
 hotkey_width_value = tk.StringVar(value="240")
 ttk.Entry(hotkey_settings, textvariable=hotkey_width_value, width=7).pack(side="left", padx=6)
-tk.Label(hotkey_settings, text="高さ").pack(side="left")
+tk.Label(hotkey_settings, text="高さ", bg=THEMES[current_theme]['bg'], fg=THEMES[current_theme]['text_fg']).pack(side="left")
 hotkey_height_value = tk.StringVar(value="420")
 ttk.Entry(hotkey_settings, textvariable=hotkey_height_value, width=7).pack(side="left", padx=6)
-tk.Label(hotkey_settings, text="アイコン操作").pack(side="left", padx=(10, 4))
+tk.Label(hotkey_settings, text="アイコン操作", bg=THEMES[current_theme]['bg'], fg=THEMES[current_theme]['text_fg']).pack(side="left", padx=(10, 4))
 hotkey_tray_click_value = tk.StringVar(value="double")
 ttk.Combobox(hotkey_settings, textvariable=hotkey_tray_click_value,
              values=("シングルクリックで終了", "ダブルクリックで終了"),
@@ -2106,9 +2116,9 @@ ttk.Combobox(hotkey_settings, textvariable=hotkey_tray_click_value,
 if hotkey_tray_click_value.get() not in ("シングルクリックで終了", "ダブルクリックで終了"):
     hotkey_tray_click_value.set("ダブルクリックで終了")
 
-hotkey_icon_settings = tk.Frame(hotkey_content)
+hotkey_icon_settings = tk.Frame(hotkey_content, bg=THEMES[current_theme]['bg'])
 hotkey_icon_settings.pack(fill="x", pady=(0, 8))
-tk.Label(hotkey_icon_settings, text="トレイアイコン").pack(side="left")
+tk.Label(hotkey_icon_settings, text="トレイアイコン", bg=THEMES[current_theme]['bg'], fg=THEMES[current_theme]['text_fg']).pack(side="left")
 hotkey_tray_icon_style_value = tk.StringVar(value="オリジナル（H）")
 hotkey_icon_style_options = ("オリジナル（H）", "情報", "警告", "エラー", "ICOファイル")
 if hotkey_tray_icon_style_value.get() not in hotkey_icon_style_options:
@@ -2130,7 +2140,7 @@ def hotkey_choose_tray_icon():
 
 ttk.Button(hotkey_icon_settings, text="ICOを選択...", command=hotkey_choose_tray_icon).pack(side="left")
 
-hotkey_body = tk.Frame(hotkey_content)
+hotkey_body = tk.Frame(hotkey_content, bg=THEMES[current_theme]['bg'])
 hotkey_body.pack(fill="both", expand=True)
 hotkey_columns = ("shortcut", "button", "kind", "target")
 hotkey_table = ttk.Treeview(hotkey_body, columns=hotkey_columns, show="headings", height=9, selectmode="browse")
@@ -2142,7 +2152,8 @@ hotkey_table_scroll = ttk.Scrollbar(hotkey_body, orient="vertical", command=hotk
 hotkey_table_scroll.pack(side="right", fill="y")
 hotkey_table.configure(yscrollcommand=hotkey_table_scroll.set)
 
-hotkey_form = tk.LabelFrame(hotkey_content, text="動作の追加・編集", padx=10, pady=8)
+hotkey_form = tk.LabelFrame(hotkey_content, text="動作の追加・編集", padx=10, pady=8,
+                          bg=THEMES[current_theme]['bg'], fg=THEMES[current_theme]['text_fg'])
 hotkey_form.pack(fill="x", pady=(10, 4))
 hotkey_shortcut_value = tk.StringVar()
 hotkey_button_value = tk.StringVar()
@@ -2151,22 +2162,23 @@ hotkey_target_value = tk.StringVar()
 hotkey_wait_value = tk.StringVar(value="0")
 hotkey_followup_value = tk.StringVar()
 
-tk.Label(hotkey_form, text="キー (例: Alt+a)").grid(row=0, column=0, sticky="w", padx=4, pady=3)
+tk.Label(hotkey_form, text="キー (例: Alt+a)", bg=THEMES[current_theme]['bg'], fg=THEMES[current_theme]['text_fg']).grid(row=0, column=0, sticky="w", padx=4, pady=3)
 ttk.Entry(hotkey_form, textvariable=hotkey_shortcut_value, width=20).grid(row=0, column=1, sticky="ew", padx=4, pady=3)
-tk.Label(hotkey_form, text="ボタン名 (任意)").grid(row=0, column=2, sticky="w", padx=4, pady=3)
+tk.Label(hotkey_form, text="ボタン名 (任意)", bg=THEMES[current_theme]['bg'], fg=THEMES[current_theme]['text_fg']).grid(row=0, column=2, sticky="w", padx=4, pady=3)
 ttk.Entry(hotkey_form, textvariable=hotkey_button_value, width=24).grid(row=0, column=3, sticky="ew", padx=4, pady=3)
-tk.Label(hotkey_form, text="動作").grid(row=1, column=0, sticky="w", padx=4, pady=3)
+tk.Label(hotkey_form, text="動作", bg=THEMES[current_theme]['bg'], fg=THEMES[current_theme]['text_fg']).grid(row=1, column=0, sticky="w", padx=4, pady=3)
 hotkey_kind_menu = ttk.Combobox(hotkey_form, textvariable=hotkey_kind_value, values=("URLを開く", "アプリ/ファイル起動", "キー送信", "コマンド実行"), state="readonly", width=18)
 hotkey_kind_menu.grid(row=1, column=1, sticky="ew", padx=4, pady=3)
-tk.Label(hotkey_form, text="URL / パス / キー / コマンド").grid(row=1, column=2, sticky="w", padx=4, pady=3)
+tk.Label(hotkey_form, text="URL / パス / キー / コマンド", bg=THEMES[current_theme]['bg'], fg=THEMES[current_theme]['text_fg']).grid(row=1, column=2, sticky="w", padx=4, pady=3)
 ttk.Entry(hotkey_form, textvariable=hotkey_target_value).grid(row=1, column=3, sticky="ew", padx=4, pady=3)
-tk.Label(hotkey_form, text="実行後に待つ秒数").grid(row=2, column=0, sticky="w", padx=4, pady=3)
+tk.Label(hotkey_form, text="実行後に待つ秒数", bg=THEMES[current_theme]['bg'], fg=THEMES[current_theme]['text_fg']).grid(row=2, column=0, sticky="w", padx=4, pady=3)
 ttk.Entry(hotkey_form, textvariable=hotkey_wait_value, width=10).grid(row=2, column=1, sticky="w", padx=4, pady=3)
-tk.Label(hotkey_form, text="待機後に送るキー (任意)").grid(row=2, column=2, sticky="w", padx=4, pady=3)
+tk.Label(hotkey_form, text="待機後に送るキー (任意)", bg=THEMES[current_theme]['bg'], fg=THEMES[current_theme]['text_fg']).grid(row=2, column=2, sticky="w", padx=4, pady=3)
 ttk.Entry(hotkey_form, textvariable=hotkey_followup_value).grid(row=2, column=3, sticky="ew", padx=4, pady=3)
 hotkey_form.columnconfigure(1, weight=1)
 hotkey_form.columnconfigure(3, weight=2)
-tk.Label(hotkey_content, text="キー送信の例: Ctrl+w、Alt+F4、Left。キー欄を空にするとボタンだけで実行します。", anchor="w").pack(fill="x", pady=(2, 4))
+tk.Label(hotkey_content, text="キー送信の例: Ctrl+w、Alt+F4、Left。キー欄を空にするとボタンだけで実行します。",
+         bg=THEMES[current_theme]['bg'], fg=THEMES[current_theme]['text_fg'], anchor="w").pack(fill="x", pady=(2, 4))
 
 hotkey_actions = []
 
@@ -3855,6 +3867,974 @@ add_designer_toolbar_button("⚙ 詳細設定", lambda: open_properties_dialog(s
 add_designer_toolbar_button("🗑 削除", delete_component, "#dc3545")
 add_designer_toolbar_button("🧹 全消去", clear_designer, "#6c757d")
 add_designer_toolbar_button("📝 コード生成して転送", generate_code_from_designer, "#0d6efd")
+
+
+# ---------- タブ5：ドローン・ロボット制御 ----------
+robot_control_mode = tk.StringVar(value="drone")
+robot_blocks = []
+robot_code_output = tk.StringVar()
+
+def robot_create_block_ui():
+    block_frame = tk.Frame(robot_canvas, bg=THEMES[current_theme]['bg'], relief="raised", bd=2)
+    return block_frame
+
+def robot_add_block(block_type, params=None):
+    if params is None:
+        params = {}
+    
+    if len(robot_blocks) >= 80:
+        messagebox.showwarning("制限", "ブロックは最大80個までです")
+        return
+    
+    block = {
+        "type": block_type,
+        "params": params,
+        "id": len(robot_blocks)
+    }
+    robot_blocks.append(block)
+    robot_refresh_blocks_display()
+
+def robot_refresh_blocks_display():
+    for widget in robot_canvas.winfo_children():
+        widget.destroy()
+    
+    # Canvasの実際の幅を取得
+    robot_canvas.update_idletasks()
+    canvas_width = robot_canvas.winfo_width()
+    canvas_height = robot_canvas.winfo_height()
+    
+    # デフォルト値（初回表示時）
+    if canvas_width < 100:
+        canvas_width = 700
+    if canvas_height < 100:
+        canvas_height = 300
+    
+    block_width = 160     # ブロックの幅
+    block_height = 45      # ブロックの高さ
+    block_gap = 4          # ブロック間の隙間
+    padding = 10           # 余白
+    
+    # 横に並べられるブロック数を計算
+    items_per_row = max(1, int((canvas_width - padding * 2) / (block_width + block_gap)))
+    max_rows = 10          # 最大行数
+
+    # 各行のブロック数を計算
+    rows_info = []
+    for i in range(len(robot_blocks)):
+        row = i // items_per_row
+        if row >= max_rows:
+            row = max_rows - 1
+        if row >= len(rows_info):
+            rows_info.append(0)
+        rows_info[row] += 1
+
+    for i, block in enumerate(robot_blocks):
+        # 行と列を計算（横並び）
+        row = i // items_per_row
+        column = i % items_per_row
+
+        # 最大行数を超えないように
+        if row >= max_rows:
+            row = max_rows - 1
+            column = i  # 超えた分は同じ行に横に並べる
+
+        # その行のブロック数を取得
+        blocks_in_row = rows_info[row] if row < len(rows_info) else 1
+
+        # その行のブロック全体の幅
+        total_row_width = blocks_in_row * block_width + (blocks_in_row - 1) * block_gap
+
+        # 中央揃えの開始位置
+        x_start = (canvas_width - total_row_width) / 2
+
+        x_pos = x_start + (column * (block_width + block_gap))
+        y_pos = padding + (row * (block_height + block_gap))
+
+        block_frame = robot_create_block_ui()
+        block_frame.place(x=x_pos, y=y_pos, width=block_width, height=block_height)
+        
+        block_text = robot_get_block_text(block)
+        tk.Label(block_frame, text=f"{i+1}. {block_text}",
+                bg=THEMES[current_theme]['button_bg'], fg=THEMES[current_theme]['text_fg'],
+                font=("Meiryo UI", 9), wraplength=150).pack(fill="both", expand=True, padx=2, pady=1)
+    
+    # Canvasサイズを更新
+    max_height = padding + (max_rows * (block_height + block_gap))
+    robot_canvas.configure(height=max_height)
+
+def robot_get_block_text(block):
+    block_type = block["type"]
+    params = block["params"]
+    
+    if block_type == "takeoff":
+        return f"離陸（{params.get('height', 5)}メートル）"
+    elif block_type == "land":
+        return "着陸"
+    elif block_type == "forward":
+        return f"前進（{params.get('distance', 5)}メートル）"
+    elif block_type == "backward":
+        return f"後退（{params.get('distance', 5)}メートル）"
+    elif block_type == "left":
+        return f"左移動（{params.get('distance', 5)}メートル）"
+    elif block_type == "right":
+        return f"右移動（{params.get('distance', 5)}メートル）"
+    elif block_type == "up":
+        return f"上昇（{params.get('height', 5)}メートル）"
+    elif block_type == "down":
+        return f"下降（{params.get('height', 5)}メートル）"
+    elif block_type == "rotate_left":
+        return f"左回転（{params.get('angle', 90)}度）"
+    elif block_type == "rotate_right":
+        return f"右回転（{params.get('angle', 90)}度）"
+    elif block_type == "rotate_180":
+        return "反転（180度）"
+    elif block_type == "wait":
+        return f"待機（{params.get('seconds', 1)}秒）"
+    elif block_type == "return_home":
+        return "⚠️ 電波途脱時帰還"
+    elif block_type == "face_direction":
+        direction = params.get('direction', '北')
+        return f"{direction}を向く"
+    else:
+        return block_type
+
+def robot_clear_blocks():
+    robot_blocks.clear()
+    robot_refresh_blocks_display()
+
+def robot_delete_last_block():
+    if robot_blocks:
+        robot_blocks.pop()
+        robot_refresh_blocks_display()
+
+def robot_generate_code():
+    mode = robot_control_mode.get()
+    hardware = robot_hardware_var.get()
+    code_lines = []
+    
+    if mode == "drone":
+        if hardware == "tello":
+            # DJI Tello用コード
+            code_lines.extend([
+                "# DJI Telloドローン制御プログラム",
+                "# インストールが必要: pip install djitellopy",
+                "",
+                "from djitellopy import Tello",
+                "import time",
+                "",
+                "# ドローンに接続",
+                "drone = Tello()",
+                "drone.connect()",
+                "",
+                "# バッテリー確認",
+                "print(f'バッテリー: {drone.get_battery()}%')",
+                "",
+                "# 離陸",
+                "drone.takeoff()",
+                "time.sleep(2)",
+                ""
+            ])
+            
+            for block in robot_blocks:
+                block_type = block["type"]
+                params = block["params"]
+                
+                if block_type == "takeoff":
+                    code_lines.append("drone.takeoff()")
+                    code_lines.append("time.sleep(2)")
+                elif block_type == "land":
+                    code_lines.append("drone.land()")
+                elif block_type == "forward":
+                    dist = params.get('distance', 5) * 100  # cmに変換
+                    code_lines.append(f"drone.move_forward({dist})")
+                    code_lines.append("time.sleep(1)")
+                elif block_type == "backward":
+                    dist = params.get('distance', 5) * 100
+                    code_lines.append(f"drone.move_back({dist})")
+                    code_lines.append("time.sleep(1)")
+                elif block_type == "left":
+                    dist = params.get('distance', 5) * 100
+                    code_lines.append(f"drone.move_left({dist})")
+                    code_lines.append("time.sleep(1)")
+                elif block_type == "right":
+                    dist = params.get('distance', 5) * 100
+                    code_lines.append(f"drone.move_right({dist})")
+                    code_lines.append("time.sleep(1)")
+                elif block_type == "up":
+                    height = params.get('height', 5) * 100
+                    code_lines.append(f"drone.move_up({height})")
+                    code_lines.append("time.sleep(1)")
+                elif block_type == "down":
+                    height = params.get('height', 5) * 100
+                    code_lines.append(f"drone.move_down({height})")
+                    code_lines.append("time.sleep(1)")
+                elif block_type == "rotate_left":
+                    angle = params.get('angle', 90)
+                    code_lines.append(f"drone.rotate_counter_clockwise({angle})")
+                    code_lines.append("time.sleep(1)")
+                elif block_type == "rotate_right":
+                    angle = params.get('angle', 90)
+                    code_lines.append(f"drone.rotate_clockwise({angle})")
+                    code_lines.append("time.sleep(1)")
+                elif block_type == "wait":
+                    code_lines.append(f"time.sleep({params.get('seconds', 1)})")
+                elif block_type == "return_home":
+                    code_lines.append("# 電波途脱時はTelloが自動的に着陸します")
+                    code_lines.append("drone.land()")
+            
+            code_lines.extend([
+                "",
+                "# 接続を閉じる",
+                "drone.end()",
+                "",
+                "# 使用前の準備:",
+                "# 1. Telloドローンの電源を入れる",
+                "# 2. PC/スマホのWiFiでTelloのネットワークに接続",
+                "# 3. このプログラムを実行"
+            ])
+        else:
+            # シミュレーション
+            code_lines.extend([
+                "import tkinter as tk",
+                "from tkinter import messagebox",
+                "",
+                "# ドローン制御プログラム（シミュレーション）",
+                "",
+                "class DroneController:",
+                "    def __init__(self):",
+                "        self.launched = False",
+                "        self.x = 0",
+                "        self.y = 0",
+                "        self.z = 0",
+                "        self.start_x = 0",
+                "        self.start_y = 0",
+                "        self.start_z = 0",
+                "        self.signal_lost = False",
+                "",
+                "    def takeoff(self, height):",
+                "        if self.launched:",
+                "            messagebox.showwarning('警告', 'すでに離陸しています')",
+                "            return",
+                "        self.start_x = self.x",
+                "        self.start_y = self.y",
+                "        self.start_z = self.z",
+                "        self.z += height",
+                "        self.launched = True",
+                "        print(f'{height}メートル上昇して離陸しました')",
+                "",
+                "    def land(self):",
+                "        if not self.launched:",
+                "            messagebox.showwarning('警告', '離陸していません')",
+                "            return",
+                "        self.z = 0",
+                "        self.launched = False",
+                "        print('着陸しました')",
+                "",
+                "    def forward(self, distance):",
+                "        if not self.launched:",
+                "            messagebox.showwarning('警告', '離陸していません')",
+                "            return",
+                "        self.x += distance",
+                "        print(f'{distance}メートル前進しました')",
+                "",
+                "    def backward(self, distance):",
+                "        if not self.launched:",
+                "            messagebox.showwarning('警告', '離陸していません')",
+                "            return",
+                "        self.x -= distance",
+                "        print(f'{distance}メートル後退しました')",
+                "",
+                "    def left(self, distance):",
+                "        if not self.launched:",
+                "            messagebox.showwarning('警告', '離陸していません')",
+                "            return",
+                "        self.y -= distance",
+                "        print(f'{distance}メートル左に移動しました')",
+                "",
+                "    def right(self, distance):",
+                "        if not self.launched:",
+                "            messagebox.showwarning('警告', '離陸していません')",
+                "            return",
+                "        self.y += distance",
+                "        print(f'{distance}メートル右に移動しました')",
+                "",
+                "    def up(self, height):",
+                "        if not self.launched:",
+                "            messagebox.showwarning('警告', '離陸していません')",
+                "            return",
+                "        self.z += height",
+                "        print(f'{height}メートル上昇しました')",
+                "",
+                "    def down(self, height):",
+                "        if not self.launched:",
+                "            messagebox.showwarning('警告', '離陸していません')",
+                "            return",
+                "        self.z -= height",
+                "        if self.z < 0:",
+                "            self.z = 0",
+                "            self.launched = False",
+                "            print('着陸しました')",
+                "        else:",
+                "            print(f'{height}メートル下降しました')",
+                "",
+                "    def rotate_left(self, angle):",
+                "        if not self.launched:",
+                "            messagebox.showwarning('警告', '離陸していません')",
+                "            return",
+                "        print(f'左に{angle}度回転しました')",
+                "",
+                "    def rotate_right(self, angle):",
+                "        if not self.launched:",
+                "            messagebox.showwarning('警告', '離陸していません')",
+                "            return",
+                "        print(f'右に{angle}度回転しました')",
+                "",
+                "    def wait(self, seconds):",
+                "        import time",
+                "        time.sleep(seconds)",
+                "",
+                "    def return_home(self):",
+                "        if not self.launched:",
+                "            print('離陸していないため帰還不要です')",
+                "            return",
+                "        print('⚠️ 電波が途絶しました！自動帰還を開始します')",
+                "        self.z = 0",
+                "        self.x = self.start_x",
+                "        self.y = self.start_y",
+                "        self.launched = False",
+                "        print('✅ 元の位置に帰還完了しました')",
+                "",
+                "    def show_status(self):",
+                "        print(f'現在位置: X={self.x}, Y={self.y}, Z={self.z}')",
+                "",
+                "",
+                "drone = DroneController()",
+                ""
+            ])
+            
+            for block in robot_blocks:
+                block_type = block["type"]
+                params = block["params"]
+                
+                if block_type == "takeoff":
+                    code_lines.append(f"drone.takeoff({params.get('height', 5)})")
+                elif block_type == "land":
+                    code_lines.append("drone.land()")
+                elif block_type == "forward":
+                    code_lines.append(f"drone.forward({params.get('distance', 5)})")
+                elif block_type == "backward":
+                    code_lines.append(f"drone.backward({params.get('distance', 5)})")
+                elif block_type == "left":
+                    code_lines.append(f"drone.left({params.get('distance', 5)})")
+                elif block_type == "right":
+                    code_lines.append(f"drone.right({params.get('distance', 5)})")
+                elif block_type == "rotate_left":
+                    code_lines.append(f"drone.rotate_left({params.get('angle', 90)})")
+                elif block_type == "rotate_right":
+                    code_lines.append(f"drone.rotate_right({params.get('angle', 90)})")
+                elif block_type == "up":
+                    code_lines.append(f"drone.up({params.get('height', 5)})")
+                elif block_type == "down":
+                    code_lines.append(f"drone.down({params.get('height', 5)})")
+                elif block_type == "wait":
+                    code_lines.append(f"drone.wait({params.get('seconds', 1)})")
+                elif block_type == "return_home":
+                    code_lines.append("drone.return_home()")
+            
+            code_lines.extend([
+                "",
+                "drone.show_status()",
+                "",
+                "# 注意: これはシミュレーションです。",
+                "# 実際のドローンを制御するにはハードウェアを選択してください。"
+            ])
+    
+    else:  # robot mode
+        if hardware == "rpi":
+            # Raspberry Pi用コード
+            code_lines.extend([
+                "# Raspberry Pi ロボット制御プログラム",
+                "# 必要なライブラリ: pip install gpiozero",
+                "",
+                "from gpiozero import Robot",
+                "from time import sleep",
+                "",
+                "# モーターのピン設定（使用するピンに合わせて変更）",
+                "# 左モーター: GPIOピン17, 18",
+                "# 右モーター: GPIOピン22, 23",
+                "robot = Robot(left=(17, 18), right=(22, 23))",
+                ""
+            ])
+            
+            for block in robot_blocks:
+                block_type = block["type"]
+                params = block["params"]
+                
+                if block_type == "forward":
+                    dist = params.get('distance', 5)
+                    code_lines.append(f"robot.forward()")
+                    code_lines.append(f"sleep({dist})")
+                    code_lines.append("robot.stop()")
+                elif block_type == "backward":
+                    dist = params.get('distance', 5)
+                    code_lines.append(f"robot.backward()")
+                    code_lines.append(f"sleep({dist})")
+                    code_lines.append("robot.stop()")
+                elif block_type == "rotate_left":
+                    code_lines.append("robot.left()")
+                    code_lines.append("sleep(0.5)")
+                    code_lines.append("robot.stop()")
+                elif block_type == "rotate_right":
+                    code_lines.append("robot.right()")
+                    code_lines.append("sleep(0.5)")
+                    code_lines.append("robot.stop()")
+                elif block_type == "rotate_180":
+                    code_lines.append("robot.left()")
+                    code_lines.append("sleep(1.0)")
+                    code_lines.append("robot.stop()")
+                elif block_type == "wait":
+                    code_lines.append(f"sleep({params.get('seconds', 1)})")
+                elif block_type == "return_home":
+                    code_lines.append("# 帰還: 反転して前進")
+                    code_lines.append("robot.left()")
+                    code_lines.append("sleep(1.0)")
+                    code_lines.append("robot.stop()")
+            
+            code_lines.extend([
+                "",
+                "# 使用前の準備:",
+                "# 1. Raspberry Piにgpiozeroをインストール: pip install gpiozero",
+                "# 2. モータードライバ（L298N等）を接続",
+                "# 3. GPIOピンを正しく配線",
+                "# 4. ピン番号を実際の配線に合わせて変更"
+            ])
+        else:
+            # シミュレーション
+            code_lines.extend([
+                "import tkinter as tk",
+                "from tkinter import messagebox",
+                "",
+                "# 自走式ロボット制御プログラム（シミュレーション）",
+                "",
+                "class RobotController:",
+                "    def __init__(self):",
+                "        self.x = 0",
+                "        self.y = 0",
+                "        self.direction = 0  # 0=北, 1=東, 2=南, 3=西",
+                "        self.start_x = 0",
+                "        self.start_y = 0",
+                "        self.start_direction = 0",
+                "        self.directions = ['北', '東', '南', '西']",
+                "",
+                "    def forward(self, distance):",
+                "        if self.direction == 0:",
+                "            self.y += distance",
+                "        elif self.direction == 1:",
+                "            self.x += distance",
+                "        elif self.direction == 2:",
+                "            self.y -= distance",
+                "        else:",
+                "            self.x -= distance",
+                "        print(f'{distance}メートル前進しました（向き: {self.directions[self.direction]}）')",
+                "",
+                "    def backward(self, distance):",
+                "        if self.direction == 0:",
+                "            self.y -= distance",
+                "        elif self.direction == 1:",
+                "            self.x -= distance",
+                "        elif self.direction == 2:",
+                "            self.y += distance",
+                "        else:",
+                "            self.x += distance",
+                "        print(f'{distance}メートル後退しました（向き: {self.directions[self.direction]}）')",
+                "",
+                "    def rotate_left(self):",
+                "        self.direction = (self.direction + 3) % 4",
+                "        print(f'左に90度回転しました（現在の向き: {self.directions[self.direction]}）')",
+                "",
+                "    def rotate_right(self):",
+                "        self.direction = (self.direction + 1) % 4",
+                "        print(f'右に90度回転しました（現在の向き: {self.directions[self.direction]}）')",
+                "",
+                "    def rotate_180(self):",
+                "        self.direction = (self.direction + 2) % 4",
+                "        print(f'180度反転しました（現在の向き: {self.directions[self.direction]}）')",
+                "",
+                "    def face_direction(self, direction):",
+                "        direction_map = {'北': 0, '東': 1, '南': 2, '西': 3}",
+                "        if direction in direction_map:",
+                "            self.direction = direction_map[direction]",
+                "            print(f'{direction}を向きました')",
+                "",
+                "    def wait(self, seconds):",
+                "        import time",
+                "        time.sleep(seconds)",
+                "",
+                "    def return_home(self):",
+                "        print('⚠️ 電波が途絶しました！自動帰還を開始します')",
+                "        self.x = self.start_x",
+                "        self.y = self.start_y",
+                "        self.direction = self.start_direction",
+                "        print('✅ 元の位置に帰還完了しました')",
+                "",
+                "    def show_status(self):",
+                "        print(f'現在位置: X={self.x}, Y={self.y}, 向き={self.directions[self.direction]}')",
+                "",
+                "",
+                "robot = RobotController()",
+                ""
+            ])
+            
+            for block in robot_blocks:
+                block_type = block["type"]
+                params = block["params"]
+                
+                if block_type == "forward":
+                    code_lines.append(f"robot.forward({params.get('distance', 5)})")
+                elif block_type == "backward":
+                    code_lines.append(f"robot.backward({params.get('distance', 5)})")
+                elif block_type == "rotate_left":
+                    code_lines.append("robot.rotate_left()")
+                elif block_type == "rotate_right":
+                    code_lines.append("robot.rotate_right()")
+                elif block_type == "rotate_180":
+                    code_lines.append("robot.rotate_180()")
+                elif block_type == "face_direction":
+                    code_lines.append(f"robot.face_direction('{params.get('direction', '北')}')")
+                elif block_type == "wait":
+                    code_lines.append(f"robot.wait({params.get('seconds', 1)})")
+                elif block_type == "return_home":
+                    code_lines.append("robot.return_home()")
+            
+            code_lines.extend([
+                "",
+                "robot.show_status()",
+                "",
+                "# 注意: これはシミュレーションです。",
+                "# 実際のロボットを制御するにはハードウェアを選択してください。"
+            ])
+    
+    generated_code = "\n".join(code_lines)
+    robot_code_output.set(generated_code)
+    
+    # エディターに転送
+    if text.get("1.0", tk.END).strip():
+        if not messagebox.askyesno("上書き確認", "エディターの内容を生成コードで置き換えますか？"):
+            return
+    text.delete("1.0", tk.END)
+    text.insert("1.0", generated_code + "\n")
+    update_text_modified_state()
+    apply_syntax_highlighting()
+    update_line_numbers()
+    update_status_bar()
+    top_notebook.select(tab_editor)
+    
+    # ハードウェアに応じたメッセージ
+    if hardware == "tello":
+        messagebox.showinfo("生成完了", "DJI Tello用コードを生成しました！\n\n使用前の準備:\n1. pip install djitellopy\n2. Telloの電源を入れる\n3. WiFiでTelloに接続\n4. プログラムを実行")
+    elif hardware == "rpi":
+        messagebox.showinfo("生成完了", "Raspberry Pi用コードを生成しました！\n\n使用前の準備:\n1. pip install gpiozero\n2. モータードライバを接続\n3. GPIOピンを配線\n4. ピン番号を確認・変更")
+    else:
+        messagebox.showinfo("生成完了", "シミュレーションコードをエディターに転送しました！")
+
+def center_dialog(dialog):
+    dialog.update_idletasks()
+    width = dialog.winfo_width()
+    height = dialog.winfo_height()
+    x = (dialog.winfo_screenwidth() // 2) - (width // 2)
+    y = (dialog.winfo_screenheight() // 2) - (height // 2)
+    dialog.geometry(f'+{x}+{y}')
+
+def robot_add_takeoff():
+    dialog = tk.Toplevel(root)
+    dialog.title("離陸設定")
+    dialog.geometry("350x180")
+    dialog.transient(root)
+    dialog.grab_set()
+    
+    tk.Label(dialog, text="上昇メートル数:", font=("Meiryo UI", 12)).pack(pady=15)
+    height_var = tk.StringVar(value="5")
+    tk.Entry(dialog, textvariable=height_var, width=18, font=("Meiryo UI", 11)).pack(pady=8)
+    
+    def confirm():
+        try:
+            height = float(height_var.get())
+            robot_add_block("takeoff", {"height": height})
+            dialog.destroy()
+        except ValueError:
+            messagebox.showerror("エラー", "数字を入力してください", parent=dialog)
+    
+    tk.Button(dialog, text="追加", command=confirm, bg="#0d6efd", fg="white", 
+              font=("Meiryo UI", 11, "bold"), width=12, height=2).pack(pady=15)
+    center_dialog(dialog)
+
+def robot_add_land():
+    robot_add_block("land")
+
+def robot_add_forward():
+    dialog = tk.Toplevel(root)
+    dialog.title("前進設定")
+    dialog.geometry("350x180")
+    dialog.transient(root)
+    dialog.grab_set()
+    
+    tk.Label(dialog, text="移動メートル数:", font=("Meiryo UI", 12)).pack(pady=15)
+    dist_var = tk.StringVar(value="5")
+    tk.Entry(dialog, textvariable=dist_var, width=18, font=("Meiryo UI", 11)).pack(pady=8)
+    
+    def confirm():
+        try:
+            dist = float(dist_var.get())
+            robot_add_block("forward", {"distance": dist})
+            dialog.destroy()
+        except ValueError:
+            messagebox.showerror("エラー", "数字を入力してください", parent=dialog)
+    
+    tk.Button(dialog, text="追加", command=confirm, bg="#0d6efd", fg="white", 
+              font=("Meiryo UI", 11, "bold"), width=12, height=2).pack(pady=15)
+    center_dialog(dialog)
+
+def robot_add_backward():
+    dialog = tk.Toplevel(root)
+    dialog.title("後退設定")
+    dialog.geometry("350x180")
+    dialog.transient(root)
+    dialog.grab_set()
+    
+    tk.Label(dialog, text="移動メートル数:", font=("Meiryo UI", 12)).pack(pady=15)
+    dist_var = tk.StringVar(value="5")
+    tk.Entry(dialog, textvariable=dist_var, width=18, font=("Meiryo UI", 11)).pack(pady=8)
+    
+    def confirm():
+        try:
+            dist = float(dist_var.get())
+            robot_add_block("backward", {"distance": dist})
+            dialog.destroy()
+        except ValueError:
+            messagebox.showerror("エラー", "数字を入力してください", parent=dialog)
+    
+    tk.Button(dialog, text="追加", command=confirm, bg="#0d6efd", fg="white", 
+              font=("Meiryo UI", 11, "bold"), width=12, height=2).pack(pady=15)
+    center_dialog(dialog)
+
+def robot_add_left():
+    dialog = tk.Toplevel(root)
+    dialog.title("左移動設定")
+    dialog.geometry("350x180")
+    dialog.transient(root)
+    dialog.grab_set()
+    
+    tk.Label(dialog, text="移動メートル数:", font=("Meiryo UI", 12)).pack(pady=15)
+    dist_var = tk.StringVar(value="5")
+    tk.Entry(dialog, textvariable=dist_var, width=18, font=("Meiryo UI", 11)).pack(pady=8)
+    
+    def confirm():
+        try:
+            dist = float(dist_var.get())
+            robot_add_block("left", {"distance": dist})
+            dialog.destroy()
+        except ValueError:
+            messagebox.showerror("エラー", "数字を入力してください", parent=dialog)
+    
+    tk.Button(dialog, text="追加", command=confirm, bg="#0d6efd", fg="white", 
+              font=("Meiryo UI", 11, "bold"), width=12, height=2).pack(pady=15)
+    center_dialog(dialog)
+
+def robot_add_right():
+    dialog = tk.Toplevel(root)
+    dialog.title("右移動設定")
+    dialog.geometry("350x180")
+    dialog.transient(root)
+    dialog.grab_set()
+    
+    tk.Label(dialog, text="移動メートル数:", font=("Meiryo UI", 12)).pack(pady=15)
+    dist_var = tk.StringVar(value="5")
+    tk.Entry(dialog, textvariable=dist_var, width=18, font=("Meiryo UI", 11)).pack(pady=8)
+    
+    def confirm():
+        try:
+            dist = float(dist_var.get())
+            robot_add_block("right", {"distance": dist})
+            dialog.destroy()
+        except ValueError:
+            messagebox.showerror("エラー", "数字を入力してください", parent=dialog)
+    
+    tk.Button(dialog, text="追加", command=confirm, bg="#0d6efd", fg="white", 
+              font=("Meiryo UI", 11, "bold"), width=12, height=2).pack(pady=15)
+    center_dialog(dialog)
+
+def robot_add_up():
+    dialog = tk.Toplevel(root)
+    dialog.title("上昇設定")
+    dialog.geometry("350x180")
+    dialog.transient(root)
+    dialog.grab_set()
+    
+    tk.Label(dialog, text="上昇メートル数:", font=("Meiryo UI", 12)).pack(pady=15)
+    height_var = tk.StringVar(value="5")
+    tk.Entry(dialog, textvariable=height_var, width=18, font=("Meiryo UI", 11)).pack(pady=8)
+    
+    def confirm():
+        try:
+            height = float(height_var.get())
+            robot_add_block("up", {"height": height})
+            dialog.destroy()
+        except ValueError:
+            messagebox.showerror("エラー", "数字を入力してください", parent=dialog)
+    
+    tk.Button(dialog, text="追加", command=confirm, bg="#0d6efd", fg="white", 
+              font=("Meiryo UI", 11, "bold"), width=12, height=2).pack(pady=15)
+    center_dialog(dialog)
+
+def robot_add_down():
+    dialog = tk.Toplevel(root)
+    dialog.title("下降設定")
+    dialog.geometry("350x180")
+    dialog.transient(root)
+    dialog.grab_set()
+    
+    tk.Label(dialog, text="下降メートル数:", font=("Meiryo UI", 12)).pack(pady=15)
+    height_var = tk.StringVar(value="5")
+    tk.Entry(dialog, textvariable=height_var, width=18, font=("Meiryo UI", 11)).pack(pady=8)
+    
+    def confirm():
+        try:
+            height = float(height_var.get())
+            robot_add_block("down", {"height": height})
+            dialog.destroy()
+        except ValueError:
+            messagebox.showerror("エラー", "数字を入力してください", parent=dialog)
+    
+    tk.Button(dialog, text="追加", command=confirm, bg="#0d6efd", fg="white", 
+              font=("Meiryo UI", 11, "bold"), width=12, height=2).pack(pady=15)
+    center_dialog(dialog)
+
+def robot_add_rotate_left():
+    dialog = tk.Toplevel(root)
+    dialog.title("左回転角度設定")
+    dialog.geometry("300x180")
+    dialog.transient(root)
+    dialog.grab_set()
+
+    tk.Label(dialog, text="回転角度（度）:", font=("Meiryo UI", 12)).pack(pady=15)
+    angle_var = tk.StringVar(value="90")
+    tk.Entry(dialog, textvariable=angle_var, font=("Meiryo UI", 12), justify="center").pack(pady=5)
+
+    def confirm():
+        try:
+            angle = float(angle_var.get())
+            robot_add_block("rotate_left", {"angle": angle})
+            dialog.destroy()
+        except ValueError:
+            messagebox.showerror("エラー", "数字を入力してください", parent=dialog)
+
+    tk.Button(dialog, text="追加", command=confirm, bg="#0d6efd", fg="white",
+              font=("Meiryo UI", 11, "bold"), width=12, height=2).pack(pady=15)
+    center_dialog(dialog)
+
+def robot_add_rotate_right():
+    dialog = tk.Toplevel(root)
+    dialog.title("右回転角度設定")
+    dialog.geometry("300x180")
+    dialog.transient(root)
+    dialog.grab_set()
+
+    tk.Label(dialog, text="回転角度（度）:", font=("Meiryo UI", 12)).pack(pady=15)
+    angle_var = tk.StringVar(value="90")
+    tk.Entry(dialog, textvariable=angle_var, font=("Meiryo UI", 12), justify="center").pack(pady=5)
+
+    def confirm():
+        try:
+            angle = float(angle_var.get())
+            robot_add_block("rotate_right", {"angle": angle})
+            dialog.destroy()
+        except ValueError:
+            messagebox.showerror("エラー", "数字を入力してください", parent=dialog)
+
+    tk.Button(dialog, text="追加", command=confirm, bg="#0d6efd", fg="white",
+              font=("Meiryo UI", 11, "bold"), width=12, height=2).pack(pady=15)
+    center_dialog(dialog)
+
+def robot_add_rotate_180():
+    robot_add_block("rotate_180")
+
+def robot_add_face_direction():
+    dialog = tk.Toplevel(root)
+    dialog.title("方向設定")
+    dialog.geometry("350x200")
+    dialog.transient(root)
+    dialog.grab_set()
+    
+    tk.Label(dialog, text="向きを選択:", font=("Meiryo UI", 12)).pack(pady=15)
+    dir_var = tk.StringVar(value="北")
+    directions = ["北", "東", "南", "西"]
+    ttk.Combobox(dialog, textvariable=dir_var, values=directions, state="readonly", 
+                 width=18, font=("Meiryo UI", 11)).pack(pady=8)
+    
+    def confirm():
+        robot_add_block("face_direction", {"direction": dir_var.get()})
+        dialog.destroy()
+    
+    tk.Button(dialog, text="追加", command=confirm, bg="#0d6efd", fg="white", 
+              font=("Meiryo UI", 11, "bold"), width=12, height=2).pack(pady=15)
+    center_dialog(dialog)
+
+def robot_add_wait():
+    dialog = tk.Toplevel(root)
+    dialog.title("待機設定")
+    dialog.geometry("350x180")
+    dialog.transient(root)
+    dialog.grab_set()
+    
+    tk.Label(dialog, text="待機秒数:", font=("Meiryo UI", 12)).pack(pady=15)
+    sec_var = tk.StringVar(value="1")
+    tk.Entry(dialog, textvariable=sec_var, width=18, font=("Meiryo UI", 11)).pack(pady=8)
+    
+    def confirm():
+        try:
+            sec = float(sec_var.get())
+            robot_add_block("wait", {"seconds": sec})
+            dialog.destroy()
+        except ValueError:
+            messagebox.showerror("エラー", "数字を入力してください", parent=dialog)
+    
+    tk.Button(dialog, text="追加", command=confirm, bg="#0d6efd", fg="white", 
+              font=("Meiryo UI", 11, "bold"), width=12, height=2).pack(pady=15)
+    center_dialog(dialog)
+
+def robot_add_return_home():
+    robot_add_block("return_home")
+
+# ドローン・ロボット制御タブのUI
+robot_main_frame = tk.Frame(tab_robot, bg=THEMES[current_theme]['bg'])
+robot_main_frame.pack(expand=True, fill="both", padx=15, pady=15)
+
+# モード選択
+robot_mode_frame = tk.Frame(robot_main_frame, bg=THEMES[current_theme]['bg'])
+robot_mode_frame.pack(fill="x", pady=(0, 15))
+tk.Label(robot_mode_frame, text="制御モード:", font=("Meiryo UI", 13, "bold"), 
+         bg=THEMES[current_theme]['bg'], fg=THEMES[current_theme]['text_fg']).pack(side="left", padx=(0, 15))
+mode_drone_btn = tk.Radiobutton(robot_mode_frame, text="🚁 ドローン", variable=robot_control_mode, 
+                                value="drone", bg=THEMES[current_theme]['bg'], fg=THEMES[current_theme]['text_fg'],
+                                font=("Meiryo UI", 12), selectcolor=THEMES[current_theme]['button_bg'])
+mode_drone_btn.pack(side="left", padx=8)
+mode_robot_btn = tk.Radiobutton(robot_mode_frame, text="🤖 自走ロボット", variable=robot_control_mode, 
+                                value="robot", bg=THEMES[current_theme]['bg'], fg=THEMES[current_theme]['text_fg'],
+                                font=("Meiryo UI", 12), selectcolor=THEMES[current_theme]['button_bg'])
+mode_robot_btn.pack(side="left", padx=8)
+
+# ハードウェア選択
+robot_hardware_frame = tk.Frame(robot_main_frame, bg=THEMES[current_theme]['bg'])
+robot_hardware_frame.pack(fill="x", pady=(0, 15))
+tk.Label(robot_hardware_frame, text="ハードウェア:", font=("Meiryo UI", 13, "bold"), 
+         bg=THEMES[current_theme]['bg'], fg=THEMES[current_theme]['text_fg']).pack(side="left", padx=(0, 15))
+robot_hardware_var = tk.StringVar(value="simulation")
+hardware_drone_sim = tk.Radiobutton(robot_hardware_frame, text="シミュレーション", variable=robot_hardware_var, 
+                                     value="simulation", bg=THEMES[current_theme]['bg'], fg=THEMES[current_theme]['text_fg'],
+                                     font=("Meiryo UI", 11), selectcolor=THEMES[current_theme]['button_bg'])
+hardware_drone_sim.pack(side="left", padx=5)
+hardware_drone_tello = tk.Radiobutton(robot_hardware_frame, text="DJI Tello", variable=robot_hardware_var, 
+                                       value="tello", bg=THEMES[current_theme]['bg'], fg=THEMES[current_theme]['text_fg'],
+                                       font=("Meiryo UI", 11), selectcolor=THEMES[current_theme]['button_bg'])
+hardware_drone_tello.pack(side="left", padx=5)
+hardware_robot_rpi = tk.Radiobutton(robot_hardware_frame, text="Raspberry Pi", variable=robot_hardware_var, 
+                                      value="rpi", bg=THEMES[current_theme]['bg'], fg=THEMES[current_theme]['text_fg'],
+                                      font=("Meiryo UI", 11), selectcolor=THEMES[current_theme]['button_bg'])
+hardware_robot_rpi.pack(side="left", padx=5)
+
+# メインコンテンツエリア（左右分割）
+robot_content_frame = tk.Frame(robot_main_frame, bg=THEMES[current_theme]['bg'])
+robot_content_frame.pack(expand=True, fill="both", pady=(0, 15))
+
+# 左側：ボタンエリア
+robot_buttons_frame = tk.LabelFrame(robot_content_frame, text=" ブロックを追加 ", 
+                                   bg=THEMES[current_theme]['bg'], fg=THEMES[current_theme]['text_fg'],
+                                   font=("Meiryo UI", 12, "bold"), padx=12, pady=12)
+robot_buttons_frame.pack(side="left", fill="y", padx=(0, 10))
+
+# ドローン用ボタン（縦並び）
+drone_btns = tk.Frame(robot_buttons_frame, bg=THEMES[current_theme]['bg'])
+drone_btns.pack(fill="x")
+tk.Button(drone_btns, text="🚀 離陸", command=robot_add_takeoff, bg="#198754", fg="white", 
+          font=("Meiryo UI", 10, "bold"), width=16, height=1).pack(fill="x", pady=3)
+tk.Button(drone_btns, text="🛬 着陸", command=robot_add_land, bg="#dc3545", fg="white", 
+          font=("Meiryo UI", 10, "bold"), width=16, height=1).pack(fill="x", pady=3)
+tk.Button(drone_btns, text="⬆️ 前進", command=robot_add_forward, bg="#0d6efd", fg="white", 
+          font=("Meiryo UI", 10, "bold"), width=16, height=1).pack(fill="x", pady=3)
+tk.Button(drone_btns, text="⬇️ 後退", command=robot_add_backward, bg="#0d6efd", fg="white", 
+          font=("Meiryo UI", 10, "bold"), width=16, height=1).pack(fill="x", pady=3)
+tk.Button(drone_btns, text="⬅️ 左移動", command=robot_add_left, bg="#6c757d", fg="white", 
+          font=("Meiryo UI", 10, "bold"), width=16, height=1).pack(fill="x", pady=3)
+tk.Button(drone_btns, text="➡️ 右移動", command=robot_add_right, bg="#6c757d", fg="white", 
+          font=("Meiryo UI", 10, "bold"), width=16, height=1).pack(fill="x", pady=3)
+tk.Button(drone_btns, text="🔼 上昇", command=robot_add_up, bg="#17a2b8", fg="white",
+          font=("Meiryo UI", 10, "bold"), width=16, height=1).pack(fill="x", pady=3)
+tk.Button(drone_btns, text="🔽 下降", command=robot_add_down, bg="#17a2b8", fg="white",
+          font=("Meiryo UI", 10, "bold"), width=16, height=1).pack(fill="x", pady=3)
+tk.Button(drone_btns, text="↪️ 左回転", command=robot_add_rotate_left, bg="#6c757d", fg="white",
+          font=("Meiryo UI", 10, "bold"), width=16, height=1).pack(fill="x", pady=3)
+tk.Button(drone_btns, text="↩️ 右回転", command=robot_add_rotate_right, bg="#6c757d", fg="white",
+          font=("Meiryo UI", 10, "bold"), width=16, height=1).pack(fill="x", pady=3)
+tk.Button(drone_btns, text="⏱️ 待機", command=robot_add_wait, bg="#fd7e14", fg="white",
+          font=("Meiryo UI", 10, "bold"), width=16, height=1).pack(fill="x", pady=3)
+tk.Button(drone_btns, text="🏠 電波途脱時帰還", command=robot_add_return_home, bg="#ffc107", fg="#000", 
+          font=("Meiryo UI", 10, "bold"), width=16, height=1).pack(fill="x", pady=3)
+
+# ロボット用ボタン（縦並び、初期は非表示）
+robot_btns = tk.Frame(robot_buttons_frame, bg=THEMES[current_theme]['bg'])
+robot_btns.pack_forget()  # 初期は非表示
+tk.Button(robot_btns, text="⬆️ 前進", command=robot_add_forward, bg="#0d6efd", fg="white", 
+          font=("Meiryo UI", 10, "bold"), width=16, height=1).pack(fill="x", pady=3)
+tk.Button(robot_btns, text="⬇️ 後退", command=robot_add_backward, bg="#0d6efd", fg="white", 
+          font=("Meiryo UI", 10, "bold"), width=16, height=1).pack(fill="x", pady=3)
+tk.Button(robot_btns, text="↪️ 左回転", command=robot_add_rotate_left, bg="#6c757d", fg="white", 
+          font=("Meiryo UI", 10, "bold"), width=16, height=1).pack(fill="x", pady=3)
+tk.Button(robot_btns, text="↩️ 右回転", command=robot_add_rotate_right, bg="#6c757d", fg="white", 
+          font=("Meiryo UI", 10, "bold"), width=16, height=1).pack(fill="x", pady=3)
+tk.Button(robot_btns, text="🔄 反転", command=robot_add_rotate_180, bg="#6610f2", fg="white", 
+          font=("Meiryo UI", 10, "bold"), width=16, height=1).pack(fill="x", pady=3)
+tk.Button(robot_btns, text="🧭 方向を向く", command=robot_add_face_direction, bg="#20c997", fg="white", 
+          font=("Meiryo UI", 10, "bold"), width=16, height=1).pack(fill="x", pady=3)
+tk.Button(robot_btns, text="⏱️ 待機", command=robot_add_wait, bg="#fd7e14", fg="white", 
+          font=("Meiryo UI", 10, "bold"), width=16, height=1).pack(fill="x", pady=3)
+tk.Button(robot_btns, text="🏠 電波途脱時帰還", command=robot_add_return_home, bg="#ffc107", fg="#000", 
+          font=("Meiryo UI", 10, "bold"), width=16, height=1).pack(fill="x", pady=3)
+
+def update_robot_buttons():
+    mode = robot_control_mode.get()
+    if mode == "drone":
+        drone_btns.pack(fill="x")
+        robot_btns.pack_forget()
+    else:
+        drone_btns.pack_forget()
+        robot_btns.pack(fill="x")
+
+robot_control_mode.trace_add("write", lambda *args: update_robot_buttons())
+
+# 右側：プログラム表示エリア
+robot_program_frame = tk.LabelFrame(robot_content_frame, text=" プログラム ", 
+                                   bg=THEMES[current_theme]['bg'], fg=THEMES[current_theme]['text_fg'],
+                                   font=("Meiryo UI", 12, "bold"), padx=12, pady=12)
+robot_program_frame.pack(side="left", expand=True, fill="both")
+
+robot_canvas_frame = tk.Frame(robot_program_frame, bg=THEMES[current_theme]['bg'])
+robot_canvas_frame.pack(expand=True, fill="both")
+robot_canvas = tk.Canvas(robot_canvas_frame, bg=THEMES[current_theme]['text_bg'], 
+                        highlightthickness=0)
+robot_canvas.pack(side="left", expand=True, fill="both")
+
+# Canvasサイズ変更時にブロックを再配置
+robot_canvas.bind("<Configure>", lambda e: robot_refresh_blocks_display())
+
+# 操作ボタン
+robot_control_frame = tk.Frame(robot_main_frame, bg=THEMES[current_theme]['bg'])
+robot_control_frame.pack(fill="x")
+tk.Button(robot_control_frame, text="🗑️ 最後のブロックを削除", command=robot_delete_last_block, 
+          bg="#dc3545", fg="white", font=("Meiryo UI", 11, "bold"), width=22, height=2).pack(side="left", padx=6, pady=6)
+tk.Button(robot_control_frame, text="🧹 全ブロックを消去", command=robot_clear_blocks, 
+          bg="#6c757d", fg="white", font=("Meiryo UI", 11, "bold"), width=22, height=2).pack(side="left", padx=6, pady=6)
+tk.Button(robot_control_frame, text="📝 コード生成して転送", command=robot_generate_code, 
+          bg="#0d6efd", fg="white", font=("Meiryo UI", 12, "bold"), width=28, height=2).pack(side="right", padx=6, pady=6)
 
 
 # ---------- タブ4：ツール ----------
