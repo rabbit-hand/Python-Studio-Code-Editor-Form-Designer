@@ -159,7 +159,6 @@ def save_as_file():
     selected_filetype = tk.StringVar(root)
     path = filedialog.asksaveasfilename(
         filetypes=[
-            ("Python Files (*.py)", "*.py"),
             ("Python Windowless (*.pyw)", "*.pyw"),
             ("All Files", "*.*")
         ],
