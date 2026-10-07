@@ -1,37 +1,46 @@
 # 📘 Python Studio Manual (English Version)
 
 ## 🐍 Introduction
-Python Studio is an all‑in‑one environment for creating Python GUI applications.
-It includes a form designer, code editor, auto formatter, virtual environment manager,
-and one‑click execution — all inside a single `.pyw` file.
+Python Studio is an integrated environment that allows users to easily create Python GUI applications.  
+It provides a form designer, code editor, auto formatting, virtual environment management, and one‑click execution, all within a single `.pyw` file.
 
-Beginners can build GUIs easily, and advanced users can edit code directly.
+Beginners can build GUIs, and advanced users can directly edit the code.
 
 ---
 
 ## 💡 Why I Created Python Studio
-Python is a wonderful programming language, loved by beginners and professionals worldwide.
-However, creating GUI applications can feel challenging for new learners.
-Writing an entire interface only with code can be overwhelming.
+Python is a wonderful programming language loved around the world, but beginners often struggle when they try to jump directly into Python.
 
-I wanted to reduce the number of beginners who feel discouraged
-and give up simply because the tools feel too difficult.
+I once talked with an elementary school student in a chat.  
+He said, “I use Scratch, so programming is easy for me.”  
+I asked him, “Do you know what a comment symbol is?”  
+His answer was, “What’s that?”
 
-Not everyone needs to become a professional programmer.
-But being able to create small tools for everyday life
-is already meaningful and empowering.
+This experience made me realize how high the wall is when moving from Scratch to Python.
 
-My goal is to provide a gentle and enjoyable environment
-where beginners can create things without fear or frustration.
+Python introduces many challenges at once: comment symbols, indentation rules, the meaning of symbols, English technical terms, and logical structure.  
+For beginners who have not yet developed logical thinking, this becomes a steep cliff they can easily fall from.
 
-Python Studio was created to make Python feel more approachable,
-more friendly, and more fun for new learners.
+Many people say that Japanese programming languages are unnecessary if someone wants to learn professional programming.  
+However, if beginners are forced to climb a huge wall without preparation, it is natural that they will fail.
+
+I have always felt that this is dangerous.
+
+There is no need to climb the Python wall immediately.  
+A fun and safe environment should come first.
+
+Even if beginners give up halfway, having the experience of creating a GUI by themselves becomes a valuable foundation for the future.
+
+Python Studio was created to serve as that foundation, helping beginners avoid frustration and encouraging them to try again someday.
+
+Without AI, I could never have built this tool.  
+But if AI can help create an environment where beginners can learn without fear, then it is truly meaningful.
 
 ---
 
 ## 🚀 How to Start
-1. Install Python 3.x
-2. Double‑click `Python Studio Editor English.pyw`
+1. Install Python 3.x  
+2. Double‑click `Python Studio Editor English.pyw`  
 3. The application starts immediately (no additional installation required)
 
 ---
@@ -39,73 +48,80 @@ more friendly, and more fun for new learners.
 ## 🖥 Interface Overview
 
 ### 🎨 Form Designer
-A drag‑and‑drop interface for building GUI layouts.
+You can create GUIs using drag and drop.
 
-- Place widgets
-- Resize
-- Move
-- Edit properties
-- Set events
-- Preview the UI
+- Place widgets  
+- Resize  
+- Move  
+- Edit properties  
+- Set events  
+- Preview the UI  
 
 ### ✏️ Code Editor
-- Syntax highlighting
-- Auto indentation
-- autopep8 formatting
-- Save / Load files
-- Project management
+- Syntax highlighting  
+- Auto indentation  
+- autopep8 formatting  
+- Save and load  
+- Project management  
 
 ### ⚙️ Property Panel
-- Text
-- Color
-- Size
-- Position
-- Event name
+- Text  
+- Color  
+- Size  
+- Position  
+- Event name  
 
 ---
 
 ## 📂 Creating a Project
-1. Select “New Project”
-2. Place widgets
-3. Edit code if needed
-4. Save the project to generate a project folder
+1. Create a new project  
+2. Place widgets  
+3. Edit code if needed  
+4. Saving generates a project folder  
 
 ---
 
 ## 🔧 Virtual Environment (venv)
 Python Studio automatically creates a venv for each project.
 
-- venv creation
-- autopep8 installation
-- safe execution inside the venv
+- Automatic venv creation  
+- Automatic installation of autopep8  
+- Safe execution inside the venv  
 
 ---
 
 ## ▶️ Running the Program
-- Run button
-- Standard output
-- Error messages
-- Timeout protection
+- Press the Run button  
+- Standard output  
+- Error messages  
+- Timeout protection  
 
 ---
 
 ## ⚠️ Notes
-- Windows only
-- Tkinter only
-- Large GUIs may slow down Canvas operations
+- Windows only  
+- Tkinter only  
+- Large GUIs may slow down Canvas operations  
 
 ---
 
 ## ❓ FAQ
 
-**Q. Do I need Python installed?**  
+Q. Do I need Python installed?  
 A. Yes, Python 3.x is required.
 
-**Q. Do I need to install anything else?**  
+Q. Do I need to install anything else?  
 A. No. Just double‑click the file and it will run.
 
-**Q. Does Python Studio support PyQt or wxPython?**  
+Q. Does Python Studio support PyQt or wxPython?  
 A. Currently, only Tkinter is supported.
+
+---
+
+## Overview
+This program was created with the help of AI.  
+By sharing my ideas, the AI generated the necessary code and structure, making the development process much easier.  
+It also provided accurate suggestions for GUI design, allowing even beginners to quickly build functional applications.
 
 ---
 <img width="1599" height="851" alt="image" src="https://github.com/user-attachments/assets/9b7916b7-69f0-48fc-ada1-ebe5fdd9f587" />
