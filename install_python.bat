@@ -1,5 +1,5 @@
 @echo off
-title Python Studio Installer
+title Python Studio インストーラー
 echo ===============================
 echo  Python Studio インストーラー
 echo ===============================
@@ -13,22 +13,17 @@ if %errorlevel% neq 0 (
 )
 
 echo Python のパス確認...
-set PYTHON_PATH=
 for /f "tokens=*" %%i in ('where python') do set PYTHON_PATH=%%i
-
 echo 使用する Python: %PYTHON_PATH%
 echo.
 
 REM --- pip 最新化 ---
-echo pip をアップグレード中...
 "%PYTHON_PATH%" -m pip install --upgrade pip
 
 REM --- 必要モジュール ---
-echo 必要モジュールをインストール中...
-"%PYTHON_PATH%" -m pip install pillow pywin32 pygments tk
+"%PYTHON_PATH%" -m pip install pillow pywin32 pygments tk autopep8
 
 REM --- Python Studio 本体配置 ---
-echo Python Studio を配置中...
 set TARGET=C:\PythonStudio
 if not exist "%TARGET%" mkdir "%TARGET%"
 
@@ -37,29 +32,18 @@ powershell -Command ^
 
 echo.
 
-REM --- 仮想環境の保存場所を決定（Python Studio と同じロジック） ---
-echo 仮想環境の保存場所を決定中...
-
-set VENV_FOLDER_NAME=pythonstudio-venv
-
-REM ドキュメントフォルダを取得
-for /f "tokens=2,*" %%a in ('reg query "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders" /v Personal') do set DOCUMENTS=%%b
-
-set VENV_PATH=%DOCUMENTS%\%VENV_FOLDER_NAME%
+REM --- 仮想環境の保存場所（Python Studio と同じ） ---
+set DESKTOP=%USERPROFILE%\Desktop
+set VENV_PATH=%DESKTOP%\Pythonエディター_仮想環境
 
 echo 仮想環境の場所: %VENV_PATH%
 
-REM --- 仮想環境作成 ---
 if not exist "%VENV_PATH%" (
     echo 仮想環境を作成中...
     "%PYTHON_PATH%" -m venv "%VENV_PATH%"
 )
 
-REM --- 仮想環境パスをファイル保存 ---
 echo %VENV_PATH% > "%TARGET%\venv_path.txt"
-
-echo 仮想環境のパスを venv_path.txt に保存しました。
-echo.
 
 echo インストール完了！
 pause
