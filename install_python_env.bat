@@ -1,53 +1,66 @@
 @echo off
-title Python Studio Environment Installer
-
-echo ==== Python Studio 環境セットアップ ====
-
-REM --- ドキュメントフォルダのパス取得 ---
-set "DOC=%USERPROFILE%\Documents"
-set "ENV=%DOC%\PythonStudioEnv"
-set "VENV=%ENV%\venv"
-
-echo 環境フォルダ: %ENV%
-
-REM --- フォルダが無ければ作成 ---
-if not exist "%ENV%" (
-    mkdir "%ENV%"
-)
-
+title Python Studio Installer
+echo ===============================
+echo  Python Studio インストーラー
+echo ===============================
 echo.
-echo ==== Python を確認しています ====
-where python >nul 2>nul
+
+REM --- Python があるか確認 ---
+where python >nul 2>&1
 if %errorlevel% neq 0 (
-    echo Python が見つかりません。winget でインストールします…
-    winget install -e --id Python.Python.3.12
-) else (
-    echo Python は既にインストールされています。
+    echo Python が見つかりません。インストールします...
+    winget install Python.Python.3 --silent
 )
 
+echo Python のパス確認...
+set PYTHON_PATH=
+for /f "tokens=*" %%i in ('where python') do set PYTHON_PATH=%%i
+
+echo 使用する Python: %PYTHON_PATH%
 echo.
-echo ==== pip をアップグレードします ====
-python -m pip install --upgrade pip
+
+REM --- pip 最新化 ---
+echo pip をアップグレード中...
+"%PYTHON_PATH%" -m pip install --upgrade pip
+
+REM --- 必要モジュール ---
+echo 必要モジュールをインストール中...
+"%PYTHON_PATH%" -m pip install pillow pywin32 pygments tk
+
+REM --- Python Studio 本体配置 ---
+echo Python Studio を配置中...
+set TARGET=C:\PythonStudio
+if not exist "%TARGET%" mkdir "%TARGET%"
+
+powershell -Command ^
+ "(New-Object Net.WebClient).DownloadFile('https://raw.githubusercontent.com/rabbit-hand/Python-Studio-Code-Editor-Form-Designer/main/jp-Python%20Studio%20%E2%80%93%20Code%20Editor%20%26%20Form%20Designer.pyw','%TARGET%\PythonStudio.pyw')"
 
 echo.
-echo ==== 仮想環境を作成します ====
-if not exist "%VENV%" (
-    python -m venv "%VENV%"
-    echo 仮想環境を作成しました: %VENV%
-) else (
-    echo 仮想環境は既に存在します。
+
+REM --- 仮想環境の保存場所を決定（Python Studio と同じロジック） ---
+echo 仮想環境の保存場所を決定中...
+
+set VENV_FOLDER_NAME=pythonstudio-venv
+
+REM ドキュメントフォルダを取得
+for /f "tokens=2,*" %%a in ('reg query "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders" /v Personal') do set DOCUMENTS=%%b
+
+set VENV_PATH=%DOCUMENTS%\%VENV_FOLDER_NAME%
+
+echo 仮想環境の場所: %VENV_PATH%
+
+REM --- 仮想環境作成 ---
+if not exist "%VENV_PATH%" (
+    echo 仮想環境を作成中...
+    "%PYTHON_PATH%" -m venv "%VENV_PATH%"
 )
 
-echo.
-echo ==== 仮想環境を有効化します ====
-call "%VENV%\Scripts\activate.bat"
+REM --- 仮想環境パスをファイル保存 ---
+echo %VENV_PATH% > "%TARGET%\venv_path.txt"
 
+echo 仮想環境のパスを venv_path.txt に保存しました。
 echo.
-echo ==== 必要なモジュールをインストールします ====
-pip install pillow
 
-echo.
-echo ==== セットアップ完了しました ====
-echo 仮想環境の場所: %VENV%
+echo インストール完了！
 pause
 
