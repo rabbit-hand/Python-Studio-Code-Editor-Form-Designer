@@ -1,4 +1,4 @@
-# 📘 Python Studio Manual (English Version)
+# 📘 Python Studio Manual
 
 ## 🐍 Introduction
 Python Studio is an integrated environment that allows users to easily create Python GUI applications.  
