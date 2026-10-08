@@ -5,30 +5,24 @@ echo      Python Studio Installer
 echo ===============================
 echo.
 
-REM --- Check if Python exists ---
+REM --- Check Python ---
 where python >nul 2>&1
 if %errorlevel% neq 0 (
-    echo Python not found. Installing Python...
+    echo Python not found. Installing...
     winget install Python.Python.3 --silent
 )
 
-echo Checking Python path...
-set PYTHON_PATH=
 for /f "tokens=*" %%i in ('where python') do set PYTHON_PATH=%%i
-
 echo Using Python: %PYTHON_PATH%
 echo.
 
 REM --- Upgrade pip ---
-echo Upgrading pip...
 "%PYTHON_PATH%" -m pip install --upgrade pip
 
 REM --- Install required modules ---
-echo Installing required modules...
-"%PYTHON_PATH%" -m pip install pillow pywin32 pygments tk
+"%PYTHON_PATH%" -m pip install pillow pywin32 pygments tk autopep8
 
-REM --- Install Python Studio main program ---
-echo Installing Python Studio...
+REM --- Install Python Studio ---
 set TARGET=C:\PythonStudio
 if not exist "%TARGET%" mkdir "%TARGET%"
 
@@ -37,29 +31,18 @@ powershell -Command ^
 
 echo.
 
-REM --- Determine virtual environment path (same logic as Python Studio) ---
-echo Determining virtual environment location...
-
-set VENV_FOLDER_NAME=pythonstudio-venv
-
-REM Get Documents folder
-for /f "tokens=2,*" %%a in ('reg query "HKCU\Software\Microsoft\Windows\CurrentVersion\Explorer\Shell Folders" /v Personal') do set DOCUMENTS=%%b
-
-set VENV_PATH=%DOCUMENTS%\%VENV_FOLDER_NAME%
+REM --- Virtual environment path (same as Python Studio) ---
+set DESKTOP=%USERPROFILE%\Desktop
+set VENV_PATH=%DESKTOP%\Pythonエディター_仮想環境
 
 echo Virtual environment path: %VENV_PATH%
 
-REM --- Create virtual environment ---
 if not exist "%VENV_PATH%" (
     echo Creating virtual environment...
     "%PYTHON_PATH%" -m venv "%VENV_PATH%"
 )
 
-REM --- Save virtual environment path to file ---
 echo %VENV_PATH% > "%TARGET%\venv_path.txt"
-
-echo Saved virtual environment path to venv_path.txt.
-echo.
 
 echo Installation complete!
 pause
