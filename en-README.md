@@ -1,126 +1,201 @@
-# 📘 Python Studio Manual
+📘 Python Studio Editor – README
+GUI Form Designer & Python Code Editor
+(Drone Control, Hotkeys, External Device Integration)
 
-## 🐍 Introduction
-Python Studio is an integrated environment that allows users to easily create Python GUI applications.  
-It provides a form designer, code editor, auto formatting, virtual environment management, and one‑click execution, all within a single `.pyw` file.
+🏷️ Overview
+Python Studio Editor is a lightweight integrated development environment that combines:
 
-Beginners can build GUIs, and advanced users can directly edit the code.
+GUI Form Designer
 
----
+Python Code Editor
 
-## 💡 Why I Created Python Studio
+Project Management
 
-Python is a wonderful programming language loved around the world, but beginners often struggle when they try to jump directly from Scratch to Python.
+Execution Environment
 
-I once talked with an elementary school student in a chat.  
-He said, “I use Scratch, so programming is easy for me.”  
-I asked him, “Do you know what a comment symbol is?”  
-He replied, “What’s that?”
+Extensible Tools
 
-This moment made me realize how high the wall is when moving from Scratch to Python.
+It provides a Visual Basic / Delphi–style drag‑and‑drop GUI builder together with Python code editing, hotkey customization, virtual environment management, and optional external device control such as drones.
 
-Scratch allows children to create programs visually, without needing to understand symbols, indentation rules, or English technical terms.  
-Python, on the other hand, introduces many challenges at once: comment symbols, indentation, the meaning of symbols, logical structure, and vocabulary.  
-For beginners who have not yet developed logical thinking, this becomes a steep cliff they can easily fall from.
+✨ Features
+🎨 GUI Form Designer
+Drag‑and‑drop widget placement
 
-I felt that beginners should not be forced to climb this wall immediately.  
-There should be a safe and enjoyable step between Scratch and Python.
+Resize, move, align, snap
 
-Python Studio was created to serve as that step.  
-It allows beginners to build GUI applications visually, while gradually becoming familiar with Python code.  
-Even if they give up halfway, the experience of creating something on their own becomes a valuable foundation for the future.
+Property editor (position, size, color, font, text, event name)
 
-Without AI, I could never have built this tool.  
-But with AI assisting the development, it became possible to create an environment where beginners can learn Python without fear and without facing an overwhelming wall all at once.
+Automatic event code generation
 
----
+GUI preview
 
-## 🚀 How to Start
-1. Install Python 3.x  
-2. Double‑click `Python Studio Editor English.pyw`  
-3. The application starts immediately (no additional installation required)
+Widget hierarchy tree
 
----
+Multi‑form support
 
-## 🖥 Interface Overview
+✏️ Python Code Editor
+Syntax highlighting (Pygments)
 
-### 🎨 Form Designer
-You can create GUIs using drag and drop.
+Undo / Redo
 
-- Place widgets  
-- Resize  
-- Move  
-- Edit properties  
-- Set events  
-- Preview the UI  
+Search & Replace
 
-### ✏️ Code Editor
-- Syntax highlighting  
-- Auto indentation  
-- autopep8 formatting  
-- Save and load  
-- Project management  
+Auto‑indent
 
-### ⚙️ Property Panel
-- Text  
-- Color  
-- Size  
-- Position  
-- Event name  
+Code formatting via autopep8
 
----
+Multi‑file editing
 
-## 📂 Creating a Project
-1. Create a new project  
-2. Place widgets  
-3. Edit code if needed  
-4. Saving generates a project folder  
+Linked form‑generation code
 
----
+Basic code completion
 
-## 🔧 Virtual Environment (venv)
-Python Studio automatically creates a venv for each project.
+🗂️ Project Management
+Automatic project folder creation
 
-- Automatic venv creation  
-- Automatic installation of autopep8  
-- Safe execution inside the venv  
+Save forms, code, and settings
 
----
+Switch between multiple projects
 
-## ▶️ Running the Program
-- Press the Run button  
-- Standard output  
-- Error messages  
-- Timeout protection  
+Create template projects
 
----
+🧪 Execution & Testing
+One‑click run
 
-## ⚠️ Notes
-- Windows only  
-- Tkinter only  
-- Large GUIs may slow down Canvas operations  
+Safe execution inside a virtual environment (venv)
 
----
+Timeout execution (test_timeout_seconds)
 
-## ❓ FAQ
+Log output window
 
-Q. Do I need Python installed?  
-A. Yes, Python 3.x is required.
+Error stack trace display
 
-Q. Do I need to install anything else?  
-A. No. Just double‑click the file and it will run.
+🧰 Virtual Environment (venv) Management
+Automatic creation of a dedicated virtual environment
 
-Q. Does Python Studio support PyQt or wxPython?  
-A. Currently, only Tkinter is supported.
+Auto‑installation of required libraries:
 
----
+pillow
 
-## Overview
-This program was created with the help of AI.  
-By sharing my ideas, the AI generated the necessary code and structure, making the development process much easier.  
-It also provided accurate suggestions for GUI design, allowing even beginners to quickly build functional applications.
+pywin32
 
----
-<img width="1599" height="851" alt="image" src="https://github.com/user-attachments/assets/9b7916b7-69f0-48fc-ada1-ebe5fdd9f587" />
-<img width="1599" height="850" alt="image" src="https://github.com/user-attachments/assets/9e6266c8-c890-4775-a1ad-99009a6afb10" />
-<img width="1599" height="850" alt="image" src="https://github.com/user-attachments/assets/705255a3-b524-4f97-bf1f-96113ed82f3f" />
+pygments
+
+autopep8
+
+tkinter
+
+Python path management
+
+Automatic pip upgrade
+
+🎛️ Hotkey Builder
+Custom hotkeys for editor actions
+
+Custom hotkeys for form designer operations
+
+Save hotkey configuration
+
+Load and apply settings
+
+🎨 Theme & UI Customization
+Light / Dark themes
+
+Adjustable font size
+
+Window size memory
+
+Save UI configuration
+
+📡 External Device Control
+(Drone, Robot Arm, Custom Machines)
+
+Python Studio Editor supports development of control applications using external APIs and libraries.
+
+Possible integrations
+Drone control
+
+DJI / Tello / MAVLink
+
+GUI buttons for takeoff, landing, forward, stop, etc.
+
+Robot arm control
+
+Autonomous robots / custom devices
+
+Sensor input (temperature, distance, GPS)
+
+Network control (UDP / TCP / WebSocket)
+
+By combining GUI buttons with Python API calls, you can build a full GUI‑based drone controller.
+
+🔌 External Integration & Extensions
+Web API calls
+
+HTTP / HTTPS communication
+
+File I/O
+
+Image processing (Pillow)
+
+Windows API (pywin32)
+
+Script auto‑generation
+
+Plugin‑style extension code
+
+🧱 Internal Structure (For Developers)
+~4,800 lines of Python
+
+Tkinter‑based GUI
+
+Custom widget management system
+
+Property binding
+
+Event dispatcher
+
+Code generation engine
+
+JSON‑based configuration
+
+📥 Installation
+Install Python 3.x
+
+Run install_python.bat
+
+Required libraries will be installed automatically
+
+A virtual environment will be created on the desktop
+
+Launch Python Studio Editor English.pyw
+
+📚 Basic Workflow
+Create a new project
+
+Build the GUI using the form designer
+
+Write event code
+
+Save the project
+
+Run and test the application
+
+⚠️ Disclaimer
+This software is independently developed and is not affiliated with Python, PSF, or any organization.
+
+No guarantee of correct operation
+
+No obligation to fix bugs or issues
+
+No responsibility for data loss or corruption
+
+No liability for commercial, educational, or operational damages
+
+No responsibility for accidents involving external devices (e.g., drones)
+
+No obligation to provide support
+
+Important:  
+Use this software at your own risk.
+Always back up important data before use.
