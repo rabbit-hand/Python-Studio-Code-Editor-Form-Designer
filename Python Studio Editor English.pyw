@@ -14,6 +14,9 @@ import urllib.parse
 import platform
 import shutil
 
+# Version
+APP_VERSION = "0.1"
+
 # Windows only
 try:
     import winsound
@@ -1881,7 +1884,7 @@ def parse_and_install_code_modules():
 
 # ==================== Main UI ====================
 root = tk.Tk()
-root.title("Python Studio - Code & Form Designer")
+root.title(f"Python Studio - Code & Form Designer v{APP_VERSION}")
 
 original_showerror = messagebox.showerror
 
@@ -2789,9 +2792,14 @@ form_fg_color = "#000000"
 form_pos_x = 100
 form_pos_y = 100
 form_pos_mode = "manual"
+show_grid_lines = False
+guide_lines = []
 
 canvas_container = tk.Frame(tab_designer, bg="#1e1e1e")
 canvas_container.pack(side="top", fill="both", expand=True, padx=8, pady=8)
+
+grid_canvas = tk.Canvas(canvas_container, bg="#1e1e1e", highlightthickness=0)
+grid_canvas.place(x=50, y=50, width=form_window_width, height=form_window_height)
 
 form_preview = tk.Frame(canvas_container, bg=form_bg_color, bd=2, relief="solid",
                         highlightbackground="#555555", highlightthickness=1)
@@ -2808,9 +2816,12 @@ size_lbl.place(x=50, y=20)
 
 def update_form_preview_size(w, h):
     global form_window_width, form_window_height
-    form_window_width = max(200, w)
-    form_window_height = max(75, h)
+    form_window_width = max(0, w)
+    form_window_height = max(0, h)
     form_preview.place(width=form_window_width, height=form_window_height)
+    grid_canvas.place(width=form_window_width, height=form_window_height)
+    if show_grid_lines:
+        grid_canvas.delete("all")
     if "form_width_var" in globals():
         form_width_var.set(str(form_window_width))
         form_height_var.set(str(form_window_height))
@@ -2832,12 +2843,12 @@ size_control_frame.pack(side="right", padx=8)
 tk.Label(size_control_frame, text="Form size", bg="#2d2d2d", fg="#eeeeee",
          font=("Segoe UI", 9)).pack(side="left", padx=(0, 5))
 form_width_var = tk.StringVar(value=str(form_window_width))
-form_width_spin = ttk.Spinbox(size_control_frame, from_=200, to=100000, increment=1,
+form_width_spin = ttk.Spinbox(size_control_frame, from_=0, to=100000, increment=1,
                               width=7, textvariable=form_width_var, command=apply_form_size_inputs)
 form_width_spin.pack(side="left")
 tk.Label(size_control_frame, text="×", bg="#2d2d2d", fg="#eeeeee").pack(side="left", padx=3)
 form_height_var = tk.StringVar(value=str(form_window_height))
-form_height_spin = ttk.Spinbox(size_control_frame, from_=75, to=100000, increment=1,
+form_height_spin = ttk.Spinbox(size_control_frame, from_=0, to=100000, increment=1,
                                width=7, textvariable=form_height_var, command=apply_form_size_inputs)
 form_height_spin.pack(side="left")
 form_width_spin.bind("<Return>", apply_form_size_inputs)
@@ -2848,6 +2859,109 @@ form_height_spin.bind("<FocusOut>", apply_form_size_inputs)
 def update_size_label():
     pos_str = "Centered on screen" if form_pos_mode == "center" else f"X={form_pos_x}, Y={form_pos_y}"
     size_lbl.config(text=f"📱 Form size: {form_window_width} x {form_window_height}  |  🖥 Screen position: {pos_str}")
+
+def show_grid_settings():
+    grid_dialog = tk.Toplevel(root)
+    grid_dialog.title("Grid Settings")
+    grid_dialog.geometry("400x280")
+    grid_dialog.resizable(False, False)
+    grid_dialog.configure(bg="#f8f9fa")
+    grid_dialog.transient(root)
+    grid_dialog.grab_set()
+
+    tk.Label(grid_dialog, text="📏 Grid Line Settings",
+             font=("Segoe UI", 11, "bold"), bg="#0d6efd", fg="white",
+             padx=10, pady=10).pack(side="top", fill="x")
+
+    body = tk.Frame(grid_dialog, bg="#f8f9fa", padx=20, pady=15)
+    body.pack(fill="both", expand=True)
+
+    tk.Label(body, text="Number of columns:", bg="#f8f9fa", font=("Segoe UI", 10)).grid(row=0, column=0, sticky="w", pady=5)
+    cols_var = tk.StringVar(value="3")
+    cols_spin = ttk.Spinbox(body, from_=1, to=10, width=10, textvariable=cols_var)
+    cols_spin.grid(row=0, column=1, sticky="w", padx=10, pady=5)
+
+    tk.Label(body, text="Horizontal gap (px):", bg="#f8f9fa", font=("Segoe UI", 10)).grid(row=1, column=0, sticky="w", pady=5)
+    h_gap_var = tk.StringVar(value="10")
+    h_gap_spin = ttk.Spinbox(body, from_=0, to=100, width=10, textvariable=h_gap_var)
+    h_gap_spin.grid(row=1, column=1, sticky="w", padx=10, pady=5)
+
+    tk.Label(body, text="Vertical gap (px):", bg="#f8f9fa", font=("Segoe UI", 10)).grid(row=2, column=0, sticky="w", pady=5)
+    v_gap_var = tk.StringVar(value="10")
+    v_gap_spin = ttk.Spinbox(body, from_=0, to=100, width=10, textvariable=v_gap_var)
+    v_gap_spin.grid(row=2, column=1, sticky="w", padx=10, pady=5)
+
+    tk.Label(body, text="Margin (px):", bg="#f8f9fa", font=("Segoe UI", 10)).grid(row=3, column=0, sticky="w", pady=5)
+    margin_var = tk.StringVar(value="20")
+    margin_spin = ttk.Spinbox(body, from_=0, to=100, width=10, textvariable=margin_var)
+    margin_spin.grid(row=3, column=1, sticky="w", padx=10, pady=5)
+
+    def apply_grid():
+        try:
+            cols = int(cols_var.get())
+            h_gap = int(h_gap_var.get())
+            v_gap = int(v_gap_var.get())
+            margin = int(margin_var.get())
+        except ValueError:
+            messagebox.showerror("Error", "Please enter valid numbers.", parent=grid_dialog)
+            return
+
+        global show_grid_lines
+        show_grid_lines = True
+        draw_grid_lines(cols, h_gap, v_gap, margin)
+        grid_dialog.destroy()
+
+    tk.Button(grid_dialog, text="✓ Show Grid", command=apply_grid,
+              bg="#198754", fg="white", font=("Segoe UI", 10, "bold"),
+              padx=15, pady=10, cursor="hand2").pack(side="bottom", fill="x", padx=20, pady=15)
+
+    def center_dialog(event=None):
+        grid_dialog.update_idletasks()
+        dialog_width = grid_dialog.winfo_width()
+        dialog_height = grid_dialog.winfo_height()
+        screen_x = max(0, (grid_dialog.winfo_screenwidth() - dialog_width) // 2)
+        screen_y = max(0, (grid_dialog.winfo_screenheight() - dialog_height) // 2)
+        grid_dialog.geometry(f"400x280+{screen_x}+{screen_y}")
+
+    grid_dialog.bind("<Map>", lambda event: grid_dialog.after_idle(center_dialog), add="+")
+    center_dialog()
+    grid_dialog.after(50, center_dialog)
+    grid_dialog.after(50, lambda: grid_dialog.focus_force())
+
+def draw_grid_lines(cols=3, h_gap=10, v_gap=10, margin=20):
+    global guide_lines
+    clear_drag_guides()
+    grid_canvas.delete("all")
+    if not show_grid_lines:
+        return
+
+    component_width = 150
+    component_height = 36
+
+    available_width = form_window_width - (2 * margin)
+    available_height = form_window_height - (2 * margin)
+
+    start_x = margin + (available_width - (cols * component_width + (cols - 1) * h_gap)) // 2
+    start_y = margin + (available_height - (cols * component_height + (cols - 1) * v_gap)) // 2
+
+    for i in range(cols):
+        x = start_x + i * (component_width + h_gap)
+        grid_canvas.create_line(x, 0, x, form_window_height, fill="#ff6b6b", dash=(2, 2), width=1)
+
+    rows = ((len(designer_components) + cols - 1) // cols) if designer_components else 1
+    for i in range(rows + 1):
+        y = start_y + i * (component_height + v_gap)
+        grid_canvas.create_line(0, y, form_window_width, y, fill="#ff6b6b", dash=(2, 2), width=1)
+
+def toggle_grid_lines():
+    global show_grid_lines
+    show_grid_lines = not show_grid_lines
+    if show_grid_lines:
+        show_grid_settings()
+    else:
+        grid_canvas.delete("all")
+
+
 
 def apply_form_colors():
     form_preview.configure(bg=form_bg_color)
@@ -2989,6 +3103,41 @@ def open_window_position_dialog():
     w_diag.after(50, lambda: w_diag.focus_force())
 
 
+def show_drag_guides(wrapper, x, y):
+    global guide_lines
+    clear_drag_guides()
+
+    margin = 20
+    gap = 10
+    comp_width = wrapper.winfo_width()
+    comp_height = wrapper.winfo_height()
+
+    available_width = form_window_width - (2 * margin)
+    available_height = form_window_height - (2 * margin)
+
+    cols = max(1, available_width // (comp_width + gap))
+    rows = max(1, available_height // (comp_height + gap))
+
+    start_x = margin + (available_width - (cols * comp_width + (cols - 1) * gap)) // 2
+    start_y = margin + (available_height - (rows * comp_height + (rows - 1) * gap)) // 2
+
+    for col in range(cols):
+        gx = start_x + col * (comp_width + gap)
+        line = grid_canvas.create_line(gx, 0, gx, form_window_height, fill="#00ff00", dash=(4, 4), width=2)
+        guide_lines.append(line)
+
+    for row in range(rows):
+        gy = start_y + row * (comp_height + gap)
+        line = grid_canvas.create_line(0, gy, form_window_width, gy, fill="#00ff00", dash=(4, 4), width=2)
+        guide_lines.append(line)
+
+def clear_drag_guides():
+    global guide_lines
+    for line in guide_lines:
+        grid_canvas.delete(line)
+    guide_lines = []
+
+
 def add_component(ctype):
     global selected_component
     wrapper = tk.Frame(form_preview, bg="#cccccc", bd=1, relief="raised")
@@ -2997,10 +3146,11 @@ def add_component(ctype):
     default_bg = "#e8e8e8" if ctype == "Button" else form_bg_color
     default_fg = form_fg_color
 
+    component_index = len(designer_components)
     if ctype == "Button":
-        inner = tk.Button(wrapper, text="Button", relief="flat", font=("Segoe UI", 10), bg=default_bg, fg=default_fg)
+        inner = tk.Button(wrapper, text=f"Button {component_index}", relief="flat", font=("Segoe UI", 10), bg=default_bg, fg=default_fg)
     elif ctype == "Label":
-        inner = tk.Label(wrapper, text="Text Label", bg=default_bg, fg=default_fg, font=("Segoe UI", 10))
+        inner = tk.Label(wrapper, text=f"Label {component_index}", bg=default_bg, fg=default_fg, font=("Segoe UI", 10))
     else:
         inner = tk.Entry(wrapper, font=("Segoe UI", 10), bg=default_bg, fg=default_fg)
     inner.pack(fill="both", expand=True)
@@ -3010,7 +3160,7 @@ def add_component(ctype):
 
     comp_info = {
         "type": ctype, "wrapper": wrapper, "inner": inner,
-        "text": "Button" if ctype == "Button" else ("Text Label" if ctype == "Label" else ""),
+        "text": f"Button {component_index}" if ctype == "Button" else (f"Label {component_index}" if ctype == "Label" else ""),
         "bg_color": default_bg, "fg_color": default_fg, "font_size": 10,
         "custom_background": False, "custom_foreground": False,
         "action": "none", "param": "", "close_after_action": True,
@@ -3036,6 +3186,7 @@ def add_component(ctype):
         x = wrapper.winfo_x() + event.x - wrapper._sx
         y = wrapper.winfo_y() + event.y - wrapper._sy
         wrapper.place(x=max(0, x), y=max(0, y))
+        show_drag_guides(wrapper, x, y)
 
     def on_resize_press(event):
         select(event)
@@ -3052,6 +3203,7 @@ def add_component(ctype):
     for w in [wrapper, inner]:
         w.bind("<Button-1>", on_press)
         w.bind("<B1-Motion>", on_drag)
+        w.bind("<ButtonRelease-1>", lambda e: clear_drag_guides())
         w.bind("<Double-Button-1>", lambda e: (select(e), open_properties_dialog(comp_info)))
 
     comp_resize_handle.bind("<Button-1>", on_resize_press)
@@ -3164,7 +3316,6 @@ def open_properties_dialog(comp):
             ("🌐 Web & Search", [
                 ("Open URL", "open_url"),
                 ("Open X", "open_x"),
-                ("Open ABEMA TV", "open_abema"),
                 ("Google Search", "google_search"),
                 ("YouTube Search", "youtube_search"),
                 ("Google Translate", "google_translate"),
@@ -3401,6 +3552,8 @@ def clear_designer():
     designer_components.clear()
     selected_component = None
 
+
+
 def generate_code_from_designer():
     missing_copy_settings = [
         comp for comp in designer_components
@@ -3434,7 +3587,7 @@ def generate_code_from_designer():
         if comp["type"] == "Button"
     }
     browser_actions = {
-        "open_url", "open_x", "open_abema", "google_search",
+        "open_url", "open_x", "google_search",
         "youtube_search", "google_translate", "google_maps",
     }
     needs_browser = bool(actions & browser_actions)
@@ -3769,8 +3922,6 @@ def generate_code_from_designer():
                     code.append(f"    if not open_browser({(param or 'https://www.google.com')!r}{browser_call_args}): return")
                 elif act == "open_x":
                     code.append(f"    if not open_browser('https://x.com/'{browser_call_args}): return")
-                elif act == "open_abema":
-                    code.append(f"    if not open_browser('https://abema.tv/'{browser_call_args}): return")
                 elif act == "google_search":
                     code.append(f"    if not open_browser('https://www.google.com/search?q=' + urllib.parse.quote({param!r}){browser_call_args}): return")
                 elif act == "youtube_search":
@@ -4969,4 +5120,4 @@ update_line_numbers()
 update_status_bar()
 root.protocol("WM_DELETE_WINDOW", safe_exit)
 root.mainloop()
-        
+    
