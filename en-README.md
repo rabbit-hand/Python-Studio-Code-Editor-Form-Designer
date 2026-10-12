@@ -15,7 +15,7 @@ Execution Environment
 
 Extensible Tools
 
-It provides a Visual Basic / Delphi–style drag‑and‑drop GUI builder together with Python code editing, hotkey customization, virtual environment management, and optional external device control such as drones.
+It provides a Visual Basic / Delphi–style drag‑and‑drop GUI builder together with Python code editing, hotkey customization, virtual environment management, and optional external device control such as drones. 
 
 ✨ Features
 🎨 GUI Form Designer
@@ -31,7 +31,7 @@ GUI preview
 
 Widget hierarchy tree
 
-Multi‑form support
+Multi‑form support 
 
 ✏️ Python Code Editor
 Syntax highlighting (Pygments)
@@ -48,7 +48,7 @@ Multi‑file editing
 
 Linked form‑generation code
 
-Basic code completion
+Basic code completion 
 
 🗂️ Project Management
 Automatic project folder creation
@@ -57,7 +57,7 @@ Save forms, code, and settings
 
 Switch between multiple projects
 
-Create template projects
+Create template projects 
 
 🧪 Execution & Testing
 One‑click run
@@ -68,7 +68,7 @@ Timeout execution (test_timeout_seconds)
 
 Log output window
 
-Error stack trace display
+Error stack trace display 
 
 🧰 Virtual Environment (venv) Management
 Automatic creation of a dedicated virtual environment
@@ -87,7 +87,7 @@ tkinter
 
 Python path management
 
-Automatic pip upgrade
+Automatic pip upgrade 
 
 🎛️ Hotkey Builder
 Custom hotkeys for editor actions
@@ -96,7 +96,7 @@ Custom hotkeys for form designer operations
 
 Save hotkey configuration
 
-Load and apply settings
+Load and apply settings 
 
 🎨 Theme & UI Customization
 Light / Dark themes
@@ -105,12 +105,12 @@ Adjustable font size
 
 Window size memory
 
-Save UI configuration
+Save UI configuration 
 
 📡 External Device Control
 (Drone, Robot Arm, Custom Machines)
 
-Python Studio Editor supports development of control applications using external APIs and libraries.
+Python Studio Editor supports development of control applications using external APIs and libraries. 
 
 Possible integrations
 Drone control
@@ -125,9 +125,9 @@ Autonomous robots / custom devices
 
 Sensor input (temperature, distance, GPS)
 
-Network control (UDP / TCP / WebSocket)
+Network control (UDP / TCP / WebSocket) 
 
-By combining GUI buttons with Python API calls, you can build a full GUI‑based drone controller.
+By combining GUI buttons with Python API calls, you can build a full GUI‑based drone controller. 
 
 🔌 External Integration & Extensions
 Web API calls
@@ -142,7 +142,7 @@ Windows API (pywin32)
 
 Script auto‑generation
 
-Plugin‑style extension code
+Plugin‑style extension code 
 
 🧱 Internal Structure (For Developers)
 ~4,800 lines of Python
@@ -157,7 +157,7 @@ Event dispatcher
 
 Code generation engine
 
-JSON‑based configuration
+JSON‑based configuration 
 
 📥 Installation
 Install Python 3.x
@@ -168,7 +168,7 @@ Required libraries will be installed automatically
 
 A virtual environment will be created on the desktop
 
-Launch Python Studio Editor English.pyw
+Launch Python Studio Editor English.pyw 
 
 📚 Basic Workflow
 Create a new project
@@ -179,10 +179,10 @@ Write event code
 
 Save the project
 
-Run and test the application
+Run and test the application 
 
 ⚠️ Disclaimer
-This software is independently developed and is not affiliated with Python, PSF, or any organization.
+This software is independently developed and is not affiliated with Python, PSF, or any organization. 
 
 No guarantee of correct operation
 
@@ -194,8 +194,8 @@ No liability for commercial, educational, or operational damages
 
 No responsibility for accidents involving external devices (e.g., drones)
 
-No obligation to provide support
+No obligation to provide support 
 
 Important:  
 Use this software at your own risk.
-Always back up important data before use.
+Always back up important data before use. 
