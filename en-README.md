@@ -1,201 +1,222 @@
-📘 Python Studio Editor – README
-GUI Form Designer & Python Code Editor
-(Drone Control, Hotkeys, External Device Integration)
+# Python Studio Editor
+A lightweight Python IDE featuring a GUI Form Designer, Code Editor, Hotkey Builder, and optional external device control (e.g., drones).
 
-🏷️ Overview
-Python Studio Editor is a lightweight integrated development environment that combines:
+---
 
-GUI Form Designer
+## 📌 What is Python Studio Editor?
 
-Python Code Editor
+Python Studio Editor is a standalone mini‑IDE designed to make GUI application development in Python simple and visual.  
+It combines:
 
-Project Management
+- A drag‑and‑drop **GUI Form Designer**
+- A syntax‑highlighted **Python Code Editor**
+- **Project management** tools
+- A built‑in **execution environment**
+- Optional **external device control** (drones, robots, sensors)
 
-Execution Environment
+It is inspired by tools like Visual Basic and Delphi, but built entirely with Python and Tkinter.
 
-Extensible Tools
+---
 
-It provides a Visual Basic / Delphi–style drag‑and‑drop GUI builder together with Python code editing, hotkey customization, virtual environment management, and optional external device control such as drones. 
+## 🎨 GUI Form Designer
 
-✨ Features
-🎨 GUI Form Designer
-Drag‑and‑drop widget placement
+The Form Designer allows you to visually build Python GUI applications.
 
-Resize, move, align, snap
+### Features
+- Drag‑and‑drop widget placement  
+- Resize, move, align, snap‑to‑grid  
+- Property editor for:
+  - Position / Size  
+  - Text / Font / Color  
+  - Widget name  
+  - Event handler name  
+- Real‑time GUI preview  
+- Widget hierarchy tree  
+- Multi‑form support
 
-Property editor (position, size, color, font, text, event name)
+### What it generates
+The designer produces Python code that builds the GUI automatically.  
+You can edit this generated code directly in the editor.
 
-Automatic event code generation
+---
 
-GUI preview
+## ✏️ Python Code Editor
 
-Widget hierarchy tree
+A built‑in editor for writing and modifying Python scripts.
 
-Multi‑form support 
+### Features
+- Syntax highlighting (Pygments)
+- Undo / Redo
+- Search & Replace
+- Auto‑indent
+- Code formatting via autopep8
+- Multi‑file editing
+- Event handler code integration
+- Basic code completion
 
-✏️ Python Code Editor
-Syntax highlighting (Pygments)
+### Purpose
+The editor is tightly integrated with the Form Designer, allowing you to write logic for GUI events (button clicks, etc.) without switching tools.
 
-Undo / Redo
+---
 
-Search & Replace
+## 🗂️ Project Management
 
-Auto‑indent
+Python Studio Editor organizes your work into project folders.
 
-Code formatting via autopep8
+### Features
+- Automatic project folder creation
+- Save forms, code files, and settings
+- Switch between multiple projects
+- Create template projects for reuse
 
-Multi‑file editing
+### Why it matters
+This keeps GUI layouts, Python scripts, and configuration files together, making your project portable and easy to manage.
 
-Linked form‑generation code
+---
 
-Basic code completion 
+## 🧪 Execution & Testing
 
-🗂️ Project Management
-Automatic project folder creation
+You can run your Python project directly from the editor.
 
-Save forms, code, and settings
+### Features
+- One‑click execution
+- Runs inside a dedicated virtual environment (venv)
+- Timeout execution (prevents infinite loops)
+- Log output window
+- Error stack trace display
 
-Switch between multiple projects
+### Benefit
+You don’t need to open a terminal or external IDE—everything runs inside the editor.
 
-Create template projects 
+---
 
-🧪 Execution & Testing
-One‑click run
+## 🧰 Virtual Environment (venv) Management
 
-Safe execution inside a virtual environment (venv)
+The editor automatically creates and manages a Python virtual environment.
 
-Timeout execution (test_timeout_seconds)
+### Features
+- Auto‑creation of a venv on first launch
+- Auto‑installation of required libraries:
+  - pillow  
+  - pywin32  
+  - pygments  
+  - autopep8  
+  - tkinter  
+- Python path detection
+- Automatic pip upgrade
 
-Log output window
+### Why this is important
+It ensures your GUI applications run consistently, regardless of your system’s Python setup.
 
-Error stack trace display 
+---
 
-🧰 Virtual Environment (venv) Management
-Automatic creation of a dedicated virtual environment
+## 🎛️ Hotkey Builder
 
-Auto‑installation of required libraries:
+Customize keyboard shortcuts for both the editor and the form designer.
 
-pillow
+### Features
+- Assign hotkeys to common actions
+- Save hotkey configuration
+- Load and apply settings
+- Useful for power users and rapid development
 
-pywin32
+---
 
-pygments
+## 🎨 Theme & UI Customization
 
-autopep8
+Make the editor look the way you want.
 
-tkinter
+### Features
+- Light / Dark themes
+- Adjustable font size
+- Window size memory
+- Save UI configuration
 
-Python path management
+---
 
-Automatic pip upgrade 
+## 📡 External Device Control (Optional)
 
-🎛️ Hotkey Builder
-Custom hotkeys for editor actions
+Python Studio Editor can be used to build control interfaces for external devices.
 
-Custom hotkeys for form designer operations
+### Supported concepts
+- Drone control (DJI / Tello / MAVLink)
+- Robot arm control
+- Autonomous robots
+- Sensors (temperature, distance, GPS)
+- Network control (UDP / TCP / WebSocket)
 
-Save hotkey configuration
+### Example use case
+Create a GUI with buttons like:
 
-Load and apply settings 
+- Takeoff  
+- Land  
+- Move Forward  
+- Stop  
 
-🎨 Theme & UI Customization
-Light / Dark themes
+Then connect these buttons to Python API calls to control a drone.
 
-Adjustable font size
+---
 
-Window size memory
+## 🔌 External Integration & Extensions
 
-Save UI configuration 
+You can extend your project with additional Python libraries.
 
-📡 External Device Control
-(Drone, Robot Arm, Custom Machines)
+### Examples
+- Web API calls
+- HTTP / HTTPS communication
+- File I/O
+- Image processing (Pillow)
+- Windows API (pywin32)
+- Plugin‑style extension modules
 
-Python Studio Editor supports development of control applications using external APIs and libraries. 
+---
 
-Possible integrations
-Drone control
+## 🧱 Internal Architecture
 
-DJI / Tello / MAVLink
+Python Studio Editor is built using:
 
-GUI buttons for takeoff, landing, forward, stop, etc.
+- Tkinter for GUI
+- Custom widget management system
+- Property binding engine
+- Event dispatcher
+- Code generation engine
+- JSON‑based configuration system
 
-Robot arm control
+The project contains ~4,800 lines of Python code.
 
-Autonomous robots / custom devices
+---
 
-Sensor input (temperature, distance, GPS)
+## 📥 Installation
 
-Network control (UDP / TCP / WebSocket) 
+1. Install Python 3.x  
+2. Run `install_python.bat`  
+3. Required libraries will be installed automatically  
+4. A virtual environment will be created on the desktop  
+5. Launch `Python Studio Editor English.pyw`
 
-By combining GUI buttons with Python API calls, you can build a full GUI‑based drone controller. 
+---
 
-🔌 External Integration & Extensions
-Web API calls
+## 📚 Basic Workflow
 
-HTTP / HTTPS communication
+1. Create a new project  
+2. Design the GUI using the Form Designer  
+3. Write event logic in the Code Editor  
+4. Save the project  
+5. Run and test the application  
 
-File I/O
+---
 
-Image processing (Pillow)
+## ⚠️ Disclaimer
 
-Windows API (pywin32)
+This software is independently developed and is **not affiliated with Python, PSF, or any organization**.
 
-Script auto‑generation
+- No guarantee of correct operation  
+- No obligation to fix bugs or issues  
+- No responsibility for data loss or corruption  
+- No liability for commercial, educational, or operational damages  
+- No responsibility for accidents involving external devices (e.g., drones)  
+- No obligation to provide support  
 
-Plugin‑style extension code 
+**Use this software at your own risk. Always back up important data before use.**
 
-🧱 Internal Structure (For Developers)
-~4,800 lines of Python
 
-Tkinter‑based GUI
-
-Custom widget management system
-
-Property binding
-
-Event dispatcher
-
-Code generation engine
-
-JSON‑based configuration 
-
-📥 Installation
-Install Python 3.x
-
-Run install_python.bat
-
-Required libraries will be installed automatically
-
-A virtual environment will be created on the desktop
-
-Launch Python Studio Editor English.pyw 
-
-📚 Basic Workflow
-Create a new project
-
-Build the GUI using the form designer
-
-Write event code
-
-Save the project
-
-Run and test the application 
-
-⚠️ Disclaimer
-This software is independently developed and is not affiliated with Python, PSF, or any organization. 
-
-No guarantee of correct operation
-
-No obligation to fix bugs or issues
-
-No responsibility for data loss or corruption
-
-No liability for commercial, educational, or operational damages
-
-No responsibility for accidents involving external devices (e.g., drones)
-
-No obligation to provide support 
-
-Important:  
-Use this software at your own risk.
-Always back up important data before use. 
