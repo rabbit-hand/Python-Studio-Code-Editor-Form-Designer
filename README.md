@@ -178,3 +178,8 @@ Python コード側で API を呼び出すことで、
 > 重要データは必ずバックアップしてください。
 
 ---
+<img width="1600" height="852" alt="image" src="https://github.com/user-attachments/assets/99b88156-06d4-4ffb-a4ed-c630be6478b9" />
+<img width="1600" height="852" alt="image" src="https://github.com/user-attachments/assets/cb1d43eb-2971-4b51-889d-5bc685ee59c5" />
+<img width="1600" height="852" alt="image" src="https://github.com/user-attachments/assets/e328f70c-ad25-48d3-afda-6aa3d3a18e93" />
+<img width="1600" height="852" alt="image" src="https://github.com/user-attachments/assets/4d55caf4-1151-4a85-9aca-6a51c7136da5" />
+<img width="1600" height="852" alt="image" src="https://github.com/user-attachments/assets/9bfe8608-7030-4f0d-9968-c5fb3f4fa8a2" />
