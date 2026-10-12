@@ -159,6 +159,7 @@ def save_as_file():
     selected_filetype = tk.StringVar(root)
     path = filedialog.asksaveasfilename(
         filetypes=[
+            ("Python ファイル (*.py)", "*.py"),
             ("Python ウィンドウなし (*.pyw)", "*.pyw"),
             ("All Files", "*.*")
         ],
@@ -2773,9 +2774,14 @@ form_fg_color = "#000000"
 form_pos_x = 100
 form_pos_y = 100
 form_pos_mode = "manual"
+show_grid_lines = False
+guide_lines = []
 
 canvas_container = tk.Frame(tab_designer, bg="#1e1e1e")
 canvas_container.pack(side="top", fill="both", expand=True, padx=8, pady=8)
+
+grid_canvas = tk.Canvas(canvas_container, bg="#1e1e1e", highlightthickness=0)
+grid_canvas.place(x=50, y=50, width=form_window_width, height=form_window_height)
 
 form_preview = tk.Frame(canvas_container, bg=form_bg_color, bd=2, relief="solid",
                         highlightbackground="#555555", highlightthickness=1)
@@ -2792,9 +2798,12 @@ size_lbl.place(x=50, y=20)
 
 def update_form_preview_size(w, h):
     global form_window_width, form_window_height
-    form_window_width = max(200, w)
-    form_window_height = max(75, h)
+    form_window_width = max(0, w)
+    form_window_height = max(0, h)
     form_preview.place(width=form_window_width, height=form_window_height)
+    grid_canvas.place(width=form_window_width, height=form_window_height)
+    if show_grid_lines:
+        grid_canvas.delete("all")
     if "form_width_var" in globals():
         form_width_var.set(str(form_window_width))
         form_height_var.set(str(form_window_height))
@@ -2832,6 +2841,107 @@ form_height_spin.bind("<FocusOut>", apply_form_size_inputs)
 def update_size_label():
     pos_str = "画面中央に表示" if form_pos_mode == "center" else f"X={form_pos_x}, Y={form_pos_y}"
     size_lbl.config(text=f"📱 フォームサイズ: {form_window_width} x {form_window_height}  |  🖥 画面表示位置: {pos_str}")
+
+def show_grid_settings():
+    grid_dialog = tk.Toplevel(root)
+    grid_dialog.title("グリッド設定")
+    grid_dialog.geometry("400x280")
+    grid_dialog.resizable(False, False)
+    grid_dialog.configure(bg="#f8f9fa")
+    grid_dialog.transient(root)
+    grid_dialog.grab_set()
+
+    tk.Label(grid_dialog, text="📏 グリッド線設定",
+             font=("Meiryo UI", 11, "bold"), bg="#0d6efd", fg="white",
+             padx=10, pady=10).pack(side="top", fill="x")
+
+    body = tk.Frame(grid_dialog, bg="#f8f9fa", padx=20, pady=15)
+    body.pack(fill="both", expand=True)
+
+    tk.Label(body, text="列数:", bg="#f8f9fa", font=("Meiryo UI", 10)).grid(row=0, column=0, sticky="w", pady=5)
+    cols_var = tk.StringVar(value="3")
+    cols_spin = ttk.Spinbox(body, from_=1, to=10, width=10, textvariable=cols_var)
+    cols_spin.grid(row=0, column=1, sticky="w", padx=10, pady=5)
+
+    tk.Label(body, text="水平方向の間隔 (px):", bg="#f8f9fa", font=("Meiryo UI", 10)).grid(row=1, column=0, sticky="w", pady=5)
+    h_gap_var = tk.StringVar(value="10")
+    h_gap_spin = ttk.Spinbox(body, from_=0, to=100, width=10, textvariable=h_gap_var)
+    h_gap_spin.grid(row=1, column=1, sticky="w", padx=10, pady=5)
+
+    tk.Label(body, text="垂直方向の間隔 (px):", bg="#f8f9fa", font=("Meiryo UI", 10)).grid(row=2, column=0, sticky="w", pady=5)
+    v_gap_var = tk.StringVar(value="10")
+    v_gap_spin = ttk.Spinbox(body, from_=0, to=100, width=10, textvariable=v_gap_var)
+    v_gap_spin.grid(row=2, column=1, sticky="w", padx=10, pady=5)
+
+    tk.Label(body, text="マージン (px):", bg="#f8f9fa", font=("Meiryo UI", 10)).grid(row=3, column=0, sticky="w", pady=5)
+    margin_var = tk.StringVar(value="20")
+    margin_spin = ttk.Spinbox(body, from_=0, to=100, width=10, textvariable=margin_var)
+    margin_spin.grid(row=3, column=1, sticky="w", padx=10, pady=5)
+
+    def apply_grid():
+        try:
+            cols = int(cols_var.get())
+            h_gap = int(h_gap_var.get())
+            v_gap = int(v_gap_var.get())
+            margin = int(margin_var.get())
+        except ValueError:
+            messagebox.showerror("エラー", "有効な数値を入力してください。", parent=grid_dialog)
+            return
+
+        global show_grid_lines
+        show_grid_lines = True
+        draw_grid_lines(cols, h_gap, v_gap, margin)
+        grid_dialog.destroy()
+
+    tk.Button(grid_dialog, text="✓ グリッドを表示", command=apply_grid,
+              bg="#198754", fg="white", font=("Meiryo UI", 10, "bold"),
+              padx=15, pady=10, cursor="hand2").pack(side="bottom", fill="x", padx=20, pady=15)
+
+    def center_dialog(event=None):
+        grid_dialog.update_idletasks()
+        dialog_width = grid_dialog.winfo_width()
+        dialog_height = grid_dialog.winfo_height()
+        screen_x = max(0, (grid_dialog.winfo_screenwidth() - dialog_width) // 2)
+        screen_y = max(0, (grid_dialog.winfo_screenheight() - dialog_height) // 2)
+        grid_dialog.geometry(f"400x280+{screen_x}+{screen_y}")
+
+    grid_dialog.bind("<Map>", lambda event: grid_dialog.after_idle(center_dialog), add="+")
+    center_dialog()
+    grid_dialog.after(50, center_dialog)
+    grid_dialog.after(50, lambda: grid_dialog.focus_force())
+
+def draw_grid_lines(cols=3, h_gap=10, v_gap=10, margin=20):
+    global guide_lines
+    clear_drag_guides()
+    grid_canvas.delete("all")
+    if not show_grid_lines:
+        return
+
+    component_width = 150
+    component_height = 36
+
+    available_width = form_window_width - (2 * margin)
+    available_height = form_window_height - (2 * margin)
+
+    start_x = margin + (available_width - (cols * component_width + (cols - 1) * h_gap)) // 2
+    start_y = margin + (available_height - (cols * component_height + (cols - 1) * v_gap)) // 2
+
+    for i in range(cols):
+        x = start_x + i * (component_width + h_gap)
+        grid_canvas.create_line(x, 0, x, form_window_height, fill="#ff6b6b", dash=(2, 2), width=1)
+
+    rows = ((len(designer_components) + cols - 1) // cols) if designer_components else 1
+    for i in range(rows + 1):
+        y = start_y + i * (component_height + v_gap)
+        grid_canvas.create_line(0, y, form_window_width, y, fill="#ff6b6b", dash=(2, 2), width=1)
+
+def toggle_grid_lines():
+    global show_grid_lines
+    show_grid_lines = not show_grid_lines
+    if show_grid_lines:
+        show_grid_settings()
+    else:
+        grid_canvas.delete("all")
 
 def apply_form_colors():
     form_preview.configure(bg=form_bg_color)
