@@ -2048,6 +2048,7 @@ root.bind("<Control-s>", lambda e: quick_save())
 root.bind("<Control-f>", open_search_dialog)
 root.bind("<Control-z>", lambda e: undo_action())
 root.bind("<Control-y>", lambda e: redo_action())
+root.bind("<F5>", lambda e: test_python_code())
 
 
 # ---------- Tab 2: Samples ----------
@@ -5155,3 +5156,4 @@ update_line_numbers()
 update_status_bar()
 root.protocol("WM_DELETE_WINDOW", safe_exit)
 root.mainloop()
+    
