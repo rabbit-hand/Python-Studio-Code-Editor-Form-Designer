@@ -2793,8 +2793,8 @@ size_lbl.place(x=50, y=20)
 
 def update_form_preview_size(w, h):
     global form_window_width, form_window_height
-    form_window_width = max(200, w)
-    form_window_height = max(75, h)
+    form_window_width = max(0, w)
+    form_window_height = max(0, h)
     form_preview.place(width=form_window_width, height=form_window_height)
     if "form_width_var" in globals():
         form_width_var.set(str(form_window_width))
@@ -2817,12 +2817,12 @@ size_control_frame.pack(side="right", padx=8)
 tk.Label(size_control_frame, text="フォームサイズ", bg="#2d2d2d", fg="#eeeeee",
          font=("Meiryo UI", 9)).pack(side="left", padx=(0, 5))
 form_width_var = tk.StringVar(value=str(form_window_width))
-form_width_spin = ttk.Spinbox(size_control_frame, from_=200, to=100000, increment=1,
+form_width_spin = ttk.Spinbox(size_control_frame, from_=0, to=100000, increment=1,
                               width=7, textvariable=form_width_var, command=apply_form_size_inputs)
 form_width_spin.pack(side="left")
 tk.Label(size_control_frame, text="×", bg="#2d2d2d", fg="#eeeeee").pack(side="left", padx=3)
 form_height_var = tk.StringVar(value=str(form_window_height))
-form_height_spin = ttk.Spinbox(size_control_frame, from_=75, to=100000, increment=1,
+form_height_spin = ttk.Spinbox(size_control_frame, from_=0, to=100000, increment=1,
                                width=7, textvariable=form_height_var, command=apply_form_size_inputs)
 form_height_spin.pack(side="left")
 form_width_spin.bind("<Return>", apply_form_size_inputs)
