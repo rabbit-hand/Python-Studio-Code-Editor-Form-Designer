@@ -940,18 +940,18 @@ def open_hotkey_builder():
     wait_value = tk.StringVar(value="0")
     followup_value = tk.StringVar()
 
-    tk.Label(form, text="キー (例: Alt+a)").grid(row=0, column=0, sticky="w", padx=4, pady=3)
+    tk.Label(form, text="キー (例: Alt+a)", font=("Meiryo UI", 11)).grid(row=0, column=0, sticky="w", padx=4, pady=3)
     ttk.Entry(form, textvariable=shortcut_value, width=20).grid(row=0, column=1, sticky="ew", padx=4, pady=3)
-    tk.Label(form, text="ボタン名 (任意)").grid(row=0, column=2, sticky="w", padx=4, pady=3)
+    tk.Label(form, text="ボタン名 (任意)", font=("Meiryo UI", 11)).grid(row=0, column=2, sticky="w", padx=4, pady=3)
     ttk.Entry(form, textvariable=button_value, width=24).grid(row=0, column=3, sticky="ew", padx=4, pady=3)
-    tk.Label(form, text="動作").grid(row=1, column=0, sticky="w", padx=4, pady=3)
-    kind_menu = ttk.Combobox(form, textvariable=kind_value, values=("URLを開く", "アプリ/ファイル起動", "キー送信", "コマンド実行"), state="readonly", width=18)
+    tk.Label(form, text="動作", font=("Meiryo UI", 11)).grid(row=1, column=0, sticky="w", padx=4, pady=3)
+    kind_menu = ttk.Combobox(form, textvariable=kind_value, values=("URLを開く", "アプリ/ファイル起動", "キー送信", "コマンド実行"), state="readonly", width=18, font=("Meiryo UI", 11))
     kind_menu.grid(row=1, column=1, sticky="ew", padx=4, pady=3)
-    tk.Label(form, text="URL / パス / キー / コマンド").grid(row=1, column=2, sticky="w", padx=4, pady=3)
+    tk.Label(form, text="URL / パス / キー / コマンド", font=("Meiryo UI", 11)).grid(row=1, column=2, sticky="w", padx=4, pady=3)
     ttk.Entry(form, textvariable=target_value).grid(row=1, column=3, sticky="ew", padx=4, pady=3)
-    tk.Label(form, text="実行後に待つ秒数").grid(row=2, column=0, sticky="w", padx=4, pady=3)
+    tk.Label(form, text="実行後に待つ秒数", font=("Meiryo UI", 11)).grid(row=2, column=0, sticky="w", padx=4, pady=3)
     ttk.Entry(form, textvariable=wait_value, width=10).grid(row=2, column=1, sticky="w", padx=4, pady=3)
-    tk.Label(form, text="待機後に送るキー (任意)").grid(row=2, column=2, sticky="w", padx=4, pady=3)
+    tk.Label(form, text="待機後に送るキー (任意)", font=("Meiryo UI", 11)).grid(row=2, column=2, sticky="w", padx=4, pady=3)
     ttk.Entry(form, textvariable=followup_value).grid(row=2, column=3, sticky="ew", padx=4, pady=3)
     form.columnconfigure(1, weight=1)
     form.columnconfigure(3, weight=2)
@@ -1299,7 +1299,7 @@ tray_image.put("#f5c542", to=(13, 6, 19, 10))
 root.iconphoto(True, tray_image)
 for index, action in enumerate(ACTIONS):
     if action["button"]:
-        tk.Button(root, text=action["button"], command=lambda i=index: threading.Thread(
+        tk.Button(root, text=f"{index}. {action['button']}", command=lambda i=index: threading.Thread(
             target=run_action, args=(i,), daemon=True).start()).pack(fill="x", padx=8, pady=4)
 
 def process_events():
@@ -2162,18 +2162,18 @@ hotkey_target_value = tk.StringVar()
 hotkey_wait_value = tk.StringVar(value="0")
 hotkey_followup_value = tk.StringVar()
 
-tk.Label(hotkey_form, text="キー (例: Alt+a)", bg=THEMES[current_theme]['bg'], fg=THEMES[current_theme]['text_fg']).grid(row=0, column=0, sticky="w", padx=4, pady=3)
+tk.Label(hotkey_form, text="キー (例: Alt+a)", bg=THEMES[current_theme]['bg'], fg=THEMES[current_theme]['text_fg'], font=("Meiryo UI", 11)).grid(row=0, column=0, sticky="w", padx=4, pady=3)
 ttk.Entry(hotkey_form, textvariable=hotkey_shortcut_value, width=20).grid(row=0, column=1, sticky="ew", padx=4, pady=3)
-tk.Label(hotkey_form, text="ボタン名 (任意)", bg=THEMES[current_theme]['bg'], fg=THEMES[current_theme]['text_fg']).grid(row=0, column=2, sticky="w", padx=4, pady=3)
+tk.Label(hotkey_form, text="ボタン名 (任意)", bg=THEMES[current_theme]['bg'], fg=THEMES[current_theme]['text_fg'], font=("Meiryo UI", 11)).grid(row=0, column=2, sticky="w", padx=4, pady=3)
 ttk.Entry(hotkey_form, textvariable=hotkey_button_value, width=24).grid(row=0, column=3, sticky="ew", padx=4, pady=3)
-tk.Label(hotkey_form, text="動作", bg=THEMES[current_theme]['bg'], fg=THEMES[current_theme]['text_fg']).grid(row=1, column=0, sticky="w", padx=4, pady=3)
-hotkey_kind_menu = ttk.Combobox(hotkey_form, textvariable=hotkey_kind_value, values=("URLを開く", "アプリ/ファイル起動", "キー送信", "コマンド実行"), state="readonly", width=18)
+tk.Label(hotkey_form, text="動作", bg=THEMES[current_theme]['bg'], fg=THEMES[current_theme]['text_fg'], font=("Meiryo UI", 11)).grid(row=1, column=0, sticky="w", padx=4, pady=3)
+hotkey_kind_menu = ttk.Combobox(hotkey_form, textvariable=hotkey_kind_value, values=("URLを開く", "アプリ/ファイル起動", "キー送信", "コマンド実行"), state="readonly", width=18, font=("Meiryo UI", 11))
 hotkey_kind_menu.grid(row=1, column=1, sticky="ew", padx=4, pady=3)
-tk.Label(hotkey_form, text="URL / パス / キー / コマンド", bg=THEMES[current_theme]['bg'], fg=THEMES[current_theme]['text_fg']).grid(row=1, column=2, sticky="w", padx=4, pady=3)
+tk.Label(hotkey_form, text="URL / パス / キー / コマンド", bg=THEMES[current_theme]['bg'], fg=THEMES[current_theme]['text_fg'], font=("Meiryo UI", 11)).grid(row=1, column=2, sticky="w", padx=4, pady=3)
 ttk.Entry(hotkey_form, textvariable=hotkey_target_value).grid(row=1, column=3, sticky="ew", padx=4, pady=3)
-tk.Label(hotkey_form, text="実行後に待つ秒数", bg=THEMES[current_theme]['bg'], fg=THEMES[current_theme]['text_fg']).grid(row=2, column=0, sticky="w", padx=4, pady=3)
+tk.Label(hotkey_form, text="実行後に待つ秒数", bg=THEMES[current_theme]['bg'], fg=THEMES[current_theme]['text_fg'], font=("Meiryo UI", 11)).grid(row=2, column=0, sticky="w", padx=4, pady=3)
 ttk.Entry(hotkey_form, textvariable=hotkey_wait_value, width=10).grid(row=2, column=1, sticky="w", padx=4, pady=3)
-tk.Label(hotkey_form, text="待機後に送るキー (任意)", bg=THEMES[current_theme]['bg'], fg=THEMES[current_theme]['text_fg']).grid(row=2, column=2, sticky="w", padx=4, pady=3)
+tk.Label(hotkey_form, text="待機後に送るキー (任意)", bg=THEMES[current_theme]['bg'], fg=THEMES[current_theme]['text_fg'], font=("Meiryo UI", 11)).grid(row=2, column=2, sticky="w", padx=4, pady=3)
 ttk.Entry(hotkey_form, textvariable=hotkey_followup_value).grid(row=2, column=3, sticky="ew", padx=4, pady=3)
 hotkey_form.columnconfigure(1, weight=1)
 hotkey_form.columnconfigure(3, weight=2)
@@ -2592,7 +2592,7 @@ tray_image.put("#f5c542", to=(13, 6, 19, 10))
 root.iconphoto(True, tray_image)
 for index, action in enumerate(ACTIONS):
     if action["button"]:
-        tk.Button(root, text=action["button"], command=lambda i=index: threading.Thread(
+        tk.Button(root, text=f"{index}. {action['button']}", command=lambda i=index: threading.Thread(
             target=run_action, args=(i,), daemon=True).start()).pack(fill="x", padx=8, pady=4)
 
 def process_events():
@@ -2774,14 +2774,9 @@ form_fg_color = "#000000"
 form_pos_x = 100
 form_pos_y = 100
 form_pos_mode = "manual"
-show_grid_lines = False
-guide_lines = []
 
 canvas_container = tk.Frame(tab_designer, bg="#1e1e1e")
 canvas_container.pack(side="top", fill="both", expand=True, padx=8, pady=8)
-
-grid_canvas = tk.Canvas(canvas_container, bg="#1e1e1e", highlightthickness=0)
-grid_canvas.place(x=50, y=50, width=form_window_width, height=form_window_height)
 
 form_preview = tk.Frame(canvas_container, bg=form_bg_color, bd=2, relief="solid",
                         highlightbackground="#555555", highlightthickness=1)
@@ -2798,12 +2793,9 @@ size_lbl.place(x=50, y=20)
 
 def update_form_preview_size(w, h):
     global form_window_width, form_window_height
-    form_window_width = max(0, w)
-    form_window_height = max(0, h)
+    form_window_width = max(200, w)
+    form_window_height = max(75, h)
     form_preview.place(width=form_window_width, height=form_window_height)
-    grid_canvas.place(width=form_window_width, height=form_window_height)
-    if show_grid_lines:
-        grid_canvas.delete("all")
     if "form_width_var" in globals():
         form_width_var.set(str(form_window_width))
         form_height_var.set(str(form_window_height))
@@ -2841,107 +2833,6 @@ form_height_spin.bind("<FocusOut>", apply_form_size_inputs)
 def update_size_label():
     pos_str = "画面中央に表示" if form_pos_mode == "center" else f"X={form_pos_x}, Y={form_pos_y}"
     size_lbl.config(text=f"📱 フォームサイズ: {form_window_width} x {form_window_height}  |  🖥 画面表示位置: {pos_str}")
-
-def show_grid_settings():
-    grid_dialog = tk.Toplevel(root)
-    grid_dialog.title("グリッド設定")
-    grid_dialog.geometry("400x280")
-    grid_dialog.resizable(False, False)
-    grid_dialog.configure(bg="#f8f9fa")
-    grid_dialog.transient(root)
-    grid_dialog.grab_set()
-
-    tk.Label(grid_dialog, text="📏 グリッド線設定",
-             font=("Meiryo UI", 11, "bold"), bg="#0d6efd", fg="white",
-             padx=10, pady=10).pack(side="top", fill="x")
-
-    body = tk.Frame(grid_dialog, bg="#f8f9fa", padx=20, pady=15)
-    body.pack(fill="both", expand=True)
-
-    tk.Label(body, text="列数:", bg="#f8f9fa", font=("Meiryo UI", 10)).grid(row=0, column=0, sticky="w", pady=5)
-    cols_var = tk.StringVar(value="3")
-    cols_spin = ttk.Spinbox(body, from_=1, to=10, width=10, textvariable=cols_var)
-    cols_spin.grid(row=0, column=1, sticky="w", padx=10, pady=5)
-
-    tk.Label(body, text="水平方向の間隔 (px):", bg="#f8f9fa", font=("Meiryo UI", 10)).grid(row=1, column=0, sticky="w", pady=5)
-    h_gap_var = tk.StringVar(value="10")
-    h_gap_spin = ttk.Spinbox(body, from_=0, to=100, width=10, textvariable=h_gap_var)
-    h_gap_spin.grid(row=1, column=1, sticky="w", padx=10, pady=5)
-
-    tk.Label(body, text="垂直方向の間隔 (px):", bg="#f8f9fa", font=("Meiryo UI", 10)).grid(row=2, column=0, sticky="w", pady=5)
-    v_gap_var = tk.StringVar(value="10")
-    v_gap_spin = ttk.Spinbox(body, from_=0, to=100, width=10, textvariable=v_gap_var)
-    v_gap_spin.grid(row=2, column=1, sticky="w", padx=10, pady=5)
-
-    tk.Label(body, text="マージン (px):", bg="#f8f9fa", font=("Meiryo UI", 10)).grid(row=3, column=0, sticky="w", pady=5)
-    margin_var = tk.StringVar(value="20")
-    margin_spin = ttk.Spinbox(body, from_=0, to=100, width=10, textvariable=margin_var)
-    margin_spin.grid(row=3, column=1, sticky="w", padx=10, pady=5)
-
-    def apply_grid():
-        try:
-            cols = int(cols_var.get())
-            h_gap = int(h_gap_var.get())
-            v_gap = int(v_gap_var.get())
-            margin = int(margin_var.get())
-        except ValueError:
-            messagebox.showerror("エラー", "有効な数値を入力してください。", parent=grid_dialog)
-            return
-
-        global show_grid_lines
-        show_grid_lines = True
-        draw_grid_lines(cols, h_gap, v_gap, margin)
-        grid_dialog.destroy()
-
-    tk.Button(grid_dialog, text="✓ グリッドを表示", command=apply_grid,
-              bg="#198754", fg="white", font=("Meiryo UI", 10, "bold"),
-              padx=15, pady=10, cursor="hand2").pack(side="bottom", fill="x", padx=20, pady=15)
-
-    def center_dialog(event=None):
-        grid_dialog.update_idletasks()
-        dialog_width = grid_dialog.winfo_width()
-        dialog_height = grid_dialog.winfo_height()
-        screen_x = max(0, (grid_dialog.winfo_screenwidth() - dialog_width) // 2)
-        screen_y = max(0, (grid_dialog.winfo_screenheight() - dialog_height) // 2)
-        grid_dialog.geometry(f"400x280+{screen_x}+{screen_y}")
-
-    grid_dialog.bind("<Map>", lambda event: grid_dialog.after_idle(center_dialog), add="+")
-    center_dialog()
-    grid_dialog.after(50, center_dialog)
-    grid_dialog.after(50, lambda: grid_dialog.focus_force())
-
-def draw_grid_lines(cols=3, h_gap=10, v_gap=10, margin=20):
-    global guide_lines
-    clear_drag_guides()
-    grid_canvas.delete("all")
-    if not show_grid_lines:
-        return
-
-    component_width = 150
-    component_height = 36
-
-    available_width = form_window_width - (2 * margin)
-    available_height = form_window_height - (2 * margin)
-
-    start_x = margin + (available_width - (cols * component_width + (cols - 1) * h_gap)) // 2
-    start_y = margin + (available_height - (cols * component_height + (cols - 1) * v_gap)) // 2
-
-    for i in range(cols):
-        x = start_x + i * (component_width + h_gap)
-        grid_canvas.create_line(x, 0, x, form_window_height, fill="#ff6b6b", dash=(2, 2), width=1)
-
-    rows = ((len(designer_components) + cols - 1) // cols) if designer_components else 1
-    for i in range(rows + 1):
-        y = start_y + i * (component_height + v_gap)
-        grid_canvas.create_line(0, y, form_window_width, y, fill="#ff6b6b", dash=(2, 2), width=1)
-
-def toggle_grid_lines():
-    global show_grid_lines
-    show_grid_lines = not show_grid_lines
-    if show_grid_lines:
-        show_grid_settings()
-    else:
-        grid_canvas.delete("all")
 
 def apply_form_colors():
     form_preview.configure(bg=form_bg_color)
@@ -3094,8 +2985,9 @@ def add_component(ctype):
     default_bg = "#e8e8e8" if ctype == "Button" else form_bg_color
     default_fg = form_fg_color
 
+    button_number = len(designer_components)
     if ctype == "Button":
-        inner = tk.Button(wrapper, text="ボタン", relief="flat", font=("Meiryo UI", 10), bg=default_bg, fg=default_fg)
+        inner = tk.Button(wrapper, text=f"{button_number}. ボタン", relief="flat", font=("Meiryo UI", 10), bg=default_bg, fg=default_fg)
     elif ctype == "Label":
         inner = tk.Label(wrapper, text="テキストラベル", bg=default_bg, fg=default_fg, font=("Meiryo UI", 10))
     else:
@@ -3107,7 +2999,7 @@ def add_component(ctype):
 
     comp_info = {
         "type": ctype, "wrapper": wrapper, "inner": inner,
-        "text": "ボタン" if ctype == "Button" else ("テキストラベル" if ctype == "Label" else ""),
+        "text": f"{button_number}. ボタン" if ctype == "Button" else ("テキストラベル" if ctype == "Label" else ""),
         "bg_color": default_bg, "fg_color": default_fg, "font_size": 10,
         "custom_background": False, "custom_foreground": False,
         "action": "none", "param": "", "close_after_action": True,
@@ -3235,7 +3127,7 @@ def open_properties_dialog(comp):
         act_scrollbar.pack(side="right", fill="y")
 
         tk.Label(f_act, text="実行するアクションを選択（初心者向けを多数追加）:", bg="#f8f9fa",
-                 font=("Meiryo UI", 10, "bold")).pack(anchor="w", pady=(0, 5))
+                 font=("Meiryo UI", 11, "bold")).pack(anchor="w", pady=(0, 5))
 
         action_categories = [
             ("--- 基本 ---", [
@@ -3291,14 +3183,14 @@ def open_properties_dialog(comp):
         act_var = tk.StringVar(value=comp["action"])
         for cat_name, acts in action_categories:
             tk.Label(f_act, text=cat_name, bg="#f8f9fa", fg="#0d6efd",
-                     font=("Meiryo UI", 9, "bold")).pack(anchor="w", pady=(10, 2))
+                     font=("Meiryo UI", 11, "bold")).pack(anchor="w", pady=(10, 2))
             for text_lbl, val in acts:
                 tk.Radiobutton(f_act, text=text_lbl, variable=act_var, value=val,
-                               bg="#f8f9fa", font=("Meiryo UI", 9), anchor="w").pack(anchor="w", padx=12, pady=1)
+                               bg="#f8f9fa", font=("Meiryo UI", 11), anchor="w").pack(anchor="w", padx=12, pady=1)
 
         tk.Label(f_act, text="アクションパラメータ（URLやメッセージ内容など）:", bg="#f8f9fa",
-                 font=("Meiryo UI", 9, "bold")).pack(anchor="w", pady=(14, 2))
-        param_entry = tk.Entry(f_act, width=50, font=("Meiryo UI", 10))
+                 font=("Meiryo UI", 11, "bold")).pack(anchor="w", pady=(14, 2))
+        param_entry = tk.Entry(f_act, width=50, font=("Meiryo UI", 11))
         param_entry.pack(anchor="w")
         param_entry.insert(0, comp["param"])
         close_after_var = tk.BooleanVar(value=comp.get("close_after_action", True))
@@ -3307,11 +3199,11 @@ def open_properties_dialog(comp):
             text="アクション実行後にこのアプリを終了する",
             variable=close_after_var,
             bg="#f8f9fa",
-            font=("Meiryo UI", 9),
+            font=("Meiryo UI", 11),
             anchor="w",
         ).pack(anchor="w", pady=(8, 2))
         tk.Label(f_act, text="ブラウザを開くアクションの使用ブラウザ:", bg="#f8f9fa",
-                 font=("Meiryo UI", 9)).pack(anchor="w", pady=(8, 2))
+                 font=("Meiryo UI", 11)).pack(anchor="w", pady=(8, 2))
         browser_var = tk.StringVar(value=comp.get("browser_choice", "既定のブラウザ"))
         browser_combo = ttk.Combobox(
             f_act,
@@ -3319,10 +3211,11 @@ def open_properties_dialog(comp):
             values=("既定のブラウザ", "Microsoft Edge", "Google Chrome", "Mozilla Firefox", "Brave"),
             state="readonly",
             width=24,
+            font=("Meiryo UI", 11),
         )
         browser_combo.pack(anchor="w")
         tk.Label(f_act, text="ブラウザの表示方法:", bg="#f8f9fa",
-                 font=("Meiryo UI", 9)).pack(anchor="w", pady=(6, 2))
+                 font=("Meiryo UI", 11)).pack(anchor="w", pady=(6, 2))
         browser_window_mode_var = tk.StringVar(value=comp.get("browser_window_mode", "最大化"))
         browser_window_mode_combo = ttk.Combobox(
             f_act,
@@ -3972,7 +3865,7 @@ add_designer_toolbar_button("＋ ボタン", lambda: add_component("Button"), "#
 add_designer_toolbar_button("＋ ラベル", lambda: add_component("Label"), "#0f766e", active_bg="#0b5c56")
 add_designer_toolbar_button("＋ 入力欄", lambda: add_component("Entry"), "#3a7d44", active_bg="#2d6335")
 add_designer_toolbar_button("⚙ ウィンドウ位置", open_window_position_dialog, "#6610f2")
-add_designer_toolbar_button("⚙ 詳細設定", lambda: open_properties_dialog(selected_component) if selected_component else messagebox.showwarning("注意", "部品を選んでください"), "#ffc107", fg="#000")
+add_designer_toolbar_button("⚙ ボタン詳細設定", lambda: open_properties_dialog(selected_component) if selected_component else messagebox.showwarning("注意", "部品を選んでください"), "#ffc107", fg="#000")
 add_designer_toolbar_button("🗑 削除", delete_component, "#dc3545")
 add_designer_toolbar_button("🧹 全消去", clear_designer, "#6c757d")
 add_designer_toolbar_button("📝 コード生成して転送", generate_code_from_designer, "#0d6efd")
