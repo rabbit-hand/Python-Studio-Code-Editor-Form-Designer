@@ -90,3 +90,7 @@ rabbit-hand
 Python Studio Code Editor & Form Designer  
 GitHub Repository: https://github.com/rabbit-hand/Python-Studio-Code-Editor-Form-Designer
 
+<img width="1600" height="852" alt="image" src="https://github.com/user-attachments/assets/b418c2e9-b128-4c76-816b-d5dcfb66bb0d" />
+<img width="1600" height="852" alt="image" src="https://github.com/user-attachments/assets/bc4c845d-98af-4ed2-8cf4-a27eb6cde11b" />
+
+
