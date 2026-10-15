@@ -1,243 +1,92 @@
-# Python Studio Editor
-A beginner‑friendly Python IDE that integrates a GUI Form Designer, Code Editor, Project Manager, and Virtual Environment automation.  
-Designed for education, rapid prototyping, and helping children and new learners avoid common Python pitfalls.
-
-This README covers:
-- Features
-- How to use the editor
-- Project structure
-- Settings & themes
-- Error handling
-- Differences between **v0.1** and **v0.2t** (major improvements)
+# Python Studio Editor v0.2t
+Python Studio Editor v0.2t is an intuitive and beginner‑friendly development environment designed to help new learners—especially children—explore Python without frustration.  
+It combines a visual GUI Form Designer, a Python Code Editor, project tools, and automatic virtual environment setup, allowing users to build applications visually while the editor generates Python code behind the scenes.
 
 ---
 
 ## 🚀 Overview
-**Python Studio Editor** is an all‑in‑one development environment that allows users to build Python GUI applications using drag‑and‑drop components.  
-The editor automatically generates event code, manages project files, and runs Python scripts inside an isolated virtual environment.
+Python Studio Editor provides a drag‑and‑drop interface for creating GUI applications.  
+The editor automatically generates event code, manages project files, and executes Python scripts inside a dedicated virtual environment.
 
-Key capabilities:
-- GUI Form Designer  
-- Python Code Editor  
-- Auto‑generated event code  
-- Virtual environment (venv) auto‑creation  
-- Syntax highlighting  
-- Code formatting  
-- Search & replace  
-- Hotkey customization  
-- Sample project loader  
-- Error reporting with line numbers  
-- Child‑friendly explanations for mistakes (v0.2t)
+A new feature has been added:  
+**Pressing F5 will immediately start a Test Run of the current Python code.**
 
 ---
 
-## 🖥️ Main Components
+## 🧩 Core Components
 
-### **1. Code Editor**
+### 1. Code Editor
 - Line numbers  
 - Syntax highlighting  
 - Auto‑indent  
 - Code formatting  
 - Change detection  
-- Search & replace  
-- Hotkey support  
-- Error highlighting (v0.2t)
+- Search and replace  
+- Error highlighting  
 
-### **2. GUI Form Designer**
+### 2. GUI Form Designer
 - Drag‑and‑drop widgets  
 - Property editor  
 - Auto‑generated event handlers  
 - Undo / Redo  
-- Component duplication & deletion  
-- Improved stability in v0.2t
+- Component duplication and deletion  
+- Improved stability in v0.2t  
 
-### **3. Project Manager**
+### 3. Project Tools
 - Load sample projects  
 - Import project code  
 - Save / Save As / Quick Save  
 - Safe Exit with change detection  
-- Virtual environment auto‑setup
+- Virtual environment setup  
 
-### **4. Execution & Testing**
-- Run Python code inside venv  
+### 4. Running and Testing Code
+- Executes Python code inside a virtual environment  
 - Timeout protection  
-- Error popup with line numbers  
-- Multi‑error analysis (v0.2t)
-
-### **5. Settings**
-- Theme selection  
-- Font size adjustment  
-- Hotkey builder  
-- Persistent configuration  
-- Settings stored in dedicated folder
-
----
-
-## 📁 Project Structure
-The editor automatically manages:
-- Project folder  
-- Python source files  
-- GUI layout metadata  
-- Virtual environment directory  
-- Settings files  
-- Hotkey configuration  
-- Theme configuration
-
----
-
-## 🎨 Themes & Appearance
-Themes are defined in the `THEMES` configuration and include:
-- Light / Dark modes  
-- Accent colors  
-- Syntax highlight styles  
-- Editor background & foreground colors  
-
-Users can switch themes instantly.
-
----
-
-## ⌨️ Hotkeys
-Common hotkeys include:
-- **Ctrl + S** — Save  
-- **Ctrl + N** — New File  
-- **Ctrl + F** — Search  
-- **Ctrl + R** — Run Code  
-- **Ctrl + Shift + F** — Format Code  
-
-Hotkeys can be customized via the Hotkey Builder.
-
----
-
-## 🧪 Running Code
-The editor uses a dedicated virtual environment:
-
-- Automatically created on first run  
-- Python interpreter resolved via `get_virtualenv_python()`  
-- Modules installed automatically when needed  
-- Execution errors displayed with line numbers  
-- Timeout protection prevents infinite loops
+- Line‑numbered error messages  
+- Multiple error detection (v0.2t)  
+- **Press F5 to perform a Test Run of the current code**
 
 ---
 
 ## ⚠️ Error Handling
-### v0.1:
+
+### v0.1
 - Basic error popup  
 - Only first runtime error shown  
 - No multi‑error detection  
-- No child‑friendly explanations
+- No beginner‑friendly explanations  
 
-### v0.2t:
+### v0.2t
 - Line‑numbered error messages  
-- Multiple error detection (lint‑style)  
+- Multiple error detection  
 - Clear explanations for beginners  
 - More stable execution  
-- Better exception handling
+- Better exception handling  
 
 ---
 
-# 🔄 **Version Comparison: v0.1 vs v0.2t**
+## 🔄 Version Comparison: v0.1 → v0.2t
 
-This section summarizes the improvements found in the two versions  
-(derived from the source code in your open tabs:  
-v0.1  and v0.2t ).
-
-## ✔️ 1. Code Structure
+### Execution System
 | Feature | v0.1 | v0.2t |
 |--------|------|--------|
-| File size | ~5123 lines | ~5157 lines |
-| Organization | Dense, monolithic | Better structured |
-| Readability | Lower | Improved |
-| Redundant code | More | Reduced |
-
----
-
-## ✔️ 2. Error Handling
-| Feature | v0.1 | v0.2t |
-|--------|------|--------|
-| Runtime error | Single error only | Multiple errors supported |
-| Line numbers | Basic | Enhanced |
-| Explanation | Technical | Beginner‑friendly |
-| Stability | Lower | Higher |
-
----
-
-## ✔️ 3. GUI Designer
-| Feature | v0.1 | v0.2t |
-|--------|------|--------|
-| Drag & drop | Supported | More stable |
-| Property updates | Occasional lag | Faster & reliable |
-| Undo/Redo | Basic | Improved |
-| Crash rate | Higher | Reduced |
-
----
-
-## ✔️ 4. Settings System
-| Feature | v0.1 | v0.2t |
-|--------|------|--------|
-| Theme settings | Basic | Expanded |
-| Font size | Basic | Improved |
-| Hotkey builder | Present | More robust |
-| Persistent config | Limited | Stronger persistence |
-
----
-
-## ✔️ 5. Execution System
-| Feature | v0.1 | v0.2t |
-|--------|------|--------|
-| venv handling | Basic | More reliable |
+| Virtual environment | Basic | More stable |
 | Timeout | Present | Improved |
-| Module auto‑install | Present | More stable |
-| Error popup | Basic | Enhanced UI |
+| Module auto‑install | Present | More reliable |
+| Error display | Basic | Enhanced |
+| Test Run | Not available | **F5 Test Run added** |
 
 ---
 
-## ✔️ 6. UI & UX
-| Feature | v0.1 | v0.2t |
-|--------|------|--------|
-| Menu layout | Older | Cleaner |
-| Status bar | Basic | Improved |
-| Tab organization | Less clear | More intuitive |
-| Overall UX | Good | Much better |
+# 🛡️ Disclaimer
+This software is provided “as‑is” without any guarantees or warranties.  
+The author and contributors are not responsible for any damages, data loss, or issues that may occur while using this program.  
+Please use the software at your own discretion, especially in educational or production environments.
 
 ---
 
-# 📘 Summary
-**v0.2t is a major refinement of v0.1**, focusing on:
-- Stability  
-- Error clarity  
-- Educational usability  
-- Cleaner UI  
-- Better project handling  
-- Stronger settings system  
-- Improved GUI designer  
-
-It is the recommended version for:
-- Children learning Python  
-- Classroom environments  
-- Beginners  
-- Rapid GUI prototyping  
-- Anyone who needs a simple, guided Python IDE
-
----
-
-# 📦 Future Improvements (Suggested)
-- Auto‑layout for GUI components  
-- Multi‑error lint panel  
-- Asset manager (images, sounds)  
-- Code explanation tool  
-- Debugger with step‑through execution  
-- More sample projects  
-
----
-
-# 📝 License
-(Insert your license information here.)
-
----
-
-# 🙌 Author
+## 🙌 Author
 rabbit-hand  
 Python Studio Code Editor & Form Designer  
-GitHub Repository: *(link from your tab)*
-
+GitHub Repository: https://github.com/rabbit-hand/Python-Studio-Code-Editor-Form-Designer
 
