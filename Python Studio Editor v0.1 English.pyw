@@ -3161,7 +3161,7 @@ def add_component(ctype):
     comp_info = {
         "type": ctype, "wrapper": wrapper, "inner": inner,
         "text": f"Button {component_index}" if ctype == "Button" else (f"Label {component_index}" if ctype == "Label" else ""),
-        "bg_color": default_bg, "fg_color": default_fg, "font_size": 10,
+        "bg_color": default_bg, "fg_color": default_fg, "font_size": 12,
         "custom_background": False, "custom_foreground": False,
         "action": "none", "param": "", "close_after_action": True,
         "browser_choice": "Default browser", "browser_window_mode": "Maximized"
@@ -3345,13 +3345,13 @@ def open_properties_dialog(comp):
         act_var = tk.StringVar(value=comp["action"])
         for cat_name, acts in action_categories:
             tk.Label(f_act, text=cat_name, bg="#f8f9fa", fg="#0d6efd",
-                     font=("Segoe UI", 9, "bold")).pack(anchor="w", pady=(10, 2))
+                     font=("Segoe UI", 11, "bold")).pack(anchor="w", pady=(10, 2))
             for text_lbl, val in acts:
                 tk.Radiobutton(f_act, text=text_lbl, variable=act_var, value=val,
-                               bg="#f8f9fa", font=("Segoe UI", 9), anchor="w").pack(anchor="w", padx=12, pady=1)
+                               bg="#f8f9fa", font=("Segoe UI", 11), anchor="w").pack(anchor="w", padx=12, pady=1)
 
         tk.Label(f_act, text="Action parameter (URL, message text, etc.):", bg="#f8f9fa",
-                 font=("Segoe UI", 9, "bold")).pack(anchor="w", pady=(14, 2))
+                 font=("Segoe UI", 11, "bold")).pack(anchor="w", pady=(14, 2))
         param_entry = tk.Entry(f_act, width=50, font=("Segoe UI", 10))
         param_entry.pack(anchor="w")
         param_entry.insert(0, comp["param"])
@@ -3361,11 +3361,11 @@ def open_properties_dialog(comp):
             text="Exit this app after the action",
             variable=close_after_var,
             bg="#f8f9fa",
-            font=("Segoe UI", 9),
+            font=("Segoe UI", 11),
             anchor="w",
         ).pack(anchor="w", pady=(8, 2))
         tk.Label(f_act, text="Browser for open-URL actions:", bg="#f8f9fa",
-                 font=("Segoe UI", 9)).pack(anchor="w", pady=(8, 2))
+                 font=("Segoe UI", 11)).pack(anchor="w", pady=(8, 2))
         browser_var = tk.StringVar(value=comp.get("browser_choice", "Default browser"))
         browser_combo = ttk.Combobox(
             f_act,
@@ -3376,7 +3376,7 @@ def open_properties_dialog(comp):
         )
         browser_combo.pack(anchor="w")
         tk.Label(f_act, text="Browser window mode:", bg="#f8f9fa",
-                 font=("Segoe UI", 9)).pack(anchor="w", pady=(6, 2))
+                 font=("Segoe UI", 11)).pack(anchor="w", pady=(6, 2))
         browser_window_mode_var = tk.StringVar(value=comp.get("browser_window_mode", "Maximized"))
         browser_window_mode_combo = ttk.Combobox(
             f_act,
@@ -3387,10 +3387,10 @@ def open_properties_dialog(comp):
         )
         browser_window_mode_combo.pack(anchor="w")
         tk.Label(f_act, text="* For copy actions, set source and destination below.",
-                 bg="#f8f9fa", fg="#666666", font=("Segoe UI", 8)).pack(anchor="w", pady=(4, 0))
+                 bg="#f8f9fa", fg="#666666", font=("Segoe UI", 10)).pack(anchor="w", pady=(4, 0))
 
         path_frame = tk.LabelFrame(f_act, text="Copy source & destination",
-                                   bg="#f8f9fa", font=("Segoe UI", 9, "bold"), padx=8, pady=6)
+                                   bg="#f8f9fa", font=("Segoe UI", 11, "bold"), padx=8, pady=6)
         path_frame.pack(fill="x", pady=(12, 0))
         tk.Label(path_frame, text="Required for copy actions. Used when the button runs.",
                  bg="#f8f9fa", fg="#666666", font=("Segoe UI", 8)).grid(
@@ -3491,7 +3491,7 @@ def open_properties_dialog(comp):
         try:
             comp["font_size"] = int(size_spin.get())
         except Exception:
-            comp["font_size"] = 10
+            comp["font_size"] = 12
         comp["action"] = act_var.get()
         if param_entry:
             comp["param"] = param_entry.get().strip()
@@ -5120,4 +5120,4 @@ update_line_numbers()
 update_status_bar()
 root.protocol("WM_DELETE_WINDOW", safe_exit)
 root.mainloop()
-    
+        
