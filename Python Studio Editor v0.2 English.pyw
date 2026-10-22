@@ -13,9 +13,10 @@ import webbrowser
 import urllib.parse
 import platform
 import shutil
+import shlex
 
 # Version
-APP_VERSION = "0.2"
+APP_VERSION = "0.2.1"
 
 # Windows only
 try:
@@ -1265,7 +1266,10 @@ def run_action(index):
         elif kind == "Launch app/file":
             os.startfile(target)
         elif kind == "Run command":
-            subprocess.Popen(target, shell=True)
+            try:
+                subprocess.Popen(shlex.split(target))
+            except Exception:
+                subprocess.Popen(target, shell=True)
         elif kind == "Send keys":
             send_keys(target)
         if action["wait"]:
@@ -2595,7 +2599,10 @@ def run_action(index):
         elif kind == "Launch app/file":
             os.startfile(target)
         elif kind == "Run command":
-            subprocess.Popen(target, shell=True)
+            try:
+                subprocess.Popen(shlex.split(target))
+            except Exception:
+                subprocess.Popen(target, shell=True)
         elif kind == "Send keys":
             send_keys(target)
         if action["wait"]:
@@ -5137,4 +5144,3 @@ update_status_bar()
 root.protocol("WM_DELETE_WINDOW", safe_exit)
 root.mainloop()
     
-
