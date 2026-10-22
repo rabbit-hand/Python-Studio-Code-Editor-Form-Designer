@@ -15,7 +15,7 @@ import platform
 import shutil
 
 # Version
-APP_VERSION = "0.2t"
+APP_VERSION = "0.2"
 
 # Windows only
 try:
@@ -2189,10 +2189,8 @@ ttk.Button(hotkey_icon_settings, text="Choose ICO...", command=hotkey_choose_tra
 hotkey_body = tk.Frame(hotkey_content, bg=THEMES[current_theme]['bg'])
 hotkey_body.pack(fill="both", expand=True)
 hotkey_columns = ("shortcut", "button", "kind", "target")
-hotkey_table_style = ttk.Style()
-hotkey_table_style.configure("Treeview", rowheight=45)
-hotkey_table = ttk.Treeview(hotkey_body, columns=hotkey_columns, show="headings", height=9, selectmode="browse", style="Treeview")
-for column, label, width in (("shortcut", "Hotkey", 125), ("button", "Button name", 145), ("kind", "Action", 145), ("target", "Content", 500)):
+hotkey_table = ttk.Treeview(hotkey_body, columns=hotkey_columns, show="headings", height=9, selectmode="browse")
+for column, label, width in (("shortcut", "Hotkey", 125), ("button", "Button name", 145), ("kind", "Action", 145), ("target", "Content", 400)):
     hotkey_table.heading(column, text=label)
     hotkey_table.column(column, width=width, minwidth=70, stretch=column == "target")
 hotkey_table.pack(side="left", fill="both", expand=True)
@@ -2210,21 +2208,21 @@ hotkey_target_value = tk.StringVar()
 hotkey_wait_value = tk.StringVar(value="0")
 hotkey_followup_value = tk.StringVar()
 
-tk.Label(hotkey_form, text="Key (e.g. Alt+a)", bg=THEMES[current_theme]['bg'], fg=THEMES[current_theme]['text_fg']).grid(row=0, column=0, sticky="w", padx=4, pady=3)
+tk.Label(hotkey_form, text="Key (e.g. Alt+a)", bg=THEMES[current_theme]['bg'], fg=THEMES[current_theme]['text_fg'], font=("Segoe UI", 11)).grid(row=0, column=0, sticky="w", padx=4, pady=3)
 ttk.Entry(hotkey_form, textvariable=hotkey_shortcut_value, width=20).grid(row=0, column=1, sticky="ew", padx=4, pady=3)
-tk.Label(hotkey_form, text="Button name (optional)", bg=THEMES[current_theme]['bg'], fg=THEMES[current_theme]['text_fg']).grid(row=0, column=2, sticky="w", padx=4, pady=3)
-ttk.Entry(hotkey_form, textvariable=hotkey_button_value, width=30).grid(row=0, column=3, sticky="ew", padx=4, pady=3)
-tk.Label(hotkey_form, text="Action", bg=THEMES[current_theme]['bg'], fg=THEMES[current_theme]['text_fg']).grid(row=1, column=0, sticky="w", padx=4, pady=3)
-hotkey_kind_menu = ttk.Combobox(hotkey_form, textvariable=hotkey_kind_value, values=("Open URL", "Launch app/file", "Send keys", "Run command"), state="readonly", width=18)
+tk.Label(hotkey_form, text="Button name (optional)", bg=THEMES[current_theme]['bg'], fg=THEMES[current_theme]['text_fg'], font=("Segoe UI", 11)).grid(row=0, column=2, sticky="w", padx=4, pady=3)
+ttk.Entry(hotkey_form, textvariable=hotkey_button_value, width=24).grid(row=0, column=3, sticky="ew", padx=4, pady=3)
+tk.Label(hotkey_form, text="Action", bg=THEMES[current_theme]['bg'], fg=THEMES[current_theme]['text_fg'], font=("Segoe UI", 11)).grid(row=1, column=0, sticky="w", padx=4, pady=3)
+hotkey_kind_menu = ttk.Combobox(hotkey_form, textvariable=hotkey_kind_value, values=("Open URL", "Launch app/file", "Send keys", "Run command"), state="readonly", width=18, font=("Segoe UI", 11))
 hotkey_kind_menu.grid(row=1, column=1, sticky="ew", padx=4, pady=3)
-tk.Label(hotkey_form, text="URL / Path / Keys / Command", bg=THEMES[current_theme]['bg'], fg=THEMES[current_theme]['text_fg']).grid(row=1, column=2, sticky="w", padx=4, pady=3)
-ttk.Entry(hotkey_form, textvariable=hotkey_target_value, width=50).grid(row=1, column=3, sticky="ew", padx=4, pady=3)
-tk.Label(hotkey_form, text="Wait seconds after run", bg=THEMES[current_theme]['bg'], fg=THEMES[current_theme]['text_fg']).grid(row=2, column=0, sticky="w", padx=4, pady=3)
+tk.Label(hotkey_form, text="URL / Path / Keys / Command", bg=THEMES[current_theme]['bg'], fg=THEMES[current_theme]['text_fg'], font=("Segoe UI", 11)).grid(row=1, column=2, sticky="w", padx=4, pady=3)
+ttk.Entry(hotkey_form, textvariable=hotkey_target_value).grid(row=1, column=3, sticky="ew", padx=4, pady=3)
+tk.Label(hotkey_form, text="Wait seconds after run", bg=THEMES[current_theme]['bg'], fg=THEMES[current_theme]['text_fg'], font=("Segoe UI", 11)).grid(row=2, column=0, sticky="w", padx=4, pady=3)
 ttk.Entry(hotkey_form, textvariable=hotkey_wait_value, width=10).grid(row=2, column=1, sticky="w", padx=4, pady=3)
-tk.Label(hotkey_form, text="Keys after wait (optional)", bg=THEMES[current_theme]['bg'], fg=THEMES[current_theme]['text_fg']).grid(row=2, column=2, sticky="w", padx=4, pady=3)
-ttk.Entry(hotkey_form, textvariable=hotkey_followup_value, width=50).grid(row=2, column=3, sticky="ew", padx=4, pady=3)
+tk.Label(hotkey_form, text="Keys after wait (optional)", bg=THEMES[current_theme]['bg'], fg=THEMES[current_theme]['text_fg'], font=("Segoe UI", 11)).grid(row=2, column=2, sticky="w", padx=4, pady=3)
+ttk.Entry(hotkey_form, textvariable=hotkey_followup_value).grid(row=2, column=3, sticky="ew", padx=4, pady=3)
 hotkey_form.columnconfigure(1, weight=1)
-hotkey_form.columnconfigure(3, weight=3)
+hotkey_form.columnconfigure(3, weight=2)
 tk.Label(hotkey_content, text="Key send examples: Ctrl+w, Alt+F4, Left. Leave key empty to use button only.",
          bg=THEMES[current_theme]['bg'], fg=THEMES[current_theme]['text_fg'], anchor="w").pack(fill="x", pady=(2, 4))
 
@@ -2375,16 +2373,10 @@ def hotkey_load_configuration():
     except (OSError, json.JSONDecodeError, TypeError, ValueError) as error:
         messagebox.showerror("Settings Load Error", str(error))
 
-def wrap_text(text, max_length=40):
-    if len(text) <= max_length:
-        return text
-    return text[:max_length] + "\n" + text[max_length:]
-
 def hotkey_refresh_table(select_index=None):
     hotkey_table.delete(*hotkey_table.get_children())
     for index, item in enumerate(hotkey_actions):
-        wrapped_target = wrap_text(item["target"], 40)
-        hotkey_table.insert("", "end", iid=str(index), values=(item["shortcut"], item["button"], item["kind"], wrapped_target))
+        hotkey_table.insert("", "end", iid=str(index), values=(item["shortcut"], item["button"], item["kind"], item["target"]))
     if select_index is not None and 0 <= select_index < len(hotkey_actions):
         hotkey_table.selection_set(str(select_index))
         hotkey_table.focus(str(select_index))
@@ -2438,6 +2430,7 @@ def hotkey_save_action():
         index = len(hotkey_actions)
         hotkey_actions.append(item)
     hotkey_refresh_table(index)
+    hotkey_persist_configuration()
 
 def hotkey_delete_action():
     selection = hotkey_table.selection()
@@ -2445,6 +2438,7 @@ def hotkey_delete_action():
         del hotkey_actions[int(selection[0])]
         hotkey_refresh_table()
         hotkey_clear_form()
+        hotkey_persist_configuration()
 
 def hotkey_make_code():
     if not hotkey_actions:
@@ -2787,6 +2781,7 @@ ttk.Button(hotkey_row_buttons, text="Load Settings", command=hotkey_load_configu
 ttk.Button(hotkey_row_buttons, text="Save Settings", command=hotkey_save_configuration_as).pack(side="left", padx=6)
 ttk.Button(hotkey_row_buttons, text="Load from Code", command=hotkey_load_from_code_with_ui).pack(side="left", padx=6)
 ttk.Button(hotkey_row_buttons, text="Generate Code", command=hotkey_make_code).pack(side="right")
+hotkey_persist_configuration()
 hotkey_load_from_code()
 hotkey_refresh_table()
 hotkey_clear_form()
@@ -2797,21 +2792,6 @@ def on_hotkey_tab_selected(event):
     hotkey_refresh_table()
 
 top_notebook.bind("<<NotebookTabChanged>>", lambda e: on_hotkey_tab_selected(e) if top_notebook.select() == str(tab_hotkey) else None)
-
-def hotkey_configuration_data():
-    return {"title": hotkey_title_value.get(), "width": hotkey_width_value.get(),
-            "height": hotkey_height_value.get(), "tray_click_exit": hotkey_tray_click_value.get(),
-            "tray_icon_style": hotkey_tray_icon_style_value.get(),
-            "tray_icon_path": hotkey_tray_icon_path_value.get(),
-            "actions": hotkey_actions}
-
-def hotkey_persist_configuration():
-    path = get_settings_path(HOTKEY_BUILDER_SETTINGS_FILE)
-    try:
-        with open(path, "w", encoding="utf-8") as config_file:
-            json.dump(hotkey_configuration_data(), config_file, ensure_ascii=False, indent=2)
-    except OSError as error:
-        messagebox.showerror("Settings Save Error", str(error))
 
 
 # ---------- Tab 4: Visual Form Designer ----------
@@ -5157,3 +5137,4 @@ update_status_bar()
 root.protocol("WM_DELETE_WINDOW", safe_exit)
 root.mainloop()
     
+
