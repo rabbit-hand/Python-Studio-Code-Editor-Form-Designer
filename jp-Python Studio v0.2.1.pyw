@@ -13,6 +13,7 @@ import webbrowser
 import urllib.parse
 import platform
 import shutil
+import shlex
 
 # Windows専用
 try:
@@ -1254,7 +1255,10 @@ def run_action(index):
         elif kind == "アプリ/ファイル起動":
             os.startfile(target)
         elif kind == "コマンド実行":
-            subprocess.Popen(target, shell=True)
+            try:
+                subprocess.Popen(shlex.split(target))
+            except Exception:
+                subprocess.Popen(target, shell=True)
         elif kind == "キー送信":
             send_keys(target)
         if action["wait"]:
@@ -2547,7 +2551,10 @@ def run_action(index):
         elif kind == "アプリ/ファイル起動":
             os.startfile(target)
         elif kind == "コマンド実行":
-            subprocess.Popen(target, shell=True)
+            try:
+                subprocess.Popen(shlex.split(target))
+            except Exception:
+                subprocess.Popen(target, shell=True)
         elif kind == "キー送信":
             send_keys(target)
         if action["wait"]:
@@ -4987,3 +4994,4 @@ update_status_bar()
 root.protocol("WM_DELETE_WINDOW", safe_exit)
 root.mainloop()
 
+                      
