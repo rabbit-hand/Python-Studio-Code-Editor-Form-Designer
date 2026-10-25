@@ -119,6 +119,10 @@ python "Python Studio Editor v0.2 English.pyw"
 本ソフトウェアを利用した時点で、本免責事項に同意したものとみなします。
 
 ---
+<img width="1600" height="852" alt="image" src="https://github.com/user-attachments/assets/b48195a4-074d-4237-ac39-2f2cca6c22af" />
+<img width="1600" height="852" alt="image" src="https://github.com/user-attachments/assets/dbf35db9-37cb-4099-bbde-9fc7bf2d1870" />
+<img width="1600" height="852" alt="image" src="https://github.com/user-attachments/assets/915bfe3b-3fd7-47c9-8c68-ef5a2e711f71" />
+
 
 ## 作者
 
