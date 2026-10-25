@@ -129,3 +129,6 @@ rabbit-hand
 GitHub:
 https://github.com/rabbit-hand/Python-Studio-Code-Editor-Form-Designer
 
+<img width="1600" height="852" alt="image" src="https://github.com/user-attachments/assets/9f9b7123-b5f2-4750-9937-87413527f869" />
+<img width="1600" height="852" alt="image" src="https://github.com/user-attachments/assets/ae4c0e59-4b05-46cd-9227-233eebb9f970" />
+<img width="1600" height="852" alt="image" src="https://github.com/user-attachments/assets/029edf9e-534d-4faf-aa09-17ab06df4bf2" />
