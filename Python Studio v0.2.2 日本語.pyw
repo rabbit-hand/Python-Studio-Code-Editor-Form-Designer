@@ -15,6 +15,9 @@ import platform
 import shutil
 import shlex
 
+# Version
+APP_VERSION = "0.2.2"
+
 # Windows専用
 try:
     import winsound
@@ -812,13 +815,640 @@ root.mainloop()
 '''
     },
     {
+        "category": "モジュール活用例 - ファイルシステム", "name": "ファイルマネージャー", "kind": "code",
+        "description": "ファイルとフォルダーを閲覧・操作します。os, pathlib, shutilモジュールを使用。",
+        "code": '''import os
+import shutil
+from pathlib import Path
+import tkinter as tk
+from tkinter import filedialog, messagebox, ttk
+
+root = tk.Tk()
+root.title("ファイルマネージャー")
+root.geometry("900x650")
+root.minsize(800, 500)
+root.grid_columnconfigure(0, weight=1)
+root.grid_rowconfigure(1, weight=1)
+
+current_path = tk.StringVar(value=os.path.expanduser("~"))
+
+def refresh_list():
+    path = Path(current_path.get())
+    if not path.exists():
+        return
+    for item in tree.get_children():
+        tree.delete(item)
+    try:
+        items = sorted(path.iterdir(), key=lambda x: (not x.is_dir(), x.name.lower()))
+        for item in items:
+            icon = "📁" if item.is_dir() else "📄"
+            size = f"{item.stat().st_size:,} バイト" if item.is_file() else ""
+            tree.insert("", "end", values=(icon, item.name, size))
+    except PermissionError:
+        pass
+
+def go_up():
+    parent = Path(current_path.get()).parent
+    if str(parent) != current_path.get():
+        current_path.set(str(parent))
+        refresh_list()
+
+def go_down():
+    selection = tree.selection()
+    if selection:
+        item = tree.item(selection[0])
+        name = item["values"][1]
+        new_path = Path(current_path.get()) / name
+        if new_path.is_dir():
+            current_path.set(str(new_path))
+            refresh_list()
+
+def create_folder():
+    name = tk.simpledialog.askstring("新規フォルダー", "フォルダー名を入力:", parent=root)
+    if name:
+        try:
+            (Path(current_path.get()) / name).mkdir()
+            refresh_list()
+        except Exception as e:
+            messagebox.showerror("エラー", str(e))
+
+def delete_selected():
+    selection = tree.selection()
+    if not selection:
+        return
+    item = tree.item(selection[0])
+    name = item["values"][1]
+    target = Path(current_path.get()) / name
+    if messagebox.askyesno("確認", f"{name}を削除しますか？"):
+        try:
+            if target.is_dir():
+                shutil.rmtree(target)
+            else:
+                target.unlink()
+            refresh_list()
+        except Exception as e:
+            messagebox.showerror("エラー", str(e))
+
+toolbar = tk.Frame(root, padx=10, pady=8)
+toolbar.grid(row=0, column=0, sticky="ew")
+tk.Button(toolbar, text="⬆ 上へ", command=go_up).pack(side="left", padx=2)
+tk.Button(toolbar, text="⬇ 開く", command=go_down).pack(side="left", padx=2)
+tk.Button(toolbar, text="📁 新規フォルダー", command=create_folder).pack(side="left", padx=2)
+tk.Button(toolbar, text="🗑 削除", command=delete_selected).pack(side="left", padx=2)
+path_entry = tk.Entry(toolbar, textvariable=current_path, width=50)
+path_entry.pack(side="left", padx=10)
+tk.Button(toolbar, text="移動", command=refresh_list).pack(side="left")
+
+columns = ("icon", "name", "size")
+tree = ttk.Treeview(root, columns=columns, show="headings", selectmode="browse")
+tree.heading("icon", text="")
+tree.heading("name", text="名前")
+tree.heading("size", text="サイズ")
+tree.column("icon", width=40)
+tree.column("name", width=300)
+tree.column("size", width=150)
+tree.grid(row=1, column=0, sticky="nsew")
+tree.bind("<Double-1>", lambda e: go_down())
+
+scrollbar = ttk.Scrollbar(root, orient="vertical", command=tree.yview)
+scrollbar.grid(row=1, column=1, sticky="ns")
+tree.configure(yscrollcommand=scrollbar.set)
+
+refresh_list()
+root.mainloop()
+'''
+    },
+    {
+        "category": "モジュール活用例 - ファイルシステム", "name": "テキストファイル検索", "kind": "code",
+        "description": "フォルダー内のファイルでテキストを検索します。os, re, globモジュールを使用。",
+        "code": '''import os
+import re
+import glob
+import tkinter as tk
+from tkinter import filedialog, messagebox, ttk
+
+root = tk.Tk()
+root.title("テキストファイル検索")
+root.geometry("800x600")
+root.minsize(700, 450)
+root.grid_columnconfigure(0, weight=1)
+root.grid_rowconfigure(2, weight=1)
+
+search_folder = tk.StringVar(value=os.path.expanduser("~"))
+search_pattern = tk.StringVar()
+search_text = tk.StringVar()
+results = []
+
+def do_search():
+    global results
+    pattern = search_pattern.get()
+    text = search_text.get()
+    folder = search_folder.get()
+    if not folder or not os.path.isdir(folder):
+        messagebox.showerror("エラー", "無効なフォルダーです")
+        return
+    results = []
+    files = glob.glob(os.path.join(folder, "**", pattern), recursive=True)
+    try:
+        regex = re.compile(text, re.IGNORECASE) if text else None
+    except re.error:
+        messagebox.showerror("エラー", "無効な正規表現です")
+        return
+    for filepath in files:
+        if os.path.isfile(filepath):
+            try:
+                with open(filepath, "r", encoding="utf-8", errors="ignore") as f:
+                    content = f.read()
+                    if regex:
+                        matches = list(regex.finditer(content))
+                        if matches:
+                            for m in matches:
+                                line_num = content[:m.start()].count("\\n") + 1
+                                line_content = content.split("\\n")[line_num - 1].strip()
+                                results.append((filepath, line_num, line_content))
+                    else:
+                        results.append((filepath, "", ""))
+            except Exception:
+                pass
+    display_results()
+
+def display_results():
+    for item in tree.get_children():
+        tree.delete(item)
+    for filepath, line_num, line_content in results:
+        tree.insert("", "end", values=(os.path.basename(filepath), line_num, line_content[:60], filepath))
+
+control_frame = tk.Frame(root, padx=10, pady=10)
+control_frame.grid(row=0, column=0, sticky="ew")
+tk.Label(control_frame, text="フォルダー:").grid(row=0, column=0, sticky="w")
+tk.Entry(control_frame, textvariable=search_folder, width=50).grid(row=0, column=1, padx=5)
+tk.Button(control_frame, text="参照", command=lambda: search_folder.set(filedialog.askdirectory())).grid(row=0, column=2)
+tk.Label(control_frame, text="ファイルパターン（例: *.txt）:").grid(row=1, column=0, sticky="w", pady=5)
+tk.Entry(control_frame, textvariable=search_pattern, width=30).grid(row=1, column=1, padx=5, pady=5)
+tk.Label(control_frame, text="検索テキスト（正規表現）:").grid(row=2, column=0, sticky="w", pady=5)
+tk.Entry(control_frame, textvariable=search_text, width=30).grid(row=2, column=1, padx=5, pady=5)
+tk.Button(control_frame, text="検索", command=do_search, bg="#0d6efd", fg="white").grid(row=3, column=0, columnspan=3, pady=10, sticky="ew")
+
+columns = ("file", "line", "preview", "path")
+tree = ttk.Treeview(root, columns=columns, show="headings", selectmode="browse")
+tree.heading("file", text="ファイル")
+tree.heading("line", text="行")
+tree.heading("preview", text="プレビュー")
+tree.heading("path", text="フルパス")
+tree.column("file", width=150)
+tree.column("line", width=50)
+tree.column("preview", width=300)
+tree.column("path", width=200)
+tree.grid(row=2, column=0, sticky="nsew")
+
+scrollbar = ttk.Scrollbar(root, orient="vertical", command=tree.yview)
+scrollbar.grid(row=2, column=1, sticky="ns")
+tree.configure(yscrollcommand=scrollbar.set)
+
+root.mainloop()
+'''
+    },
+    {
+        "category": "モジュール活用例 - システム", "name": "システム情報表示", "kind": "code",
+        "description": "システム情報を表示します。platform, os, sysモジュールを使用。",
+        "code": '''import platform
+import os
+import sys
+import tkinter as tk
+from tkinter import ttk
+
+root = tk.Tk()
+root.title("システム情報")
+root.geometry("700x600")
+root.minsize(600, 400)
+
+info_text = tk.Text(root, wrap="word", font=("Consolas", 10), padx=10, pady=10)
+info_text.pack(fill="both", expand=True)
+
+def get_system_info():
+    info = []
+    info.append("=" * 50)
+    info.append("システム情報")
+    info.append("=" * 50)
+    info.append(f"プラットフォーム: {platform.platform()}")
+    info.append(f"システム: {platform.system()}")
+    info.append(f"ノード名: {platform.node()}")
+    info.append(f"リリース: {platform.release()}")
+    info.append(f"バージョン: {platform.version()}")
+    info.append(f"マシン: {platform.machine()}")
+    info.append(f"プロセッサ: {platform.processor()}")
+    info.append("")
+    info.append("=" * 50)
+    info.append("Python情報")
+    info.append("=" * 50)
+    info.append(f"Pythonバージョン: {sys.version}")
+    info.append(f"Python実行ファイル: {sys.executable}")
+    info.append(f"Pythonパス: {sys.path[0]}")
+    info.append("")
+    info.append("=" * 50)
+    info.append("環境")
+    info.append("=" * 50)
+    info.append(f"カレントディレクトリ: {os.getcwd()}")
+    info.append(f"ホームディレクトリ: {os.path.expanduser('~')}")
+    info.append(f"ユーザー: {os.getenv('USERNAME', '不明')}")
+    info.append("")
+    info.append("=" * 50)
+    info.append("CPUとメモリ")
+    info.append("=" * 50)
+    info.append(f"CPU数: {os.cpu_count()}")
+    info.append(f"起動時刻: {platform.boot_time()}")
+    return "\\n".join(info)
+
+info_text.insert("1.0", get_system_info())
+info_text.config(state="disabled")
+
+root.mainloop()
+'''
+    },
+    {
+        "category": "モジュール活用例 - データ", "name": "JSONエディター", "kind": "code",
+        "description": "JSONファイルを表示・編集します。jsonモジュールを使用。",
+        "code": '''import os
+import json
+import tkinter as tk
+from tkinter import filedialog, messagebox
+
+root = tk.Tk()
+root.title("JSONエディター")
+root.geometry("800x600")
+root.minsize(600, 400)
+root.grid_columnconfigure(0, weight=1)
+root.grid_rowconfigure(1, weight=1)
+
+current_file = tk.StringVar()
+
+def load_json():
+    path = filedialog.askopenfilename(filetypes=[("JSONファイル", "*.json"), ("すべてのファイル", "*.*")])
+    if path:
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+            editor.delete("1.0", tk.END)
+            editor.insert("1.0", json.dumps(data, indent=2, ensure_ascii=False))
+            current_file.set(path)
+            status.config(text=f"読み込み: {os.path.basename(path)}")
+        except Exception as e:
+            messagebox.showerror("エラー", f"JSONの読み込みに失敗: {e}")
+
+def save_json():
+    path = filedialog.asksaveasfilename(defaultextension=".json", filetypes=[("JSONファイル", "*.json")])
+    if path:
+        try:
+            content = editor.get("1.0", tk.END)
+            data = json.loads(content)
+            with open(path, "w", encoding="utf-8") as f:
+                json.dump(data, f, indent=2, ensure_ascii=False)
+            current_file.set(path)
+            status.config(text=f"保存: {os.path.basename(path)}")
+        except json.JSONDecodeError as e:
+            messagebox.showerror("エラー", f"無効なJSON: {e}")
+        except Exception as e:
+            messagebox.showerror("エラー", f"保存に失敗: {e}")
+
+def format_json():
+    try:
+        content = editor.get("1.0", tk.END)
+        data = json.loads(content)
+        editor.delete("1.0", tk.END)
+        editor.insert("1.0", json.dumps(data, indent=2, ensure_ascii=False))
+    except json.JSONDecodeError as e:
+        messagebox.showerror("エラー", f"無効なJSON: {e}")
+
+toolbar = tk.Frame(root, padx=10, pady=8)
+toolbar.grid(row=0, column=0, sticky="ew")
+tk.Button(toolbar, text="JSONを開く", command=load_json).pack(side="left", padx=2)
+tk.Button(toolbar, text="JSONを保存", command=save_json).pack(side="left", padx=2)
+tk.Button(toolbar, text="整形", command=format_json).pack(side="left", padx=2)
+
+editor = tk.Text(root, wrap="none", font=("Consolas", 11))
+editor.grid(row=1, column=0, sticky="nsew")
+
+y_scroll = tk.Scrollbar(root, orient="vertical", command=editor.yview)
+y_scroll.grid(row=1, column=1, sticky="ns")
+x_scroll = tk.Scrollbar(root, orient="horizontal", command=editor.xview)
+x_scroll.grid(row=2, column=0, sticky="ew")
+editor.configure(yscrollcommand=y_scroll.set, xscrollcommand=x_scroll.set)
+
+status = tk.Label(root, text="ファイルが読み込まれていません", anchor="w")
+status.grid(row=3, column=0, sticky="ew", padx=10, pady=5)
+
+root.mainloop()
+'''
+    },
+    {
+        "category": "モジュール活用例 - データベース", "name": "SQLiteデータベース管理", "kind": "code",
+        "description": "SQLiteデータベースをCRUD操作で管理します。sqlite3モジュールを使用。",
+        "code": '''import sqlite3
+import tkinter as tk
+from tkinter import messagebox, ttk
+
+root = tk.Tk()
+root.title("SQLiteデータベース管理")
+root.geometry("900x650")
+root.minsize(800, 500)
+root.grid_columnconfigure(0, weight=1)
+root.grid_rowconfigure(1, weight=1)
+
+conn = sqlite3.connect(":memory:")
+cursor = conn.cursor()
+cursor.execute("CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT, email TEXT)")
+conn.commit()
+
+def refresh_table():
+    for item in tree.get_children():
+        tree.delete(item)
+    cursor.execute("SELECT * FROM users")
+    for row in cursor.fetchall():
+        tree.insert("", "end", values=row)
+
+def add_user():
+    name = name_entry.get().strip()
+    email = email_entry.get().strip()
+    if name and email:
+        cursor.execute("INSERT INTO users (name, email) VALUES (?, ?)", (name, email))
+        conn.commit()
+        refresh_table()
+        name_entry.delete(0, tk.END)
+        email_entry.delete(0, tk.END)
+
+def delete_user():
+    selection = tree.selection()
+    if selection:
+        user_id = tree.item(selection[0])["values"][0]
+        cursor.execute("DELETE FROM users WHERE id=?", (user_id,))
+        conn.commit()
+        refresh_table()
+
+input_frame = tk.Frame(root, padx=10, pady=10)
+input_frame.grid(row=0, column=0, sticky="ew")
+tk.Label(input_frame, text="名前:").grid(row=0, column=0, padx=5)
+name_entry = tk.Entry(input_frame, width=30)
+name_entry.grid(row=0, column=1, padx=5)
+tk.Label(input_frame, text="メール:").grid(row=0, column=2, padx=5)
+email_entry = tk.Entry(input_frame, width=30)
+email_entry.grid(row=0, column=3, padx=5)
+tk.Button(input_frame, text="追加", command=add_user).grid(row=0, column=4, padx=10)
+tk.Button(input_frame, text="選択を削除", command=delete_user).grid(row=0, column=5, padx=5)
+
+columns = ("id", "name", "email")
+tree = ttk.Treeview(root, columns=columns, show="headings", selectmode="browse")
+tree.heading("id", text="ID")
+tree.heading("name", text="名前")
+tree.heading("email", text="メール")
+tree.column("id", width=50)
+tree.column("name", width=200)
+tree.column("email", width=300)
+tree.grid(row=1, column=0, sticky="nsew")
+
+scrollbar = ttk.Scrollbar(root, orient="vertical", command=tree.yview)
+scrollbar.grid(row=1, column=1, sticky="ns")
+tree.configure(yscrollcommand=scrollbar.set)
+
+refresh_table()
+root.mainloop()
+'''
+    },
+    {
+        "category": "モジュール活用例 - ネットワーク", "name": "HTTPリクエストツール", "kind": "code",
+        "description": "HTTPリクエストを送信し、レスポンスを表示します。http.clientとurllibモジュールを使用。",
+        "code": '''import http.client
+import urllib.parse
+import json
+import tkinter as tk
+from tkinter import messagebox, ttk
+
+root = tk.Tk()
+root.title("HTTPリクエストツール")
+root.geometry("900x700")
+root.minsize(800, 500)
+root.grid_columnconfigure(0, weight=1)
+root.grid_rowconfigure(3, weight=1)
+
+method = tk.StringVar(value="GET")
+url = tk.StringVar(value="https://httpbin.org/get")
+
+def send_request():
+    target_url = url.get().strip()
+    if not target_url:
+        messagebox.showerror("エラー", "URLを入力してください")
+        return
+    try:
+        parsed = urllib.parse.urlparse(target_url)
+        if parsed.scheme == "https":
+            conn = http.client.HTTPSConnection(parsed.netloc, timeout=10)
+        else:
+            conn = http.client.HTTPConnection(parsed.netloc, timeout=10)
+        
+        m = method.get()
+        path = parsed.path or "/"
+        if parsed.query:
+            path += "?" + parsed.query
+        
+        conn.request(m, path)
+        response = conn.getresponse()
+        status = f"{response.status} {response.reason}"
+        headers = "\\n".join([f"{k}: {v}" for k, v in response.getheaders()])
+        body = response.read().decode("utf-8", errors="ignore")
+        conn.close()
+        
+        result_text.delete("1.0", tk.END)
+        result_text.insert("1.0", f"ステータス: {status}\\n\\nヘッダー:\\n{headers}\\n\\n本文:\\n{body}")
+    except Exception as e:
+        messagebox.showerror("エラー", str(e))
+
+control_frame = tk.Frame(root, padx=10, pady=10)
+control_frame.grid(row=0, column=0, sticky="ew")
+tk.Label(control_frame, text="メソッド:").pack(side="left")
+ttk.Combobox(control_frame, textvariable=method, values=("GET", "POST", "PUT", "DELETE"), state="readonly", width=10).pack(side="left", padx=5)
+tk.Label(control_frame, text="URL:").pack(side="left", padx=5)
+tk.Entry(control_frame, textvariable=url, width=60).pack(side="left", padx=5)
+tk.Button(control_frame, text="リクエスト送信", command=send_request, bg="#0d6efd", fg="white").pack(side="left", padx=10)
+
+result_text = tk.Text(root, wrap="word", font=("Consolas", 10), padx=10, pady=10)
+result_text.grid(row=3, column=0, sticky="nsew")
+
+y_scroll = ttk.Scrollbar(root, orient="vertical", command=result_text.yview)
+y_scroll.grid(row=3, column=1, sticky="ns")
+result_text.configure(yscrollcommand=y_scroll.set)
+
+root.mainloop()
+'''
+    },
+    {
+        "category": "モジュール活用例 - ユーティリティ", "name": "カレンダーアプリ", "kind": "code",
+        "description": "カレンダーを表示し、月を移動します。calendarモジュールを使用。",
+        "code": '''import calendar
+import tkinter as tk
+from tkinter import ttk
+
+root = tk.Tk()
+root.title("カレンダーアプリ")
+root.geometry("400x450")
+
+current_year = tk.StringVar(value=str(calendar.datetime.datetime.now().year))
+current_month = tk.StringVar(value=str(calendar.datetime.datetime.now().month))
+
+def update_calendar():
+    try:
+        year = int(current_year.get())
+        month = int(current_month.get())
+        cal = calendar.monthcalendar(year, month)
+        month_name = calendar.month_name[month]
+        
+        header.config(text=f"{month_name} {year}")
+        
+        for widget in calendar_frame.winfo_children():
+            widget.destroy()
+        
+        days = ["月", "火", "水", "木", "金", "土", "日"]
+        for i, day in enumerate(days):
+            tk.Label(calendar_frame, text=day, font=("Arial", 10, "bold"), width=5).grid(row=0, column=i, padx=2, pady=2)
+        
+        for week_num, week in enumerate(cal, start=1):
+            for day_num, day in enumerate(week):
+                cell_text = str(day) if day != 0 else ""
+                bg = "#e3f2fd" if day == calendar.datetime.datetime.now().day and month == calendar.datetime.datetime.now().month and year == calendar.datetime.datetime.now().year else "white"
+                tk.Label(calendar_frame, text=cell_text, width=5, height=2, relief="solid", bg=bg).grid(row=week_num, column=day_num, padx=1, pady=1)
+    except ValueError:
+        pass
+
+def prev_month():
+    year = int(current_year.get())
+    month = int(current_month.get())
+    month -= 1
+    if month == 0:
+        month = 12
+        year -= 1
+    current_year.set(str(year))
+    current_month.set(str(month))
+    update_calendar()
+
+def next_month():
+    year = int(current_year.get())
+    month = int(current_month.get())
+    month += 1
+    if month == 13:
+        month = 1
+        year += 1
+    current_year.set(str(year))
+    current_month.set(str(month))
+    update_calendar()
+
+nav_frame = tk.Frame(root, pady=10)
+nav_frame.pack()
+tk.Button(nav_frame, text="◀ 前月", command=prev_month).pack(side="left", padx=5)
+tk.Entry(nav_frame, textvariable=current_year, width=6).pack(side="left", padx=2)
+tk.Entry(nav_frame, textvariable=current_month, width=4).pack(side="left", padx=2)
+tk.Button(nav_frame, text="翌月 ▶", command=next_month).pack(side="left", padx=5)
+tk.Button(nav_frame, text="今日", command=lambda: (current_year.set(str(calendar.datetime.datetime.now().year)), current_month.set(str(calendar.datetime.datetime.now().month)), update_calendar())).pack(side="left", padx=10)
+
+header = tk.Label(root, text="", font=("Arial", 16, "bold"), pady=10)
+header.pack()
+
+calendar_frame = tk.Frame(root, padx=10, pady=10)
+calendar_frame.pack()
+
+update_calendar()
+root.mainloop()
+'''
+    },
+    {
+        "category": "モジュール活用例 - 高度な機能", "name": "プロセス管理", "kind": "code",
+        "description": "実行中のプロセスを一覧・管理します。subprocessとosモジュールを使用。",
+        "code": '''import os
+import subprocess
+import tkinter as tk
+from tkinter import messagebox, ttk
+
+root = tk.Tk()
+root.title("プロセス管理")
+root.geometry("900x600")
+root.minsize(800, 450)
+root.grid_columnconfigure(0, weight=1)
+root.grid_rowconfigure(1, weight=1)
+
+def get_processes():
+    try:
+        if os.name == "nt":
+            result = subprocess.run(["tasklist"], capture_output=True, text=True, timeout=10)
+            lines = result.stdout.split("\\n")[2:]
+            processes = []
+            for line in lines:
+                if line.strip():
+                    parts = line.split()
+                    if len(parts) >= 2:
+                        processes.append((parts[0], parts[1]))
+            return processes
+        else:
+            result = subprocess.run(["ps", "aux"], capture_output=True, text=True, timeout=10)
+            lines = result.stdout.split("\\n")[1:]
+            processes = []
+            for line in lines:
+                if line.strip():
+                    parts = line.split(None, 10)
+                    if len(parts) >= 11:
+                        processes.append((parts[10], parts[1]))
+            return processes
+    except Exception as e:
+        messagebox.showerror("エラー", str(e))
+        return []
+
+def refresh_list():
+    for item in tree.get_children():
+        tree.delete(item)
+    processes = get_processes()
+    for name, pid in processes:
+        tree.insert("", "end", values=(name, pid))
+
+def kill_process():
+    selection = tree.selection()
+    if selection:
+        item = tree.item(selection[0])
+        pid = item["values"][1]
+        if messagebox.askyesno("確認", f"プロセス {pid}を強制終了しますか？"):
+            try:
+                if os.name == "nt":
+                    subprocess.run(["taskkill", "/F", "/PID", pid], capture_output=True)
+                else:
+                    subprocess.run(["kill", "-9", pid], capture_output=True)
+                refresh_list()
+            except Exception as e:
+                messagebox.showerror("エラー", str(e))
+
+toolbar = tk.Frame(root, padx=10, pady=8)
+toolbar.grid(row=0, column=0, sticky="ew")
+tk.Button(toolbar, text="🔄 更新", command=refresh_list).pack(side="left", padx=2)
+tk.Button(toolbar, text="🔴 プロセス終了", command=kill_process, bg="#dc3545", fg="white").pack(side="left", padx=2)
+
+columns = ("name", "pid")
+tree = ttk.Treeview(root, columns=columns, show="headings", selectmode="browse")
+tree.heading("name", text="プロセス名")
+tree.heading("pid", text="PID")
+tree.column("name", width=400)
+tree.column("pid", width=100)
+tree.grid(row=1, column=0, sticky="nsew")
+
+scrollbar = ttk.Scrollbar(root, orient="vertical", command=tree.yview)
+scrollbar.grid(row=1, column=1, sticky="ns")
+tree.configure(yscrollcommand=scrollbar.set)
+
+refresh_list()
+root.mainloop()
+'''
+    },
+    {
         "category": "少し背伸びした作品", "name": "GUIフォーム（デザイナー）", "kind": "designer",
         "description": "ボタン・ラベル・入力欄を配置してGUIを作ります。フォーム作成タブへ移動します。",
         "code": ""
     },
 ]
 
-def load_project_code(code):
+def load_project_code(code, auto_install_modules=True):
     global last_saved_content, text_modified
     if text_modified:
         answer = messagebox.askyesnocancel("未保存の変更", "現在のコードを保存してから作品を読み込みますか？")
@@ -835,6 +1465,13 @@ def load_project_code(code):
     update_line_numbers()
     update_status_bar()
     top_notebook.select(tab_editor)
+    
+    # Auto install modules if enabled
+    if auto_install_modules:
+        installed = parse_and_install_code_modules(code, auto_install=True)
+        if installed:
+            messagebox.showinfo("自動インストール", f"自動的にモジュールをインストールしました: {', '.join(installed)}")
+    
     return True
 
 def open_hotkey_builder():
@@ -895,6 +1532,9 @@ def open_hotkey_builder():
                  state="readonly", width=22).pack(side="left")
     if tray_click_value.get() not in ("シングルクリックで終了", "ダブルクリックで終了"):
         tray_click_value.set("ダブルクリックで終了")
+    tk.Label(settings, text="外部ライブラリ使用").pack(side="left", padx=(10, 4))
+    use_external_libs = tk.BooleanVar(value=builder_config.get("use_external_libs", False))
+    ttk.Checkbutton(settings, variable=use_external_libs).pack(side="left")
 
     icon_settings = tk.Frame(content)
     icon_settings.pack(fill="x", pady=(0, 8))
@@ -971,6 +1611,7 @@ def open_hotkey_builder():
                 "height": height_value.get(), "tray_click_exit": tray_click_value.get(),
                 "tray_icon_style": tray_icon_style_value.get(),
                 "tray_icon_path": tray_icon_path_value.get(),
+                "use_external_libs": use_external_libs.get(),
                 "actions": actions}
 
     def persist_configuration():
@@ -1030,6 +1671,7 @@ def open_hotkey_builder():
             if tray_icon_style_value.get() not in icon_style_options:
                 tray_icon_style_value.set(icon_style_options[0])
             tray_icon_path_value.set(str(loaded.get("tray_icon_path", "")))
+            use_external_libs.set(bool(loaded.get("use_external_libs", False)))
             refresh_table()
             clear_form()
             persist_configuration()
@@ -1124,7 +1766,70 @@ def open_hotkey_builder():
 
         action_data = [{key: item[key] for key in ("shortcut", "button", "kind", "target", "wait", "followup")} for item in actions]
         persist_configuration()
-        source = r'''import ctypes
+        
+        # Check if using external libraries
+        if use_external_libs.get():
+            # Short version using keyboard and pystray
+            source = r'''import os
+import time
+import subprocess
+import webbrowser
+import keyboard
+import pystray
+from PIL import Image, ImageDraw
+import threading
+
+WINDOW_TITLE = __TITLE__
+WINDOW_WIDTH = __WIDTH__
+WINDOW_HEIGHT = __HEIGHT__
+ACTIONS = __ACTIONS__
+
+def create_icon():
+    image = Image.new('RGB', (64, 64), color=(23, 105, 170))
+    dc = ImageDraw.Draw(image)
+    dc.rectangle([6, 6, 10, 26], fill='white')
+    dc.rectangle([22, 6, 26, 26], fill='white')
+    dc.rectangle([10, 16, 22, 20], fill='white')
+    dc.rectangle([13, 6, 19, 10], fill=(245, 197, 66))
+    return image
+
+def run_action(index):
+    action = ACTIONS[index]
+    try:
+        kind, target = action["kind"], action["target"]
+        if kind == "Open URL":
+            webbrowser.open(target, new=2)
+        elif kind == "Launch app/file":
+            os.startfile(target)
+        elif kind == "Run command":
+            subprocess.Popen(target, shell=True)
+        elif kind == "Send keys":
+            keyboard.write(target)
+        if action["wait"]:
+            time.sleep(action["wait"])
+        if action["followup"]:
+            keyboard.write(action["followup"])
+    except Exception as e:
+        print(f"Error: {e}")
+
+def on_clicked(icon, item):
+    if item == "Exit":
+        icon.stop()
+
+# Register hotkeys
+for index, action in enumerate(ACTIONS):
+    if action["shortcut"]:
+        keyboard.add_hotkey(action["shortcut"], lambda i=index: threading.Thread(target=run_action, args=(i,), daemon=True).start())
+
+# Create tray icon
+icon = pystray.Icon("hotkey_app", create_icon(), WINDOW_TITLE, menu=pystray.Menu(
+    pystray.MenuItem("Exit", on_clicked)
+))
+icon.run()
+'''
+        else:
+            # Original long version using ctypes
+            source = r'''import ctypes
 from ctypes import wintypes
 import os
 import queue
@@ -1424,14 +2129,20 @@ root.withdraw()
 root.after(100, install_tray_icon)
 root.mainloop()
 '''
+        
         source = source.replace("__TITLE__", repr(title_value.get().strip() or "かんたんホットキー"))
         source = source.replace("__WIDTH__", str(window_width)).replace("__HEIGHT__", str(window_height))
-        source = source.replace("__TRAY_EXIT_ON__", repr(
-            "single" if tray_click_value.get() == "シングルクリックで終了" else "double"
-        ))
-        source = source.replace("__TRAY_ICON_STYLE__", repr(tray_icon_style_value.get()))
-        source = source.replace("__TRAY_ICON_PATH__", repr(tray_icon_path_value.get()))
+        if not use_external_libs.get():
+            source = source.replace("__TRAY_EXIT_ON__", repr(
+                "single" if tray_click_value.get() == "シングルクリックで終了" else "double"
+            ))
+            source = source.replace("__TRAY_ICON_STYLE__", repr(tray_icon_style_value.get()))
+            source = source.replace("__TRAY_ICON_PATH__", repr(tray_icon_path_value.get()))
         source = source.replace("__ACTIONS__", json.dumps(action_data, ensure_ascii=False, indent=4))
+        
+        if use_external_libs.get():
+            messagebox.showinfo("インストールが必要", "このコードには以下が必要です: pip install keyboard pystray pillow")
+        
         if load_project_code(source):
             win.destroy()
 
@@ -1800,24 +2511,28 @@ def test_python_code():
                 pass
     Thread(target=run, daemon=True).start()
 
-def parse_and_install_code_modules():
-    code = text.get("1.0", tk.END)
-    if not code.strip():
-        messagebox.showwarning("注意", "エディターにコードがありません。")
-        return
-    import_matches = re.findall(r'^\s*(?:import|from)\s+([a-zA-Z0-9_]+)', code, re.MULTILINE)
+def parse_and_install_code_modules(code_text=None, auto_install=False):
+    if code_text is None:
+        code_text = text.get("1.0", tk.END)
+    if not code_text.strip():
+        if not auto_install:
+            messagebox.showwarning("注意", "エディターにコードがありません。")
+        return []
+    import_matches = re.findall(r'^\s*(?:import|from)\s+([a-zA-Z0-9_]+)', code_text, re.MULTILINE)
     modules = list(set(import_matches))
     stdlib_set = {
         'os', 'sys', 're', 'math', 'time', 'datetime', 'json', 'random', 'subprocess',
         'threading', 'tempfile', 'tkinter', 'webbrowser', 'urllib', 'winsound', 'pathlib',
         'collections', 'itertools', 'functools', 'io', 'shutil', 'glob', 'sqlite3', 'csv',
         'hashlib', 'hmac', 'uuid', 'smtplib', 'imaplib', 'http', 'socket', 'asyncio', 'logging',
-        'platform', 'typing', 'dataclasses', 'enum', 'abc', 'copy', 'pprint', 'argparse'
+        'platform', 'typing', 'dataclasses', 'enum', 'abc', 'copy', 'pprint', 'argparse',
+        'ctypes', 'wintypes', 'queue', 'shlex', 'html', 'html.parser', 'calendar'
     }
     candidate_modules = [m for m in modules if m not in stdlib_set]
     if not candidate_modules:
-        messagebox.showinfo("確認", "追加でインストールが必要な未導入の外部モジュールは見つかりませんでした！")
-        return
+        if not auto_install:
+            messagebox.showinfo("確認", "追加でインストールが必要な未導入の外部モジュールは見つかりませんでした！")
+        return []
     try:
         python_executable = get_virtualenv_python()
         check_script = "import importlib.util, json, sys; names=json.loads(sys.argv[1]); print(json.dumps([name for name in names if importlib.util.find_spec(name) is None]))"
@@ -1825,11 +2540,30 @@ def parse_and_install_code_modules():
                                 check=True, capture_output=True, text=True, timeout=30)
         target_modules = json.loads(result.stdout)
     except Exception as e:
-        messagebox.showerror("エラー", f"仮想環境のモジュール確認に失敗しました:\n{e}")
-        return
+        if not auto_install:
+            messagebox.showerror("エラー", f"仮想環境のモジュール確認に失敗しました:\n{e}")
+        return []
     if not target_modules:
-        messagebox.showinfo("確認", "追加でインストールが必要な未導入の外部モジュールは見つかりませんでした！")
-        return
+        if not auto_install:
+            messagebox.showinfo("確認", "追加でインストールが必要な未導入の外部モジュールは見つかりませんでした！")
+        return []
+    
+    # Auto install mode
+    if auto_install:
+        success_list, fail_list = [], []
+        for mname in target_modules:
+            try:
+                res = subprocess.run([python_executable, "-m", "pip", "install", mname],
+                                     capture_output=True, text=True, timeout=90)
+                if res.returncode == 0:
+                    success_list.append(mname)
+                else:
+                    fail_list.append(mname)
+            except Exception:
+                fail_list.append(mname)
+        return success_list
+    
+    # Manual install mode with dialog
     win = tk.Toplevel(root)
     win.title("モジュール自動インストール")
     win.geometry("450x320")
@@ -1877,7 +2611,7 @@ def parse_and_install_code_modules():
 
 # ==================== メインUI ====================
 root = tk.Tk()
-root.title("Python Studio - Code & Form Designer")
+root.title(f"Python Studio - Code & Form Designer v{APP_VERSION}")
 
 original_showerror = messagebox.showerror
 
@@ -1952,7 +2686,7 @@ add_btn(top_btn_frame, "📂 開く", open_file, "#495057")
 add_btn(top_btn_frame, "💾 保存", quick_save, "#0d6efd")
 add_btn(top_btn_frame, "✨ 自動整形", format_code, "#6c757d")
 add_btn(top_btn_frame, "▶ テスト実行", test_python_code, "#198754")
-add_btn(top_btn_frame, "📦 コード内モジュール検出", parse_and_install_code_modules, "#6610f2")
+add_btn(top_btn_frame, "📦 モジュール自動インストール", lambda: parse_and_install_code_modules(auto_install=True), "#6610f2")
 add_btn(top_btn_frame, "🔍 検索", open_search_dialog, "#6c757d")
 add_btn(top_btn_frame, "🌓 テーマ切替", toggle_theme, "#ffc107", "#000")
 
@@ -4994,4 +5728,4 @@ update_status_bar()
 root.protocol("WM_DELETE_WINDOW", safe_exit)
 root.mainloop()
 
-                      
+            
