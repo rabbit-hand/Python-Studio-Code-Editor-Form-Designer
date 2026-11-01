@@ -15,6 +15,108 @@ import platform
 import shutil
 import shlex
 
+PYH_ICON_HELPER = r'''class PyhBitmapInfoHeader(ctypes.Structure):
+    _fields_ = [
+        ("biSize", wintypes.DWORD), ("biWidth", wintypes.LONG),
+        ("biHeight", wintypes.LONG), ("biPlanes", wintypes.WORD),
+        ("biBitCount", wintypes.WORD), ("biCompression", wintypes.DWORD),
+        ("biSizeImage", wintypes.DWORD), ("biXPelsPerMeter", wintypes.LONG),
+        ("biYPelsPerMeter", wintypes.LONG), ("biClrUsed", wintypes.DWORD),
+        ("biClrImportant", wintypes.DWORD),
+    ]
+
+class PyhBitmapInfo(ctypes.Structure):
+    _fields_ = [("bmiHeader", PyhBitmapInfoHeader), ("bmiColors", wintypes.DWORD * 3)]
+
+class PyhIconInfo(ctypes.Structure):
+    _fields_ = [
+        ("fIcon", wintypes.BOOL), ("xHotspot", wintypes.DWORD),
+        ("yHotspot", wintypes.DWORD), ("hbmMask", wintypes.HBITMAP),
+        ("hbmColor", wintypes.HBITMAP),
+    ]
+
+def create_pyh_icon():
+    width = height = 32
+    glyphs = {
+        "P": ("110", "101", "110", "100", "100"),
+        "Y": ("101", "101", "010", "010", "010"),
+        "H": ("101", "101", "111", "101", "101"),
+    }
+    background = bytes((170, 105, 23, 255))
+    foreground = bytes((255, 255, 255, 255))
+    pixels = bytearray(background * (width * height))
+    for letter_index, letter in enumerate("PYH"):
+        for row, pattern in enumerate(glyphs[letter]):
+            for column, pixel in enumerate(pattern):
+                if pixel == "1":
+                    x = 5 + letter_index * 8 + column * 2
+                    y = 11 + row * 2
+                    for dy in range(2):
+                        for dx in range(2):
+                            offset = ((y + dy) * width + x + dx) * 4
+                            pixels[offset:offset + 4] = foreground
+
+    bitmap_info = PyhBitmapInfo()
+    bitmap_info.bmiHeader.biSize = ctypes.sizeof(PyhBitmapInfoHeader)
+    bitmap_info.bmiHeader.biWidth = width
+    bitmap_info.bmiHeader.biHeight = -height
+    bitmap_info.bmiHeader.biPlanes = 1
+    bitmap_info.bmiHeader.biBitCount = 32
+    bitmap_info.bmiHeader.biCompression = 0
+    bitmap_info.bmiHeader.biSizeImage = len(pixels)
+
+    user32.GetDC.argtypes = [wintypes.HWND]
+    user32.GetDC.restype = wintypes.HDC
+    user32.ReleaseDC.argtypes = [wintypes.HWND, wintypes.HDC]
+    user32.ReleaseDC.restype = ctypes.c_int
+    gdi32 = ctypes.windll.gdi32
+    gdi32.CreateDIBSection.argtypes = [
+        wintypes.HDC, ctypes.POINTER(PyhBitmapInfo), wintypes.UINT,
+        ctypes.POINTER(ctypes.c_void_p), wintypes.HANDLE, wintypes.DWORD,
+    ]
+    gdi32.CreateDIBSection.restype = wintypes.HBITMAP
+    gdi32.CreateBitmap.argtypes = [
+        ctypes.c_int, ctypes.c_int, wintypes.UINT, wintypes.UINT, ctypes.c_void_p,
+    ]
+    gdi32.CreateBitmap.restype = wintypes.HBITMAP
+    gdi32.DeleteObject.argtypes = [wintypes.HANDLE]
+    gdi32.DeleteObject.restype = wintypes.BOOL
+    user32.CreateIconIndirect.argtypes = [ctypes.POINTER(PyhIconInfo)]
+    user32.CreateIconIndirect.restype = wintypes.HICON
+
+    hdc = user32.GetDC(None)
+    if not hdc:
+        raise OSError("Could not retrieve the desktop device context.")
+    bits = ctypes.c_void_p()
+    try:
+        color_bitmap = gdi32.CreateDIBSection(
+            hdc, ctypes.byref(bitmap_info), 0, ctypes.byref(bits), None, 0
+        )
+    finally:
+        user32.ReleaseDC(None, hdc)
+    if not color_bitmap or not bits.value:
+        raise OSError("Could not create the PYH color bitmap.")
+
+    ctypes.memmove(bits, bytes(pixels), len(pixels))
+    mask_data = ctypes.create_string_buffer(height * 4)
+    mask_bitmap = gdi32.CreateBitmap(
+        width, height, 1, 1, ctypes.cast(mask_data, ctypes.c_void_p)
+    )
+    if not mask_bitmap:
+        gdi32.DeleteObject(color_bitmap)
+        raise OSError("Could not create the PYH mask bitmap.")
+
+    icon_info = PyhIconInfo(True, 0, 0, mask_bitmap, color_bitmap)
+    try:
+        icon_handle = user32.CreateIconIndirect(ctypes.byref(icon_info))
+        if not icon_handle:
+            raise OSError("Could not create the PYH tray icon.")
+        return icon_handle
+    finally:
+        gdi32.DeleteObject(color_bitmap)
+        gdi32.DeleteObject(mask_bitmap)
+'''
+
 # Version
 APP_VERSION = "0.2.2"
 
@@ -1588,7 +1690,7 @@ def open_hotkey_builder():
     tk.Label(form, text="Button name (optional)").grid(row=0, column=2, sticky="w", padx=4, pady=3)
     ttk.Entry(form, textvariable=button_value, width=30).grid(row=0, column=3, sticky="ew", padx=4, pady=3)
     tk.Label(form, text="Action").grid(row=1, column=0, sticky="w", padx=4, pady=3)
-    kind_menu = ttk.Combobox(form, textvariable=kind_value, values=("Open URL", "Launch app/file", "Send keys", "Run command"), state="readonly", width=18)
+    kind_menu = ttk.Combobox(form, textvariable=kind_value, values=("Open URL", "Launch app/file", "Send keys", "Run command", "Hide window"), state="readonly", width=18)
     kind_menu.grid(row=1, column=1, sticky="ew", padx=4, pady=3)
     tk.Label(form, text="URL / Path / Keys / Command").grid(row=1, column=2, sticky="w", padx=4, pady=3)
     ttk.Entry(form, textvariable=target_value, width=50).grid(row=1, column=3, sticky="ew", padx=4, pady=3)
@@ -1715,7 +1817,7 @@ def open_hotkey_builder():
         if not shortcut and not button:
             messagebox.showerror("Input Error", "Enter a hotkey or button name.", parent=win)
             return
-        if not target:
+        if not target and kind != "Hide window":
             messagebox.showerror("Input Error", "Enter the action content.", parent=win)
             return
         try:
@@ -1784,7 +1886,7 @@ import subprocess
 import webbrowser
 import keyboard
 import pystray
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageFont
 import threading
 
 WINDOW_TITLE = __TITLE__
@@ -1795,10 +1897,14 @@ ACTIONS = __ACTIONS__
 def create_icon():
     image = Image.new('RGB', (64, 64), color=(23, 105, 170))
     dc = ImageDraw.Draw(image)
-    dc.rectangle([6, 6, 10, 26], fill='white')
-    dc.rectangle([22, 6, 26, 26], fill='white')
-    dc.rectangle([10, 16, 22, 20], fill='white')
-    dc.rectangle([13, 6, 19, 10], fill=(245, 197, 66))
+    try:
+        font = ImageFont.truetype("arialbd.ttf", 22)
+    except OSError:
+        font = ImageFont.load_default()
+    bounds = dc.textbbox((0, 0), "PYH", font=font)
+    x = (64 - (bounds[2] - bounds[0])) // 2 - bounds[0]
+    y = (64 - (bounds[3] - bounds[1])) // 2 - bounds[1]
+    dc.text((x, y), "PYH", fill="white", font=font)
     return image
 
 def run_action(index):
@@ -1813,6 +1919,8 @@ def run_action(index):
             subprocess.Popen(target, shell=True)
         elif kind == "Send keys":
             keyboard.write(target)
+        elif kind == "Hide window":
+            pass  # Hide window action
         if action["wait"]:
             time.sleep(action["wait"])
         if action["followup"]:
@@ -1923,6 +2031,7 @@ user32.SendMessageW.argtypes = [wintypes.HWND, wintypes.UINT, wintypes.WPARAM, w
 user32.SendMessageW.restype = ctypes.c_ssize_t
 shell32.Shell_NotifyIconW.argtypes = [wintypes.DWORD, ctypes.POINTER(NOTIFYICONDATAW)]
 shell32.Shell_NotifyIconW.restype = wintypes.BOOL
+__PYH_ICON_HELPER__
 
 def get_key_code(name):
     name = name.strip().lower()
@@ -1974,6 +2083,8 @@ def run_action(index):
                 subprocess.Popen(target, shell=True)
         elif kind == "Send keys":
             send_keys(target)
+        elif kind == "Hide window":
+            root.withdraw()
         if action["wait"]:
             time.sleep(action["wait"])
         if action["followup"]:
@@ -2009,10 +2120,18 @@ root.title(WINDOW_TITLE)
 root.geometry(f"{WINDOW_WIDTH}x{WINDOW_HEIGHT}")
 tray_image = tk.PhotoImage(width=32, height=32)
 tray_image.put("#1769aa", to=(0, 0, 32, 32))
-tray_image.put("#ffffff", to=(6, 6, 10, 26))
-tray_image.put("#ffffff", to=(22, 6, 26, 26))
-tray_image.put("#ffffff", to=(10, 16, 22, 20))
-tray_image.put("#f5c542", to=(13, 6, 19, 10))
+tray_glyphs = {
+    "P": ("110", "101", "110", "100", "100"),
+    "Y": ("101", "101", "010", "010", "010"),
+    "H": ("101", "101", "111", "101", "101"),
+}
+for letter_index, letter in enumerate("PYH"):
+    for row, pattern in enumerate(tray_glyphs[letter]):
+        for column, pixel in enumerate(pattern):
+            if pixel == "1":
+                x = 5 + letter_index * 8 + column * 2
+                y = 11 + row * 2
+                tray_image.put("#ffffff", to=(x, y, x + 2, y + 2))
 root.iconphoto(True, tray_image)
 for index, action in enumerate(ACTIONS):
     if action["button"]:
@@ -2025,6 +2144,7 @@ def process_events():
         if kind == "run":
             threading.Thread(target=run_action, args=(value,), daemon=True).start()
         else:
+            restore_window()
             messagebox.showerror("Hotkey", value, parent=root)
     root.after(50, process_events)
 
@@ -2080,6 +2200,8 @@ def install_tray_icon():
                                       ctypes.c_int, ctypes.c_int, wintypes.UINT]
         user32.LoadImageW.restype = wintypes.HICON
         icon_handle = user32.LoadImageW(None, TRAY_ICON_PATH, 1, 0, 0, 0x0010)
+    elif TRAY_ICON_STYLE == "Original (H)":
+        icon_handle = create_pyh_icon()
     elif TRAY_ICON_STYLE in ("Info", "Warning", "Error"):
         user32.LoadIconW.restype = wintypes.HICON
         stock_icons = {"Info": 32516, "Warning": 32515, "Error": 32513}
@@ -2147,6 +2269,7 @@ root.mainloop()
             source = source.replace("__TRAY_ICON_STYLE__", repr(tray_icon_style_value.get()))
             source = source.replace("__TRAY_ICON_PATH__", repr(tray_icon_path_value.get()))
         source = source.replace("__ACTIONS__", json.dumps(action_data, ensure_ascii=False, indent=4))
+        source = source.replace("__PYH_ICON_HELPER__", PYH_ICON_HELPER)
         
         if use_external_libs.get():
             messagebox.showinfo("Install Required", "This code requires: pip install keyboard pystray pillow")
@@ -2706,6 +2829,22 @@ top_notebook.add(tab_hotkey, text="⌨ Hotkey Builder")
 tab_designer = ttk.Frame(top_notebook)
 top_notebook.add(tab_designer, text="🎨 Form Designer")
 
+tab_docked = ttk.Frame(top_notebook)
+top_notebook.add(tab_docked, text="🔗 Hotkey + Form")
+docked_toolbar = ttk.Frame(tab_docked)
+docked_toolbar.pack(fill="x", padx=8, pady=(8, 0))
+ttk.Button(
+    docked_toolbar,
+    text="⚡ Generate One App with Form + Hotkeys",
+    command=lambda: generate_code_from_designer(include_hotkeys=True),
+).pack(side="left")
+docked_notebook = ttk.Notebook(tab_docked)
+docked_notebook.pack(fill="both", expand=True, padx=4, pady=(4, 4))
+docked_hotkey_tab = ttk.Frame(docked_notebook)
+docked_notebook.add(docked_hotkey_tab, text="⌨ Hotkey")
+docked_form_tab = ttk.Frame(docked_notebook)
+docked_notebook.add(docked_form_tab, text="🎨 Form")
+
 tab_robot = ttk.Frame(top_notebook)
 top_notebook.add(tab_robot, text="🚁 Drone / Robot Control")
 
@@ -2873,8 +3012,8 @@ if first_project:
 
 
 # ---------- Tab 3: Hotkey Builder ----------
-hotkey_content = tk.Frame(tab_hotkey, padx=14, pady=12, bg=THEMES[current_theme]['bg'])
-hotkey_content.pack(fill="both", expand=True)
+hotkey_content = tk.Frame(root, padx=14, pady=12, bg=THEMES[current_theme]['bg'])
+hotkey_content.pack(in_=tab_hotkey, fill="both", expand=True)
 tk.Label(hotkey_content, text="Register hotkey and button actions", font=("Segoe UI", 14, "bold"),
          bg=THEMES[current_theme]['bg'], fg=THEMES[current_theme]['text_fg']).pack(anchor="w")
 
@@ -2948,7 +3087,7 @@ ttk.Entry(hotkey_form, textvariable=hotkey_shortcut_value, width=20).grid(row=0,
 tk.Label(hotkey_form, text="Button name (optional)", bg=THEMES[current_theme]['bg'], fg=THEMES[current_theme]['text_fg'], font=("Segoe UI", 11)).grid(row=0, column=2, sticky="w", padx=4, pady=3)
 ttk.Entry(hotkey_form, textvariable=hotkey_button_value, width=24).grid(row=0, column=3, sticky="ew", padx=4, pady=3)
 tk.Label(hotkey_form, text="Action", bg=THEMES[current_theme]['bg'], fg=THEMES[current_theme]['text_fg'], font=("Segoe UI", 11)).grid(row=1, column=0, sticky="w", padx=4, pady=3)
-hotkey_kind_menu = ttk.Combobox(hotkey_form, textvariable=hotkey_kind_value, values=("Open URL", "Launch app/file", "Send keys", "Run command"), state="readonly", width=18, font=("Segoe UI", 11))
+hotkey_kind_menu = ttk.Combobox(hotkey_form, textvariable=hotkey_kind_value, values=("Open URL", "Launch app/file", "Send keys", "Run command", "Hide window"), state="readonly", width=18, font=("Segoe UI", 11))
 hotkey_kind_menu.grid(row=1, column=1, sticky="ew", padx=4, pady=3)
 tk.Label(hotkey_form, text="URL / Path / Keys / Command", bg=THEMES[current_theme]['bg'], fg=THEMES[current_theme]['text_fg'], font=("Segoe UI", 11)).grid(row=1, column=2, sticky="w", padx=4, pady=3)
 ttk.Entry(hotkey_form, textvariable=hotkey_target_value).grid(row=1, column=3, sticky="ew", padx=4, pady=3)
@@ -3145,7 +3284,7 @@ def hotkey_save_action():
     if not shortcut and not button:
         messagebox.showerror("Input Error", "Enter a hotkey or button name.")
         return
-    if not target:
+    if not target and kind != "Hide window":
         messagebox.showerror("Input Error", "Enter the action content.")
         return
     try:
@@ -3285,6 +3424,7 @@ user32.SendMessageW.argtypes = [wintypes.HWND, wintypes.UINT, wintypes.WPARAM, w
 user32.SendMessageW.restype = ctypes.c_ssize_t
 shell32.Shell_NotifyIconW.argtypes = [wintypes.DWORD, ctypes.POINTER(NOTIFYICONDATAW)]
 shell32.Shell_NotifyIconW.restype = wintypes.BOOL
+__PYH_ICON_HELPER__
 
 def get_key_code(name):
     name = name.strip().lower()
@@ -3336,6 +3476,8 @@ def run_action(index):
                 subprocess.Popen(target, shell=True)
         elif kind == "Send keys":
             send_keys(target)
+        elif kind == "Hide window":
+            root.withdraw()
         if action["wait"]:
             time.sleep(action["wait"])
         if action["followup"]:
@@ -3371,10 +3513,18 @@ root.title(WINDOW_TITLE)
 root.geometry(f"{WINDOW_WIDTH}x{WINDOW_HEIGHT}")
 tray_image = tk.PhotoImage(width=32, height=32)
 tray_image.put("#1769aa", to=(0, 0, 32, 32))
-tray_image.put("#ffffff", to=(6, 6, 10, 26))
-tray_image.put("#ffffff", to=(22, 6, 26, 26))
-tray_image.put("#ffffff", to=(10, 16, 22, 20))
-tray_image.put("#f5c542", to=(13, 6, 19, 10))
+tray_glyphs = {
+    "P": ("110", "101", "110", "100", "100"),
+    "Y": ("101", "101", "010", "010", "010"),
+    "H": ("101", "101", "111", "101", "101"),
+}
+for letter_index, letter in enumerate("PYH"):
+    for row, pattern in enumerate(tray_glyphs[letter]):
+        for column, pixel in enumerate(pattern):
+            if pixel == "1":
+                x = 5 + letter_index * 8 + column * 2
+                y = 11 + row * 2
+                tray_image.put("#ffffff", to=(x, y, x + 2, y + 2))
 root.iconphoto(True, tray_image)
 for index, action in enumerate(ACTIONS):
     if action["button"]:
@@ -3387,6 +3537,7 @@ def process_events():
         if kind == "run":
             threading.Thread(target=run_action, args=(value,), daemon=True).start()
         else:
+            restore_window()
             messagebox.showerror("Hotkey", value, parent=root)
     root.after(50, process_events)
 
@@ -3442,6 +3593,8 @@ def install_tray_icon():
                                       ctypes.c_int, ctypes.c_int, wintypes.UINT]
         user32.LoadImageW.restype = wintypes.HICON
         icon_handle = user32.LoadImageW(None, TRAY_ICON_PATH, 1, 0, 0, 0x0010)
+    elif TRAY_ICON_STYLE == "Original (H)":
+        icon_handle = create_pyh_icon()
     elif TRAY_ICON_STYLE in ("Info", "Warning", "Error"):
         user32.LoadIconW.restype = wintypes.HICON
         stock_icons = {"Info": 32516, "Warning": 32515, "Error": 32513}
@@ -3507,6 +3660,7 @@ root.mainloop()
     source = source.replace("__TRAY_ICON_STYLE__", repr(hotkey_tray_icon_style_value.get()))
     source = source.replace("__TRAY_ICON_PATH__", repr(hotkey_tray_icon_path_value.get()))
     source = source.replace("__ACTIONS__", json.dumps(action_data, ensure_ascii=False, indent=4))
+    source = source.replace("__PYH_ICON_HELPER__", PYH_ICON_HELPER)
     if load_project_code(source):
         messagebox.showinfo("Generate Done", "Hotkey app code transferred to the editor!")
 
@@ -3536,8 +3690,8 @@ top_notebook.bind("<<NotebookTabChanged>>", lambda e: on_hotkey_tab_selected(e) 
 designer_components = []
 selected_component = None
 
-designer_toolbar = tk.Frame(tab_designer, bg="#2d2d2d", padx=8, pady=8)
-designer_toolbar.pack(side="top", fill="x")
+designer_toolbar = tk.Frame(root, bg="#2d2d2d", padx=8, pady=8)
+designer_toolbar.pack(in_=tab_designer, side="top", fill="x")
 
 form_window_width = 600
 form_window_height = 450
@@ -3546,11 +3700,61 @@ form_fg_color = "#000000"
 form_pos_x = 100
 form_pos_y = 100
 form_pos_mode = "manual"
+form_start_in_tray = True
 show_grid_lines = False
 guide_lines = []
 
-canvas_container = tk.Frame(tab_designer, bg="#1e1e1e")
-canvas_container.pack(side="top", fill="both", expand=True, padx=8, pady=8)
+DESIGNER_SETTINGS_FILE = "designer_settings.json"
+
+def load_designer_settings():
+    global form_start_in_tray
+    try:
+        with open(get_settings_path(DESIGNER_SETTINGS_FILE), "r", encoding="utf-8") as settings_file:
+            data = json.load(settings_file)
+        if isinstance(data, dict):
+            form_start_in_tray = bool(data.get("start_in_tray", True))
+    except (OSError, json.JSONDecodeError, TypeError):
+        pass
+
+def save_designer_settings():
+    try:
+        with open(get_settings_path(DESIGNER_SETTINGS_FILE), "w", encoding="utf-8") as settings_file:
+            json.dump({"start_in_tray": form_start_in_tray}, settings_file, indent=2)
+    except OSError as error:
+        messagebox.showerror("Settings Save Error", str(error))
+
+load_designer_settings()
+
+canvas_container = tk.Frame(root, bg="#1e1e1e")
+canvas_container.pack(in_=tab_designer, side="top", fill="both", expand=True, padx=8, pady=8)
+
+def dock_pack(widget, parent, **options):
+    if widget.winfo_manager() == "pack" and widget.pack_info().get("in") == parent:
+        return
+    widget.pack_forget()
+    widget.pack(in_=parent, **options)
+
+def move_docked_feature_widgets(event=None):
+    if top_notebook.select() == str(tab_docked):
+        if docked_notebook.select() == str(docked_hotkey_tab):
+            hotkey_parent, form_parent = docked_hotkey_tab, tab_designer
+        else:
+            hotkey_parent, form_parent = tab_hotkey, docked_form_tab
+    else:
+        hotkey_parent, form_parent = tab_hotkey, tab_designer
+
+    dock_pack(hotkey_content, hotkey_parent, fill="both", expand=True)
+    dock_pack(designer_toolbar, form_parent, side="top", fill="x")
+    dock_pack(canvas_container, form_parent, side="top", fill="both", expand=True, padx=8, pady=8)
+
+def on_docked_tab_changed(event=None):
+    move_docked_feature_widgets()
+    if (top_notebook.select() == str(tab_docked)
+            and docked_notebook.select() == str(docked_hotkey_tab)):
+        on_hotkey_tab_selected(None)
+
+docked_notebook.bind("<<NotebookTabChanged>>", on_docked_tab_changed, add="+")
+top_notebook.bind("<<NotebookTabChanged>>", move_docked_feature_widgets, add="+")
 
 grid_canvas = tk.Canvas(canvas_container, bg="#1e1e1e", highlightthickness=0)
 grid_canvas.place(x=50, y=50, width=form_window_width, height=form_window_height)
@@ -3775,10 +3979,10 @@ form_resize_handle.bind("<Button-1>", on_form_resize_press)
 form_resize_handle.bind("<B1-Motion>", on_form_resize_drag)
 
 def open_window_position_dialog():
-    global form_pos_x, form_pos_y, form_pos_mode
+    global form_pos_x, form_pos_y, form_pos_mode, form_start_in_tray
     w_diag = tk.Toplevel(root)
     w_diag.title("Window Screen Position")
-    w_diag.geometry("450x340")
+    w_diag.geometry("450x390")
     w_diag.resizable(False, False)
     w_diag.configure(bg="#f8f9fa")
     w_diag.transient(root)
@@ -3796,6 +4000,15 @@ def open_window_position_dialog():
                    bg="#f8f9fa", font=("Segoe UI", 10)).pack(anchor="w", pady=5)
     tk.Radiobutton(f_body, text="Show at specified desktop coordinates (X, Y)", variable=mode_var, value="manual",
                    bg="#f8f9fa", font=("Segoe UI", 10)).pack(anchor="w", pady=(10, 5))
+
+    tray_start_var = tk.BooleanVar(value=form_start_in_tray)
+    tk.Checkbutton(
+        f_body,
+        text="Minimize to the system tray when the program starts",
+        variable=tray_start_var,
+        bg="#f8f9fa",
+        font=("Segoe UI", 10),
+    ).pack(anchor="w", pady=(10, 5))
 
     coord_frame_diag = tk.Frame(f_body, bg="#f8f9fa", padx=20)
     coord_frame_diag.pack(anchor="w", pady=5)
@@ -3827,7 +4040,7 @@ def open_window_position_dialog():
              bg="#f8f9fa", fg="#666666", font=("Segoe UI", 9)).pack(anchor="w", pady=(10, 0))
 
     def save_pos():
-        global form_pos_x, form_pos_y, form_pos_mode
+        global form_pos_x, form_pos_y, form_pos_mode, form_start_in_tray
         form_pos_mode = mode_var.get()
         if form_pos_mode == "manual":
             try:
@@ -3836,6 +4049,8 @@ def open_window_position_dialog():
             except ValueError:
                 messagebox.showerror("Error", "Enter valid integers for coordinates.")
                 return
+        form_start_in_tray = tray_start_var.get()
+        save_designer_settings()
         update_size_label()
         messagebox.showinfo("Saved", "Window screen position saved!")
         w_diag.destroy()
@@ -3849,7 +4064,7 @@ def open_window_position_dialog():
         dialog_height = w_diag.winfo_height()
         screen_x = max(0, (w_diag.winfo_screenwidth() - dialog_width) // 2)
         screen_y = max(0, (w_diag.winfo_screenheight() - dialog_height) // 2)
-        w_diag.geometry(f"450x340+{screen_x}+{screen_y}")
+        w_diag.geometry(f"450x390+{screen_x}+{screen_y}")
 
     w_diag.bind("<Map>", lambda event: w_diag.after_idle(center_position_dialog), add="+")
     center_position_dialog()
@@ -3918,6 +4133,7 @@ def add_component(ctype):
         "bg_color": default_bg, "fg_color": default_fg, "font_size": 12,
         "custom_background": False, "custom_foreground": False,
         "action": "none", "param": "", "close_after_action": True,
+        "hide_to_tray_after_action": False,
         "browser_choice": "Default browser", "browser_window_mode": "Maximized"
     }
     designer_components.append(comp_info)
@@ -4094,15 +4310,35 @@ def open_properties_dialog(comp):
                 ("Fortune", "omikuji"),
                 ("Generate password", "gen_password"),
             ]),
+            ("🪟 Window Actions", [
+                ("🪟 Show window", "show_window"),
+                ("🪟 Minimize window", "minimize_window"),
+                ("🪟 Maximize window", "maximize_window"),
+            ]),
         ]
 
-        act_var = tk.StringVar(value=comp["action"])
+        initial_action = comp["action"]
+        if initial_action == "hide_window":
+            initial_action = "none"
+        act_var = tk.StringVar(value=initial_action)
         for cat_name, acts in action_categories:
             tk.Label(f_act, text=cat_name, bg="#f8f9fa", fg="#0d6efd",
                      font=("Segoe UI", 11, "bold")).pack(anchor="w", pady=(10, 2))
             for text_lbl, val in acts:
                 tk.Radiobutton(f_act, text=text_lbl, variable=act_var, value=val,
                                bg="#f8f9fa", font=("Segoe UI", 11), anchor="w").pack(anchor="w", padx=12, pady=1)
+
+        hide_to_tray_var = tk.BooleanVar(
+            value=comp.get("hide_to_tray_after_action", comp["action"] == "hide_window")
+        )
+        tk.Checkbutton(
+            f_act,
+            text="Hide to system tray after the action",
+            variable=hide_to_tray_var,
+            bg="#f8f9fa",
+            font=("Segoe UI", 11),
+            anchor="w",
+        ).pack(anchor="w", padx=12, pady=(6, 2))
 
         tk.Label(f_act, text="Action parameter (URL, message text, etc.):", bg="#f8f9fa",
                  font=("Segoe UI", 11, "bold")).pack(anchor="w", pady=(14, 2))
@@ -4247,6 +4483,7 @@ def open_properties_dialog(comp):
         except Exception:
             comp["font_size"] = 12
         comp["action"] = act_var.get()
+        comp["hide_to_tray_after_action"] = hide_to_tray_var.get()
         if param_entry:
             comp["param"] = param_entry.get().strip()
         if close_after_var:
@@ -4308,7 +4545,73 @@ def clear_designer():
 
 
 
-def generate_code_from_designer():
+def generate_code_from_designer(include_hotkeys=False):
+    combined_hotkey_actions = []
+    if include_hotkeys:
+        if not hotkey_actions:
+            messagebox.showerror("Input Error", "Register at least one hotkey action for the combined app.")
+            top_notebook.select(tab_docked)
+            docked_notebook.select(docked_hotkey_tab)
+            return
+        seen_shortcuts = set()
+        for item in hotkey_actions:
+            shortcut = item["shortcut"].lower().replace(" ", "")
+            if shortcut and shortcut in seen_shortcuts:
+                messagebox.showerror("Input Error", f"Duplicate hotkey: {item['shortcut']}")
+                top_notebook.select(tab_docked)
+                docked_notebook.select(docked_hotkey_tab)
+                return
+            seen_shortcuts.add(shortcut)
+        combined_hotkey_actions = [
+            {
+                key: item[key]
+                for key in ("shortcut", "button", "kind", "target", "wait", "followup")
+            }
+            for item in hotkey_actions
+        ]
+
+    hotkey_button_actions = [
+        (index, action)
+        for index, action in enumerate(combined_hotkey_actions)
+        if action["button"]
+    ]
+    combined_window_height = form_window_height
+    hotkey_button_start_y = form_window_height
+    hotkey_button_columns = max(1, form_window_width // 180)
+    if include_hotkeys and hotkey_button_actions:
+        component_bottom = max(
+            (
+                comp["wrapper"].winfo_y() + comp["wrapper"].winfo_height()
+                for comp in designer_components
+            ),
+            default=form_window_height,
+        )
+        hotkey_button_start_y = max(form_window_height, component_bottom) + 8
+        hotkey_button_rows = (
+            len(hotkey_button_actions) + hotkey_button_columns - 1
+        ) // hotkey_button_columns
+        combined_window_height = hotkey_button_start_y + hotkey_button_rows * 42 + 8
+
+    tray_after_action = any(
+        comp["type"] == "Button"
+        and (comp.get("hide_to_tray_after_action", False) or comp["action"] == "hide_window")
+        for comp in designer_components
+    )
+    if any(
+        comp["type"] == "Button"
+        and (comp.get("hide_to_tray_after_action", False) or comp["action"] == "hide_window")
+        and comp["action"] == "close_app"
+        for comp in designer_components
+    ):
+        messagebox.showwarning(
+            "Conflicting settings",
+            "Exit app and hide to system tray cannot be enabled at the same time.",
+        )
+        top_notebook.select(tab_docked if include_hotkeys else tab_designer)
+        if include_hotkeys:
+            docked_notebook.select(docked_form_tab)
+        return
+
     missing_copy_settings = [
         comp for comp in designer_components
         if comp["type"] == "Button"
@@ -4320,26 +4623,36 @@ def generate_code_from_designer():
             "Copy settings required",
             "Copy-action buttons need source and destination folder set in properties.",
         )
-        top_notebook.select(tab_designer)
+        top_notebook.select(tab_docked if include_hotkeys else tab_designer)
+        if include_hotkeys:
+            docked_notebook.select(docked_form_tab)
         return
 
     if form_pos_mode == "center":
         geometry_code = (
-            f"root.geometry('{form_window_width}x{form_window_height}')\n"
+            f"root.geometry('{form_window_width}x{combined_window_height}')\n"
             f"root.update_idletasks()\n"
             f"sw = root.winfo_screenwidth()\n"
             f"sh = root.winfo_screenheight()\n"
             f"x = (sw - {form_window_width}) // 2\n"
-            f"y = (sh - {form_window_height}) // 2\n"
-            f"root.geometry(f'{form_window_width}x{form_window_height}+{{x}}+{{y}}')"
+            f"y = (sh - {combined_window_height}) // 2\n"
+            f"root.geometry(f'{form_window_width}x{combined_window_height}+{{x}}+{{y}}')"
         )
     else:
-        geometry_code = f"root.geometry('{form_window_width}x{form_window_height}+{form_pos_x}+{form_pos_y}')"
+        geometry_code = f"root.geometry('{form_window_width}x{combined_window_height}+{form_pos_x}+{form_pos_y}')"
 
     actions = {
         comp["action"] for comp in designer_components
         if comp["type"] == "Button"
     }
+    needs_tray = (
+        tray_after_action
+        or form_start_in_tray
+        or (
+            include_hotkeys
+            and any(action["kind"] == "Hide window" for action in combined_hotkey_actions)
+        )
+    )
     browser_actions = {
         "open_url", "open_x", "google_search",
         "youtube_search", "google_translate", "google_maps",
@@ -4357,7 +4670,7 @@ def generate_code_from_designer():
         "create_folder", "create_text_file", "open_folder",
         "open_file_default", "open_desktop", "open_documents",
         "open_downloads", "open_explorer", "open_notepad", "open_calc",
-        "open_terminal",
+        "open_terminal", "maximize_window",
     } or needs_browser:
         imports.append("import os")
     if actions & {
@@ -4395,6 +4708,32 @@ def generate_code_from_designer():
             "    import winsound",
             "except ImportError:",
             "    winsound = None",
+        ])
+    if include_hotkeys:
+        for statement in (
+            "import ctypes",
+            "from ctypes import wintypes",
+            "import os",
+            "import queue",
+            "import shlex",
+            "import subprocess",
+            "import threading",
+            "import time",
+            "import webbrowser",
+        ):
+            if statement not in imports:
+                imports.append(statement)
+    if needs_tray:
+        if "from tkinter import messagebox" not in imports:
+            imports.append("from tkinter import messagebox")
+        imports.extend([
+            "import threading",
+            "try:",
+            "    import pystray",
+            "    from PIL import Image, ImageDraw, ImageFont",
+            "    PYSTRAY_AVAILABLE = True",
+            "except ImportError:",
+            "    PYSTRAY_AVAILABLE = False",
         ])
 
     code = [
@@ -4571,10 +4910,11 @@ def generate_code_from_designer():
         font_str = f"('Segoe UI', {f_size})"
 
         if ctype == "Button":
-            if act != "none":
+            hide_to_tray = comp.get("hide_to_tray_after_action", False) or act == "hide_window"
+            if act != "none" or hide_to_tray:
                 code.append(f"def on_btn_{i}_click():")
                 if act == "close_app":
-                    code.append("    root.destroy()")
+                    code.append("    shutdown_app()" if include_hotkeys else "    root.destroy()")
                 elif act == "copy_file":
                     code.append(f"    src = {source_path!r}")
                     code.append("    if not src: return")
@@ -4734,8 +5074,23 @@ def generate_code_from_designer():
                     code.append("    chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$*'")
                     code.append("    pwd = ''.join(random.choices(chars, k=12))")
                     code.append("    messagebox.showinfo('Password', f'Generated:\\n{pwd}')")
-                if comp.get("close_after_action", True) and act != "close_app":
-                    code.append("    root.destroy()")
+                elif act == "hide_window":
+                    code.append("    hide_to_tray()")
+                elif act == "show_window":
+                    code.append("    root.deiconify()")
+                    code.append("    root.lift()")
+                    code.append("    root.focus_force()")
+                elif act == "minimize_window":
+                    code.append("    root.iconify()")
+                elif act == "maximize_window":
+                    code.append("    if os.name == 'nt':")
+                    code.append("        root.state('zoomed')")
+                    code.append("    else:")
+                    code.append("        root.attributes('-zoomed', True)")
+                if hide_to_tray and act != "hide_window":
+                    code.append("    hide_to_tray()")
+                if comp.get("close_after_action", True) and act != "close_app" and act not in ("hide_window", "show_window", "minimize_window", "maximize_window") and not hide_to_tray:
+                    code.append("    shutdown_app()" if include_hotkeys else "    root.destroy()")
                 code.append("")
                 cmd_str = f", command=on_btn_{i}_click"
             else:
@@ -4750,6 +5105,238 @@ def generate_code_from_designer():
             code.append(f"ent_{i} = tk.Entry(root, bg={bg!r}, fg={fg!r}, font={font_str})")
             code.append(f"ent_{i}.place(x={x}, y={y}, width={width}, height={height})")
 
+    if include_hotkeys and hotkey_button_actions:
+        code.extend(["", "# Hotkey action buttons"])
+        for button_index, (action_index, action) in enumerate(hotkey_button_actions):
+            column = button_index % hotkey_button_columns
+            row = button_index // hotkey_button_columns
+            cell_width = form_window_width // hotkey_button_columns
+            button_x = column * cell_width + 3
+            button_y = hotkey_button_start_y + row * 42
+            button_width = max(1, cell_width - 6)
+            code.extend([
+                f"hotkey_button_{button_index} = tk.Button(root, text={action['button']!r}, command=lambda: threading.Thread(target=run_hotkey_action, args=({action_index},), daemon=True).start())",
+                f"hotkey_button_{button_index}.place(x={button_x}, y={button_y}, width={button_width}, height=36)",
+            ])
+
+    if needs_tray:
+        code.extend([
+            "",
+            "def create_tray_icon():",
+            "    image = Image.new('RGB', (64, 64), color=(0, 120, 215))",
+            "    draw = ImageDraw.Draw(image)",
+            "    try:",
+            "        font = ImageFont.truetype('arialbd.ttf', 22)",
+            "    except OSError:",
+            "        font = ImageFont.load_default()",
+            "    bounds = draw.textbbox((0, 0), 'PYB', font=font)",
+            "    x = (64 - (bounds[2] - bounds[0])) // 2 - bounds[0]",
+            "    y = (64 - (bounds[3] - bounds[1])) // 2 - bounds[1]",
+            "    draw.text((x, y), 'PYB', fill='white', font=font)",
+            "    return image",
+            "",
+            "def hide_to_tray():",
+            "    if not PYSTRAY_AVAILABLE:",
+            "        messagebox.showerror('System Tray', 'System tray support requires pystray and Pillow.')",
+            "        return",
+            "    root.withdraw()",
+            "",
+            "def on_tray_clicked(icon, item):",
+            "    if item == 'Show' or getattr(item, 'text', None) == 'Show':",
+            "        root.deiconify()",
+            "        root.lift()",
+            "        root.focus_force()",
+            "    elif item == 'Exit' or getattr(item, 'text', None) == 'Exit':",
+            *(
+                ["        root.after(0, shutdown_app)"]
+                if include_hotkeys
+                else ["        icon.stop()", "        root.destroy()"]
+            ),
+            "",
+            "if PYSTRAY_AVAILABLE:",
+            "    icon = pystray.Icon(",
+            "        'form_app',",
+            "        create_tray_icon(),",
+            "        'Form App',",
+            "        menu=pystray.Menu(",
+            "            pystray.MenuItem('Show', on_tray_clicked, default=True),",
+            "            pystray.MenuItem('Exit', on_tray_clicked)",
+            "        )",
+            "    )",
+            "    tray_thread = threading.Thread(target=icon.run, daemon=True)",
+            "    tray_thread.start()",
+            *(
+                [
+                    "    root.withdraw()",
+                ]
+                if form_start_in_tray else []
+            ),
+            "else:",
+            "    print('Warning: pystray is not installed. Run: pip install pystray Pillow')",
+            "",
+        ])
+
+    if include_hotkeys:
+        code.extend([
+            "",
+            f"HOTKEY_ACTIONS = {combined_hotkey_actions!r}",
+            "MOD_ALT = 0x0001",
+            "MOD_CONTROL = 0x0002",
+            "MOD_SHIFT = 0x0004",
+            "MOD_WIN = 0x0008",
+            "MOD_NOREPEAT = 0x4000",
+            "WM_HOTKEY = 0x0312",
+            "WM_QUIT = 0x0012",
+            "HOTKEY_MODIFIERS = {'alt': MOD_ALT, 'ctrl': MOD_CONTROL, 'control': MOD_CONTROL, 'shift': MOD_SHIFT, 'win': MOD_WIN, 'windows': MOD_WIN}",
+            "SPECIAL_KEYS = {'backspace': 0x08, 'tab': 0x09, 'enter': 0x0D, 'return': 0x0D, 'esc': 0x1B, 'escape': 0x1B, 'space': 0x20, 'left': 0x25, 'up': 0x26, 'right': 0x27, 'down': 0x28, 'delete': 0x2E, 'home': 0x24, 'end': 0x23, 'pageup': 0x21, 'pagedown': 0x22}",
+            "for number in range(1, 13):",
+            "    SPECIAL_KEYS[f'f{number}'] = 0x70 + number - 1",
+            "hotkey_events = queue.Queue()",
+            "hotkey_thread_id = 0",
+            "hotkey_thread = None",
+            "hotkey_ready = threading.Event()",
+            "hotkey_closing = False",
+            "",
+            "def get_hotkey_key_code(name):",
+            "    name = name.strip().lower()",
+            "    if name in SPECIAL_KEYS:",
+            "        return SPECIAL_KEYS[name]",
+            "    if len(name) == 1:",
+            "        result = ctypes.windll.user32.VkKeyScanW(ord(name))",
+            "        if result != -1:",
+            "            return result & 0xFF",
+            "    raise ValueError(f'Unsupported key: {name}')",
+            "",
+            "def parse_hotkey(shortcut):",
+            "    modifiers = 0",
+            "    key_code = None",
+            "    for part in (value.strip().lower() for value in shortcut.split('+') if value.strip()):",
+            "        if part in HOTKEY_MODIFIERS:",
+            "            modifiers |= HOTKEY_MODIFIERS[part]",
+            "        elif key_code is None:",
+            "            key_code = get_hotkey_key_code(part)",
+            "        else:",
+            "            raise ValueError(f'Only one key may be specified: {shortcut}')",
+            "    if key_code is None:",
+            "        raise ValueError('No key was specified.')",
+            "    return modifiers | MOD_NOREPEAT, key_code",
+            "",
+            "def send_hotkey_keys(sequence):",
+            "    modifier_codes = {'ctrl': 0x11, 'control': 0x11, 'alt': 0x12, 'shift': 0x10, 'win': 0x5B, 'windows': 0x5B}",
+            "    codes = [modifier_codes[part.strip().lower()] if part.strip().lower() in modifier_codes else get_hotkey_key_code(part) for part in sequence.split('+') if part.strip()]",
+            "    for code in codes:",
+            "        ctypes.windll.user32.keybd_event(code, 0, 0, 0)",
+            "    for code in reversed(codes):",
+            "        ctypes.windll.user32.keybd_event(code, 0, 0x0002, 0)",
+            "",
+            "def run_hotkey_action(index):",
+            "    action = HOTKEY_ACTIONS[index]",
+            "    try:",
+            "        kind, target = action['kind'], action['target']",
+            "        if kind == 'Open URL':",
+            "            webbrowser.open(target, new=2)",
+            "        elif kind == 'Launch app/file':",
+            "            os.startfile(target)",
+            "        elif kind == 'Run command':",
+            "            try:",
+            "                subprocess.Popen(shlex.split(target))",
+            "            except Exception:",
+            "                subprocess.Popen(target, shell=True)",
+            "        elif kind == 'Send keys':",
+            "            send_hotkey_keys(target)",
+            "        elif kind == 'Hide window':",
+            "            hotkey_events.put(('hide', None))",
+            "        if action['wait']:",
+            "            time.sleep(action['wait'])",
+            "        if action['followup']:",
+            "            send_hotkey_keys(action['followup'])",
+            "    except Exception as error:",
+            "        hotkey_events.put(('error', f\"{action['button'] or action['shortcut']}: {error}\"))",
+            "",
+            "def hotkey_loop():",
+            "    global hotkey_thread_id",
+            "    message = wintypes.MSG()",
+            "    ctypes.windll.user32.PeekMessageW(ctypes.byref(message), None, 0, 0, 0)",
+            "    hotkey_thread_id = ctypes.windll.kernel32.GetCurrentThreadId()",
+            "    hotkey_ready.set()",
+            "    registered = []",
+            "    try:",
+            "        for index, action in enumerate(HOTKEY_ACTIONS):",
+            "            if not action['shortcut']:",
+            "                continue",
+            "            try:",
+            "                modifiers, key_code = parse_hotkey(action['shortcut'])",
+            "                if not ctypes.windll.user32.RegisterHotKey(None, index + 1, modifiers, key_code):",
+            "                    raise OSError('This hotkey could not be registered; another app may be using it.')",
+            "                registered.append(index + 1)",
+            "            except Exception as error:",
+            "                hotkey_events.put(('error', f\"{action['shortcut']}: {error}\"))",
+            "        while ctypes.windll.user32.GetMessageW(ctypes.byref(message), None, 0, 0) > 0:",
+            "            if message.message == WM_HOTKEY:",
+            "                hotkey_events.put(('run', message.wParam - 1))",
+            "    finally:",
+            "        for hotkey_id in registered:",
+            "            ctypes.windll.user32.UnregisterHotKey(None, hotkey_id)",
+            "",
+            "def process_hotkey_events():",
+            "    while not hotkey_events.empty():",
+            "        kind, value = hotkey_events.get_nowait()",
+            "        if kind == 'run':",
+            "            threading.Thread(target=run_hotkey_action, args=(value,), daemon=True).start()",
+            "        elif kind == 'hide':",
+            "            hide_to_tray()",
+            "        else:",
+            "            root.deiconify()",
+            "            root.lift()",
+            "            messagebox.showerror('Hotkey', value, parent=root)",
+            "    if not hotkey_closing:",
+            "        root.after(50, process_hotkey_events)",
+            "",
+            "def shutdown_app():",
+            "    global hotkey_closing",
+            "    if hotkey_closing:",
+            "        return",
+            "    hotkey_closing = True",
+            "    if hotkey_thread is not None and hotkey_thread.is_alive():",
+            "        if not hotkey_ready.wait(timeout=5):",
+            "            hotkey_closing = False",
+            "            root.deiconify()",
+            "            messagebox.showerror('Shutdown Error', 'Could not confirm hotkey listener startup.', parent=root)",
+            "            return",
+            "        if not ctypes.windll.user32.PostThreadMessageW(hotkey_thread_id, WM_QUIT, 0, 0):",
+            "            hotkey_closing = False",
+            "            root.deiconify()",
+            "            messagebox.showerror('Shutdown Error', 'Could not stop the hotkey listener. Please try again.', parent=root)",
+            "            return",
+            "        hotkey_thread.join()",
+            *(
+                [
+                    "    if PYSTRAY_AVAILABLE and 'icon' in globals():",
+                    "        icon.stop()",
+                ]
+                if needs_tray
+                else []
+            ),
+            "    root.destroy()",
+            "",
+            "def close_combined_window():",
+            *(
+                [
+                    "    if PYSTRAY_AVAILABLE:",
+                    "        root.withdraw()",
+                    "    else:",
+                    "        shutdown_app()",
+                ]
+                if needs_tray
+                else ["    shutdown_app()"]
+            ),
+            "",
+            "root.protocol('WM_DELETE_WINDOW', close_combined_window)",
+            "hotkey_thread = threading.Thread(target=hotkey_loop, daemon=True)",
+            "hotkey_thread.start()",
+            "root.after(50, process_hotkey_events)",
+        ])
+
     code.extend(["", "root.mainloop()"])
     if text.get("1.0", tk.END).strip():
         if not messagebox.askyesno("Overwrite Confirm", "Replace editor content with generated code?"):
@@ -4761,7 +5348,10 @@ def generate_code_from_designer():
     update_line_numbers()
     update_status_bar()
     top_notebook.select(tab_editor)
-    messagebox.showinfo("Generate Done", "Form code replaced editor content!\nFile operations show a selection dialog at runtime.")
+    if include_hotkeys:
+        messagebox.showinfo("Generate Done", "Generated one program with the designed form and hotkey actions.")
+    else:
+        messagebox.showinfo("Generate Done", "Form code replaced editor content!\nFile operations show a selection dialog at runtime.")
 
 # Toolbar buttons
 def add_designer_toolbar_button(label, command, bg, fg="white", active_bg=None):
