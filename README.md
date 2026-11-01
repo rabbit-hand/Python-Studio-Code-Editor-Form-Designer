@@ -1,5 +1,3 @@
-`[Python Studio Editor v0.2.3 日本語.pyw](https://github.com/rabbit-hand/Python-Studio-Code-Editor-Form-Designer/blob/main/Python%20Studio%20Editor%20v0.2.3%20%E6%97%A5%E6%9C%AC%E8%AA%9E.pyw)` のソースコードを基にした取扱説明書および免責事項です。
-
 ---
 
 # Python Studio Editor (v0.2.3) 取扱説明書
