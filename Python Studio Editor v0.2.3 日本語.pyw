@@ -15,6 +15,108 @@ import platform
 import shutil
 import shlex
 
+PYH_ICON_HELPER = r'''class PyhBitmapInfoHeader(ctypes.Structure):
+    _fields_ = [
+        ("biSize", wintypes.DWORD), ("biWidth", wintypes.LONG),
+        ("biHeight", wintypes.LONG), ("biPlanes", wintypes.WORD),
+        ("biBitCount", wintypes.WORD), ("biCompression", wintypes.DWORD),
+        ("biSizeImage", wintypes.DWORD), ("biXPelsPerMeter", wintypes.LONG),
+        ("biYPelsPerMeter", wintypes.LONG), ("biClrUsed", wintypes.DWORD),
+        ("biClrImportant", wintypes.DWORD),
+    ]
+
+class PyhBitmapInfo(ctypes.Structure):
+    _fields_ = [("bmiHeader", PyhBitmapInfoHeader), ("bmiColors", wintypes.DWORD * 3)]
+
+class PyhIconInfo(ctypes.Structure):
+    _fields_ = [
+        ("fIcon", wintypes.BOOL), ("xHotspot", wintypes.DWORD),
+        ("yHotspot", wintypes.DWORD), ("hbmMask", wintypes.HBITMAP),
+        ("hbmColor", wintypes.HBITMAP),
+    ]
+
+def create_pyh_icon():
+    width = height = 32
+    glyphs = {
+        "P": ("110", "101", "110", "100", "100"),
+        "Y": ("101", "101", "010", "010", "010"),
+        "H": ("101", "101", "111", "101", "101"),
+    }
+    background = bytes((170, 105, 23, 255))
+    foreground = bytes((255, 255, 255, 255))
+    pixels = bytearray(background * (width * height))
+    for letter_index, letter in enumerate("PYH"):
+        for row, pattern in enumerate(glyphs[letter]):
+            for column, pixel in enumerate(pattern):
+                if pixel == "1":
+                    x = 5 + letter_index * 8 + column * 2
+                    y = 11 + row * 2
+                    for dy in range(2):
+                        for dx in range(2):
+                            offset = ((y + dy) * width + x + dx) * 4
+                            pixels[offset:offset + 4] = foreground
+
+    bitmap_info = PyhBitmapInfo()
+    bitmap_info.bmiHeader.biSize = ctypes.sizeof(PyhBitmapInfoHeader)
+    bitmap_info.bmiHeader.biWidth = width
+    bitmap_info.bmiHeader.biHeight = -height
+    bitmap_info.bmiHeader.biPlanes = 1
+    bitmap_info.bmiHeader.biBitCount = 32
+    bitmap_info.bmiHeader.biCompression = 0
+    bitmap_info.bmiHeader.biSizeImage = len(pixels)
+
+    user32.GetDC.argtypes = [wintypes.HWND]
+    user32.GetDC.restype = wintypes.HDC
+    user32.ReleaseDC.argtypes = [wintypes.HWND, wintypes.HDC]
+    user32.ReleaseDC.restype = ctypes.c_int
+    gdi32 = ctypes.windll.gdi32
+    gdi32.CreateDIBSection.argtypes = [
+        wintypes.HDC, ctypes.POINTER(PyhBitmapInfo), wintypes.UINT,
+        ctypes.POINTER(ctypes.c_void_p), wintypes.HANDLE, wintypes.DWORD,
+    ]
+    gdi32.CreateDIBSection.restype = wintypes.HBITMAP
+    gdi32.CreateBitmap.argtypes = [
+        ctypes.c_int, ctypes.c_int, wintypes.UINT, wintypes.UINT, ctypes.c_void_p,
+    ]
+    gdi32.CreateBitmap.restype = wintypes.HBITMAP
+    gdi32.DeleteObject.argtypes = [wintypes.HANDLE]
+    gdi32.DeleteObject.restype = wintypes.BOOL
+    user32.CreateIconIndirect.argtypes = [ctypes.POINTER(PyhIconInfo)]
+    user32.CreateIconIndirect.restype = wintypes.HICON
+
+    hdc = user32.GetDC(None)
+    if not hdc:
+        raise OSError("デスクトップDCを取得できませんでした。")
+    bits = ctypes.c_void_p()
+    try:
+        color_bitmap = gdi32.CreateDIBSection(
+            hdc, ctypes.byref(bitmap_info), 0, ctypes.byref(bits), None, 0
+        )
+    finally:
+        user32.ReleaseDC(None, hdc)
+    if not color_bitmap or not bits.value:
+        raise OSError("PYHアイコン用のカラービットマップを作成できませんでした。")
+
+    ctypes.memmove(bits, bytes(pixels), len(pixels))
+    mask_data = ctypes.create_string_buffer(height * 4)
+    mask_bitmap = gdi32.CreateBitmap(
+        width, height, 1, 1, ctypes.cast(mask_data, ctypes.c_void_p)
+    )
+    if not mask_bitmap:
+        gdi32.DeleteObject(color_bitmap)
+        raise OSError("PYHアイコン用のマスクを作成できませんでした。")
+
+    icon_info = PyhIconInfo(True, 0, 0, mask_bitmap, color_bitmap)
+    try:
+        icon_handle = user32.CreateIconIndirect(ctypes.byref(icon_info))
+        if not icon_handle:
+            raise OSError("PYHトレイアイコンを作成できませんでした。")
+        return icon_handle
+    finally:
+        gdi32.DeleteObject(color_bitmap)
+        gdi32.DeleteObject(mask_bitmap)
+'''
+
 # Version
 APP_VERSION = "0.2.2"
 
@@ -1446,6 +1548,95 @@ root.mainloop()
         "description": "ボタン・ラベル・入力欄を配置してGUIを作ります。フォーム作成タブへ移動します。",
         "code": ""
     },
+    {
+        "category": "少し背伸びした作品", "name": "タスクトレイアプリ", "kind": "code",
+        "description": "起動するとタスクトレイにアイコンが表示されます。アイコンをクリックするとボタンが現れ、右クリックで終了できます。（pystrayが必要）",
+        "code": '''import tkinter as tk
+import threading
+import time
+
+# 注意: このコードを実行するには、以下のコマンドでpystrayをインストールしてください:
+# pip install pystray
+
+try:
+    import pystray
+    from PIL import Image, ImageDraw
+    PYSTRAY_AVAILABLE = True
+except ImportError:
+    PYSTRAY_AVAILABLE = False
+    print("警告: pystrayがインストールされていません。'pip install pystray' でインストールしてください。")
+
+# ウィンドウ管理
+root = tk.Tk()
+root.title("タスクトレイアプリ")
+root.geometry("300x200")
+root.withdraw()  # 起動時は非表示
+
+# ボタンウィンドウ
+button_window = tk.Toplevel(root)
+button_window.title("ボタン")
+button_window.geometry("200x200")
+button_window.withdraw()  # 起動時は非表示
+
+# ボタンフレーム
+button_frame = tk.Frame(button_window)
+button_frame.pack(pady=20)
+
+# アクションボタン
+action_button = tk.Button(button_frame, text="クリック！", font=("Arial", 12), width=15, command=lambda: hide_window())
+action_button.pack(pady=5)
+
+# タスクトレイに格納ボタン
+minimize_button = tk.Button(button_frame, text="タスクトレイに格納", font=("Arial", 10), width=15, command=lambda: hide_window())
+minimize_button.pack(pady=5)
+
+def show_window():
+    """ボタンウィンドウを表示"""
+    button_window.deiconify()
+    button_window.lift()
+
+def hide_window():
+    """ボタンウィンドウを隠す"""
+    button_window.withdraw()
+
+def on_icon_clicked(icon, item):
+    """アイコンがクリックされた時の処理"""
+    show_window()
+    # 10秒後に隠す
+    threading.Timer(10.0, hide_window).start()
+
+def on_exit(icon, item):
+    """終了処理"""
+    icon.stop()
+    root.quit()
+
+if PYSTRAY_AVAILABLE:
+    # アイコンの作成（シンプルな円）
+    image = Image.new('RGB', (64, 64), color=(0, 120, 215))
+    draw = ImageDraw.Draw(image)
+    draw.ellipse([16, 16, 48, 48], fill=(255, 255, 255))
+
+    # タスクトレイアイコンの設定
+    icon = pystray.Icon(
+        "test_icon",
+        image,
+        "タスクトレイアプリ",
+        menu=pystray.Menu(
+            pystray.MenuItem("終了", on_exit)
+        )
+    )
+
+    # アイコンクリック時の動作
+    icon.on_click(on_icon_clicked)
+
+    # タスクトレイアイコンを別スレッドで実行
+    icon_thread = threading.Thread(target=icon.run, daemon=True)
+    icon_thread.start()
+
+# メインループ
+root.mainloop()
+'''
+    },
 ]
 
 def load_project_code(code, auto_install_modules=True):
@@ -1586,7 +1777,7 @@ def open_hotkey_builder():
     tk.Label(form, text="ボタン名 (任意)", font=("Meiryo UI", 11)).grid(row=0, column=2, sticky="w", padx=4, pady=3)
     ttk.Entry(form, textvariable=button_value, width=24).grid(row=0, column=3, sticky="ew", padx=4, pady=3)
     tk.Label(form, text="動作", font=("Meiryo UI", 11)).grid(row=1, column=0, sticky="w", padx=4, pady=3)
-    kind_menu = ttk.Combobox(form, textvariable=kind_value, values=("URLを開く", "アプリ/ファイル起動", "キー送信", "コマンド実行"), state="readonly", width=18, font=("Meiryo UI", 11))
+    kind_menu = ttk.Combobox(form, textvariable=kind_value, values=("URLを開く", "アプリ/ファイル起動", "キー送信", "コマンド実行", "ウィンドウを隠す"), state="readonly", width=18, font=("Meiryo UI", 11))
     kind_menu.grid(row=1, column=1, sticky="ew", padx=4, pady=3)
     tk.Label(form, text="URL / パス / キー / コマンド", font=("Meiryo UI", 11)).grid(row=1, column=2, sticky="w", padx=4, pady=3)
     ttk.Entry(form, textvariable=target_value).grid(row=1, column=3, sticky="ew", padx=4, pady=3)
@@ -1707,7 +1898,7 @@ def open_hotkey_builder():
         if not shortcut and not button:
             messagebox.showerror("入力エラー", "ホットキーまたはボタン名を入力してください。", parent=win)
             return
-        if not target:
+        if not target and kind != "ウィンドウを隠す":
             messagebox.showerror("入力エラー", "動作の内容を入力してください。", parent=win)
             return
         try:
@@ -1766,6 +1957,18 @@ def open_hotkey_builder():
 
         action_data = [{key: item[key] for key in ("shortcut", "button", "kind", "target", "wait", "followup")} for item in actions]
         persist_configuration()
+
+        # 日本語アクション名を英語に変換
+        kind_map = {
+            "URLを開く": "Open URL",
+            "アプリ/ファイル起動": "Launch app/file",
+            "キー送信": "Send keys",
+            "コマンド実行": "Run command",
+            "ウィンドウを隠す": "Hide window"
+        }
+        for action in action_data:
+            if action["kind"] in kind_map:
+                action["kind"] = kind_map[action["kind"]]
         
         # Check if using external libraries
         if use_external_libs.get():
@@ -1776,7 +1979,7 @@ import subprocess
 import webbrowser
 import keyboard
 import pystray
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageFont
 import threading
 
 WINDOW_TITLE = __TITLE__
@@ -1787,10 +1990,14 @@ ACTIONS = __ACTIONS__
 def create_icon():
     image = Image.new('RGB', (64, 64), color=(23, 105, 170))
     dc = ImageDraw.Draw(image)
-    dc.rectangle([6, 6, 10, 26], fill='white')
-    dc.rectangle([22, 6, 26, 26], fill='white')
-    dc.rectangle([10, 16, 22, 20], fill='white')
-    dc.rectangle([13, 6, 19, 10], fill=(245, 197, 66))
+    try:
+        font = ImageFont.truetype("arialbd.ttf", 22)
+    except OSError:
+        font = ImageFont.load_default()
+    bounds = dc.textbbox((0, 0), "PYH", font=font)
+    x = (64 - (bounds[2] - bounds[0])) // 2 - bounds[0]
+    y = (64 - (bounds[3] - bounds[1])) // 2 - bounds[1]
+    dc.text((x, y), "PYH", fill="white", font=font)
     return image
 
 def run_action(index):
@@ -1805,6 +2012,10 @@ def run_action(index):
             subprocess.Popen(target, shell=True)
         elif kind == "Send keys":
             keyboard.write(target)
+        elif kind == "Hide window":
+            pass  # ウィンドウを隠すアクション（実装に応じて変更）
+        elif kind == "ウィンドウを隠す":
+            pass  # ウィンドウを隠すアクション（実装に応じて変更）
         if action["wait"]:
             time.sleep(action["wait"])
         if action["followup"]:
@@ -1881,6 +2092,7 @@ kernel32 = ctypes.windll.kernel32
 shell32 = ctypes.windll.shell32
 hotkey_events = queue.Queue()
 hotkey_thread_id = 0
+hotkey_thread = None
 tray_added = False
 previous_window_proc = None
 tray_click_after_id = None
@@ -1915,6 +2127,7 @@ user32.SendMessageW.argtypes = [wintypes.HWND, wintypes.UINT, wintypes.WPARAM, w
 user32.SendMessageW.restype = ctypes.c_ssize_t
 shell32.Shell_NotifyIconW.argtypes = [wintypes.DWORD, ctypes.POINTER(NOTIFYICONDATAW)]
 shell32.Shell_NotifyIconW.restype = wintypes.BOOL
+__PYH_ICON_HELPER__
 
 def get_key_code(name):
     name = name.strip().lower()
@@ -1955,17 +2168,19 @@ def run_action(index):
     action = ACTIONS[index]
     try:
         kind, target = action["kind"], action["target"]
-        if kind == "URLを開く":
+        if kind == "Open URL":
             webbrowser.open(target, new=2)
-        elif kind == "アプリ/ファイル起動":
+        elif kind == "Launch app/file":
             os.startfile(target)
-        elif kind == "コマンド実行":
+        elif kind == "Run command":
             try:
                 subprocess.Popen(shlex.split(target))
             except Exception:
                 subprocess.Popen(target, shell=True)
-        elif kind == "キー送信":
+        elif kind == "Send keys":
             send_keys(target)
+        elif kind == "Hide window":
+            root.withdraw()
         if action["wait"]:
             time.sleep(action["wait"])
         if action["followup"]:
@@ -1975,6 +2190,8 @@ def run_action(index):
 
 def hotkey_loop():
     global hotkey_thread_id
+    message = wintypes.MSG()
+    user32.PeekMessageW(ctypes.byref(message), None, 0, 0, 0)
     hotkey_thread_id = kernel32.GetCurrentThreadId()
     registered = []
     try:
@@ -1988,7 +2205,6 @@ def hotkey_loop():
                 registered.append(index + 1)
             except Exception as error:
                 hotkey_events.put(("error", f"{action['shortcut']}: {error}"))
-        message = wintypes.MSG()
         while user32.GetMessageW(ctypes.byref(message), None, 0, 0) > 0:
             if message.message == WM_HOTKEY:
                 hotkey_events.put(("run", message.wParam - 1))
@@ -2001,10 +2217,18 @@ root.title(WINDOW_TITLE)
 root.geometry(f"{WINDOW_WIDTH}x{WINDOW_HEIGHT}")
 tray_image = tk.PhotoImage(width=32, height=32)
 tray_image.put("#1769aa", to=(0, 0, 32, 32))
-tray_image.put("#ffffff", to=(6, 6, 10, 26))
-tray_image.put("#ffffff", to=(22, 6, 26, 26))
-tray_image.put("#ffffff", to=(10, 16, 22, 20))
-tray_image.put("#f5c542", to=(13, 6, 19, 10))
+tray_glyphs = {
+    "P": ("110", "101", "110", "100", "100"),
+    "Y": ("101", "101", "010", "010", "010"),
+    "H": ("101", "101", "111", "101", "101"),
+}
+for letter_index, letter in enumerate("PYH"):
+    for row, pattern in enumerate(tray_glyphs[letter]):
+        for column, pixel in enumerate(pattern):
+            if pixel == "1":
+                x = 5 + letter_index * 8 + column * 2
+                y = 11 + row * 2
+                tray_image.put("#ffffff", to=(x, y, x + 2, y + 2))
 root.iconphoto(True, tray_image)
 for index, action in enumerate(ACTIONS):
     if action["button"]:
@@ -2017,6 +2241,7 @@ def process_events():
         if kind == "run":
             threading.Thread(target=run_action, args=(value,), daemon=True).start()
         else:
+            restore_window()
             messagebox.showerror("ホットキー", value, parent=root)
     root.after(50, process_events)
 
@@ -2072,6 +2297,8 @@ def install_tray_icon():
                                       ctypes.c_int, ctypes.c_int, wintypes.UINT]
         user32.LoadImageW.restype = wintypes.HICON
         icon_handle = user32.LoadImageW(None, TRAY_ICON_PATH, 1, 0, 0, 0x0010)
+    elif TRAY_ICON_STYLE == "オリジナル（H）":
+        icon_handle = create_pyh_icon()
     elif TRAY_ICON_STYLE in ("情報", "警告", "エラー"):
         user32.LoadIconW.restype = wintypes.HICON
         stock_icons = {"情報": 32516, "警告": 32515, "エラー": 32513}
@@ -2108,10 +2335,19 @@ def close_window():
         except tk.TclError:
             pass
         tray_click_after_id = None
+    if hotkey_thread is not None and hotkey_thread.is_alive():
+        if not user32.PostThreadMessageW(hotkey_thread_id, WM_QUIT, 0, 0):
+            closing = False
+            restore_window()
+            messagebox.showerror(
+                "終了エラー",
+                "ホットキー監視スレッドを停止できませんでした。もう一度終了してください。",
+                parent=root,
+            )
+            return
+        hotkey_thread.join()
     if tray_added:
         shell32.Shell_NotifyIconW(NIM_DELETE, ctypes.byref(icon_data))
-    if hotkey_thread_id:
-        user32.PostThreadMessageW(hotkey_thread_id, WM_QUIT, 0, 0)
     root.destroy()
 
 icon_data = NOTIFYICONDATAW()
@@ -2123,7 +2359,8 @@ icon_data.uCallbackMessage = WM_TRAYICON
 icon_data.hIcon = user32.SendMessageW(icon_data.hWnd, WM_GETICON, ICON_SMALL, 0)
 icon_data.szTip = f"{WINDOW_TITLE} - 起動中"
 root.protocol("WM_DELETE_WINDOW", close_window)
-threading.Thread(target=hotkey_loop, daemon=True).start()
+hotkey_thread = threading.Thread(target=hotkey_loop, daemon=True)
+hotkey_thread.start()
 root.after(50, process_events)
 root.withdraw()
 root.after(100, install_tray_icon)
@@ -2139,6 +2376,7 @@ root.mainloop()
             source = source.replace("__TRAY_ICON_STYLE__", repr(tray_icon_style_value.get()))
             source = source.replace("__TRAY_ICON_PATH__", repr(tray_icon_path_value.get()))
         source = source.replace("__ACTIONS__", json.dumps(action_data, ensure_ascii=False, indent=4))
+        source = source.replace("__PYH_ICON_HELPER__", PYH_ICON_HELPER)
         
         if use_external_libs.get():
             messagebox.showinfo("インストールが必要", "このコードには以下が必要です: pip install keyboard pystray pillow")
@@ -2664,6 +2902,22 @@ top_notebook.add(tab_hotkey, text="⌨ ホットキー作成")
 tab_designer = ttk.Frame(top_notebook)
 top_notebook.add(tab_designer, text="🎨 フォーム作成")
 
+tab_docked = ttk.Frame(top_notebook)
+top_notebook.add(tab_docked, text="🔗 ホットキー・フォーム統合")
+docked_toolbar = ttk.Frame(tab_docked)
+docked_toolbar.pack(fill="x", padx=8, pady=(8, 0))
+ttk.Button(
+    docked_toolbar,
+    text="⚡ ホットキー＋フォームを一つのプログラムとして生成",
+    command=lambda: generate_code_from_designer(include_hotkeys=True),
+).pack(side="left")
+docked_notebook = ttk.Notebook(tab_docked)
+docked_notebook.pack(fill="both", expand=True, padx=4, pady=(4, 4))
+docked_hotkey_tab = ttk.Frame(docked_notebook)
+docked_notebook.add(docked_hotkey_tab, text="⌨ ホットキー")
+docked_form_tab = ttk.Frame(docked_notebook)
+docked_notebook.add(docked_form_tab, text="🎨 フォーム")
+
 tab_robot = ttk.Frame(top_notebook)
 top_notebook.add(tab_robot, text="🚁 ドローン・ロボット制御")
 
@@ -2830,8 +3084,8 @@ if first_project:
 
 
 # ---------- タブ3：ホットキー作成 ----------
-hotkey_content = tk.Frame(tab_hotkey, padx=14, pady=12, bg=THEMES[current_theme]['bg'])
-hotkey_content.pack(fill="both", expand=True)
+hotkey_content = tk.Frame(root, padx=14, pady=12, bg=THEMES[current_theme]['bg'])
+hotkey_content.pack(in_=tab_hotkey, fill="both", expand=True)
 tk.Label(hotkey_content, text="ホットキーとボタンの動作を登録", font=("Meiryo UI", 14, "bold"),
          bg=THEMES[current_theme]['bg'], fg=THEMES[current_theme]['text_fg']).pack(anchor="w")
 
@@ -2905,7 +3159,7 @@ ttk.Entry(hotkey_form, textvariable=hotkey_shortcut_value, width=20).grid(row=0,
 tk.Label(hotkey_form, text="ボタン名 (任意)", bg=THEMES[current_theme]['bg'], fg=THEMES[current_theme]['text_fg'], font=("Meiryo UI", 11)).grid(row=0, column=2, sticky="w", padx=4, pady=3)
 ttk.Entry(hotkey_form, textvariable=hotkey_button_value, width=24).grid(row=0, column=3, sticky="ew", padx=4, pady=3)
 tk.Label(hotkey_form, text="動作", bg=THEMES[current_theme]['bg'], fg=THEMES[current_theme]['text_fg'], font=("Meiryo UI", 11)).grid(row=1, column=0, sticky="w", padx=4, pady=3)
-hotkey_kind_menu = ttk.Combobox(hotkey_form, textvariable=hotkey_kind_value, values=("URLを開く", "アプリ/ファイル起動", "キー送信", "コマンド実行"), state="readonly", width=18, font=("Meiryo UI", 11))
+hotkey_kind_menu = ttk.Combobox(hotkey_form, textvariable=hotkey_kind_value, values=("URLを開く", "アプリ/ファイル起動", "キー送信", "コマンド実行", "ウィンドウを隠す"), state="readonly", width=18, font=("Meiryo UI", 11))
 hotkey_kind_menu.grid(row=1, column=1, sticky="ew", padx=4, pady=3)
 tk.Label(hotkey_form, text="URL / パス / キー / コマンド", bg=THEMES[current_theme]['bg'], fg=THEMES[current_theme]['text_fg'], font=("Meiryo UI", 11)).grid(row=1, column=2, sticky="w", padx=4, pady=3)
 ttk.Entry(hotkey_form, textvariable=hotkey_target_value).grid(row=1, column=3, sticky="ew", padx=4, pady=3)
@@ -3102,7 +3356,7 @@ def hotkey_save_action():
     if not shortcut and not button:
         messagebox.showerror("入力エラー", "ホットキーまたはボタン名を入力してください。")
         return
-    if not target:
+    if not target and kind != "ウィンドウを隠す":
         messagebox.showerror("入力エラー", "動作の内容を入力してください。")
         return
     try:
@@ -3154,6 +3408,19 @@ def hotkey_make_code():
         return
 
     action_data = [{key: item[key] for key in ("shortcut", "button", "kind", "target", "wait", "followup")} for item in hotkey_actions]
+
+    # 日本語アクション名を英語に変換
+    kind_map = {
+        "URLを開く": "Open URL",
+        "アプリ/ファイル起動": "Launch app/file",
+        "キー送信": "Send keys",
+        "コマンド実行": "Run command",
+        "ウィンドウを隠す": "Hide window"
+    }
+    for action in action_data:
+        if action["kind"] in kind_map:
+            action["kind"] = kind_map[action["kind"]]
+
     source = r'''import ctypes
 from ctypes import wintypes
 import os
@@ -3206,6 +3473,7 @@ kernel32 = ctypes.windll.kernel32
 shell32 = ctypes.windll.shell32
 hotkey_events = queue.Queue()
 hotkey_thread_id = 0
+hotkey_thread = None
 tray_added = False
 previous_window_proc = None
 tray_click_after_id = None
@@ -3240,6 +3508,7 @@ user32.SendMessageW.argtypes = [wintypes.HWND, wintypes.UINT, wintypes.WPARAM, w
 user32.SendMessageW.restype = ctypes.c_ssize_t
 shell32.Shell_NotifyIconW.argtypes = [wintypes.DWORD, ctypes.POINTER(NOTIFYICONDATAW)]
 shell32.Shell_NotifyIconW.restype = wintypes.BOOL
+__PYH_ICON_HELPER__
 
 def get_key_code(name):
     name = name.strip().lower()
@@ -3280,17 +3549,19 @@ def run_action(index):
     action = ACTIONS[index]
     try:
         kind, target = action["kind"], action["target"]
-        if kind == "URLを開く":
+        if kind == "Open URL":
             webbrowser.open(target, new=2)
-        elif kind == "アプリ/ファイル起動":
+        elif kind == "Launch app/file":
             os.startfile(target)
-        elif kind == "コマンド実行":
+        elif kind == "Run command":
             try:
                 subprocess.Popen(shlex.split(target))
             except Exception:
                 subprocess.Popen(target, shell=True)
-        elif kind == "キー送信":
+        elif kind == "Send keys":
             send_keys(target)
+        elif kind == "Hide window":
+            root.withdraw()
         if action["wait"]:
             time.sleep(action["wait"])
         if action["followup"]:
@@ -3300,6 +3571,8 @@ def run_action(index):
 
 def hotkey_loop():
     global hotkey_thread_id
+    message = wintypes.MSG()
+    user32.PeekMessageW(ctypes.byref(message), None, 0, 0, 0)
     hotkey_thread_id = kernel32.GetCurrentThreadId()
     registered = []
     try:
@@ -3313,7 +3586,6 @@ def hotkey_loop():
                 registered.append(index + 1)
             except Exception as error:
                 hotkey_events.put(("error", f"{action['shortcut']}: {error}"))
-        message = wintypes.MSG()
         while user32.GetMessageW(ctypes.byref(message), None, 0, 0) > 0:
             if message.message == WM_HOTKEY:
                 hotkey_events.put(("run", message.wParam - 1))
@@ -3326,10 +3598,18 @@ root.title(WINDOW_TITLE)
 root.geometry(f"{WINDOW_WIDTH}x{WINDOW_HEIGHT}")
 tray_image = tk.PhotoImage(width=32, height=32)
 tray_image.put("#1769aa", to=(0, 0, 32, 32))
-tray_image.put("#ffffff", to=(6, 6, 10, 26))
-tray_image.put("#ffffff", to=(22, 6, 26, 26))
-tray_image.put("#ffffff", to=(10, 16, 22, 20))
-tray_image.put("#f5c542", to=(13, 6, 19, 10))
+tray_glyphs = {
+    "P": ("110", "101", "110", "100", "100"),
+    "Y": ("101", "101", "010", "010", "010"),
+    "H": ("101", "101", "111", "101", "101"),
+}
+for letter_index, letter in enumerate("PYH"):
+    for row, pattern in enumerate(tray_glyphs[letter]):
+        for column, pixel in enumerate(pattern):
+            if pixel == "1":
+                x = 5 + letter_index * 8 + column * 2
+                y = 11 + row * 2
+                tray_image.put("#ffffff", to=(x, y, x + 2, y + 2))
 root.iconphoto(True, tray_image)
 for index, action in enumerate(ACTIONS):
     if action["button"]:
@@ -3342,6 +3622,7 @@ def process_events():
         if kind == "run":
             threading.Thread(target=run_action, args=(value,), daemon=True).start()
         else:
+            restore_window()
             messagebox.showerror("ホットキー", value, parent=root)
     root.after(50, process_events)
 
@@ -3397,6 +3678,8 @@ def install_tray_icon():
                                       ctypes.c_int, ctypes.c_int, wintypes.UINT]
         user32.LoadImageW.restype = wintypes.HICON
         icon_handle = user32.LoadImageW(None, TRAY_ICON_PATH, 1, 0, 0, 0x0010)
+    elif TRAY_ICON_STYLE == "オリジナル（H）":
+        icon_handle = create_pyh_icon()
     elif TRAY_ICON_STYLE in ("情報", "警告", "エラー"):
         user32.LoadIconW.restype = wintypes.HICON
         stock_icons = {"情報": 32516, "警告": 32515, "エラー": 32513}
@@ -3433,10 +3716,19 @@ def close_window():
         except tk.TclError:
             pass
         tray_click_after_id = None
+    if hotkey_thread is not None and hotkey_thread.is_alive():
+        if not user32.PostThreadMessageW(hotkey_thread_id, WM_QUIT, 0, 0):
+            closing = False
+            restore_window()
+            messagebox.showerror(
+                "終了エラー",
+                "ホットキー監視スレッドを停止できませんでした。もう一度終了してください。",
+                parent=root,
+            )
+            return
+        hotkey_thread.join()
     if tray_added:
         shell32.Shell_NotifyIconW(NIM_DELETE, ctypes.byref(icon_data))
-    if hotkey_thread_id:
-        user32.PostThreadMessageW(hotkey_thread_id, WM_QUIT, 0, 0)
     root.destroy()
 
 icon_data = NOTIFYICONDATAW()
@@ -3448,7 +3740,8 @@ icon_data.uCallbackMessage = WM_TRAYICON
 icon_data.hIcon = user32.SendMessageW(icon_data.hWnd, WM_GETICON, ICON_SMALL, 0)
 icon_data.szTip = f"{WINDOW_TITLE} - 起動中"
 root.protocol("WM_DELETE_WINDOW", close_window)
-threading.Thread(target=hotkey_loop, daemon=True).start()
+hotkey_thread = threading.Thread(target=hotkey_loop, daemon=True)
+hotkey_thread.start()
 root.after(50, process_events)
 root.withdraw()
 root.after(100, install_tray_icon)
@@ -3462,6 +3755,7 @@ root.mainloop()
     source = source.replace("__TRAY_ICON_STYLE__", repr(hotkey_tray_icon_style_value.get()))
     source = source.replace("__TRAY_ICON_PATH__", repr(hotkey_tray_icon_path_value.get()))
     source = source.replace("__ACTIONS__", json.dumps(action_data, ensure_ascii=False, indent=4))
+    source = source.replace("__PYH_ICON_HELPER__", PYH_ICON_HELPER)
     if load_project_code(source):
         messagebox.showinfo("生成完了", "ホットキーアプリのコードをエディターに転送しました！")
 
@@ -3505,8 +3799,8 @@ def hotkey_persist_configuration():
 designer_components = []
 selected_component = None
 
-designer_toolbar = tk.Frame(tab_designer, bg="#2d2d2d", padx=8, pady=8)
-designer_toolbar.pack(side="top", fill="x")
+designer_toolbar = tk.Frame(root, bg="#2d2d2d", padx=8, pady=8)
+designer_toolbar.pack(in_=tab_designer, side="top", fill="x")
 
 form_window_width = 600
 form_window_height = 450
@@ -3515,9 +3809,79 @@ form_fg_color = "#000000"
 form_pos_x = 100
 form_pos_y = 100
 form_pos_mode = "manual"
+form_use_tray = True
 
-canvas_container = tk.Frame(tab_designer, bg="#1e1e1e")
-canvas_container.pack(side="top", fill="both", expand=True, padx=8, pady=8)
+# フォームデザイナーの設定を保存/読み込み
+DESIGNER_SETTINGS_FILE = 'designer_settings.json'
+
+def load_designer_settings():
+    global form_use_tray, form_window_width, form_window_height, form_bg_color, form_fg_color, form_pos_x, form_pos_y, form_pos_mode
+    path = get_settings_path(DESIGNER_SETTINGS_FILE)
+    if os.path.exists(path):
+        try:
+            with open(path, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+                form_use_tray = data.get('start_in_tray', True)
+                form_window_width = data.get('window_width', 600)
+                form_window_height = data.get('window_height', 450)
+                form_bg_color = data.get('bg_color', '#f0f0f0')
+                form_fg_color = data.get('fg_color', '#000000')
+                form_pos_x = data.get('pos_x', 100)
+                form_pos_y = data.get('pos_y', 100)
+                form_pos_mode = data.get('pos_mode', 'manual')
+        except Exception:
+            pass
+
+def save_designer_settings():
+    path = get_settings_path(DESIGNER_SETTINGS_FILE)
+    try:
+        with open(path, 'w', encoding='utf-8') as f:
+            json.dump({
+                'start_in_tray': form_use_tray,
+                'window_width': form_window_width,
+                'window_height': form_window_height,
+                'bg_color': form_bg_color,
+                'fg_color': form_fg_color,
+                'pos_x': form_pos_x,
+                'pos_y': form_pos_y,
+                'pos_mode': form_pos_mode
+            }, f, ensure_ascii=False, indent=2)
+    except Exception:
+        pass
+
+# 設定を読み込む
+load_designer_settings()
+
+canvas_container = tk.Frame(root, bg="#1e1e1e")
+canvas_container.pack(in_=tab_designer, side="top", fill="both", expand=True, padx=8, pady=8)
+
+def dock_pack(widget, parent, **options):
+    if widget.winfo_manager() == "pack" and widget.pack_info().get("in") == parent:
+        return
+    widget.pack_forget()
+    widget.pack(in_=parent, **options)
+
+def move_docked_feature_widgets(event=None):
+    if top_notebook.select() == str(tab_docked):
+        if docked_notebook.select() == str(docked_hotkey_tab):
+            hotkey_parent, form_parent = docked_hotkey_tab, tab_designer
+        else:
+            hotkey_parent, form_parent = tab_hotkey, docked_form_tab
+    else:
+        hotkey_parent, form_parent = tab_hotkey, tab_designer
+
+    dock_pack(hotkey_content, hotkey_parent, fill="both", expand=True)
+    dock_pack(designer_toolbar, form_parent, side="top", fill="x")
+    dock_pack(canvas_container, form_parent, side="top", fill="both", expand=True, padx=8, pady=8)
+
+def on_docked_tab_changed(event=None):
+    move_docked_feature_widgets()
+    if (top_notebook.select() == str(tab_docked)
+            and docked_notebook.select() == str(docked_hotkey_tab)):
+        on_hotkey_tab_selected(None)
+
+docked_notebook.bind("<<NotebookTabChanged>>", on_docked_tab_changed, add="+")
+top_notebook.bind("<<NotebookTabChanged>>", move_docked_feature_widgets, add="+")
 
 form_preview = tk.Frame(canvas_container, bg=form_bg_color, bd=2, relief="solid",
                         highlightbackground="#555555", highlightthickness=1)
@@ -3633,10 +3997,10 @@ form_resize_handle.bind("<Button-1>", on_form_resize_press)
 form_resize_handle.bind("<B1-Motion>", on_form_resize_drag)
 
 def open_window_position_dialog():
-    global form_pos_x, form_pos_y, form_pos_mode
+    global form_pos_x, form_pos_y, form_pos_mode, form_use_tray
     w_diag = tk.Toplevel(root)
     w_diag.title("ウィンドウの画面表示位置設定")
-    w_diag.geometry("450x340")
+    w_diag.geometry("450x390")
     w_diag.resizable(False, False)
     w_diag.configure(bg="#f8f9fa")
     w_diag.transient(root)
@@ -3654,6 +4018,15 @@ def open_window_position_dialog():
                    bg="#f8f9fa", font=("Meiryo UI", 10)).pack(anchor="w", pady=5)
     tk.Radiobutton(f_body, text="デスクトップ上の指定座標 (X, Y) に表示する", variable=mode_var, value="manual",
                    bg="#f8f9fa", font=("Meiryo UI", 10)).pack(anchor="w", pady=(10, 5))
+
+    tray_start_var = tk.BooleanVar(value=form_use_tray)
+    tk.Checkbutton(
+        f_body,
+        text="プログラム実行時にタスクトレイへ格納する",
+        variable=tray_start_var,
+        bg="#f8f9fa",
+        font=("Meiryo UI", 10),
+    ).pack(anchor="w", pady=(10, 5))
 
     coord_frame_diag = tk.Frame(f_body, bg="#f8f9fa", padx=20)
     coord_frame_diag.pack(anchor="w", pady=5)
@@ -3686,7 +4059,7 @@ def open_window_position_dialog():
              bg="#f8f9fa", fg="#666666", font=("Meiryo UI", 9)).pack(anchor="w", pady=(10, 0))
 
     def save_pos():
-        global form_pos_x, form_pos_y, form_pos_mode
+        global form_pos_x, form_pos_y, form_pos_mode, form_use_tray
         form_pos_mode = mode_var.get()
         if form_pos_mode == "manual":
             try:
@@ -3695,7 +4068,9 @@ def open_window_position_dialog():
             except ValueError:
                 messagebox.showerror("エラー", "座標には有効な整数を入力してください。")
                 return
+        form_use_tray = tray_start_var.get()
         update_size_label()
+        save_designer_settings()
         messagebox.showinfo("保存完了", "ウィンドウの画面表示位置を設定しました！")
         w_diag.destroy()
 
@@ -3708,7 +4083,7 @@ def open_window_position_dialog():
         dialog_height = w_diag.winfo_height()
         screen_x = max(0, (w_diag.winfo_screenwidth() - dialog_width) // 2)
         screen_y = max(0, (w_diag.winfo_screenheight() - dialog_height) // 2)
-        w_diag.geometry(f"450x340+{screen_x}+{screen_y}")
+        w_diag.geometry(f"450x390+{screen_x}+{screen_y}")
 
     w_diag.bind("<Map>", lambda event: w_diag.after_idle(center_position_dialog), add="+")
     center_position_dialog()
@@ -3726,7 +4101,14 @@ def add_component(ctype):
     default_bg = "#e8e8e8" if ctype == "Button" else form_bg_color
     default_fg = form_fg_color
 
-    button_number = len(designer_components)
+    button_number = max(
+        (
+            existing.get("button_index", -1)
+            for existing in designer_components
+            if existing["type"] == "Button"
+        ),
+        default=-1,
+    ) + 1
     if ctype == "Button":
         inner = tk.Button(wrapper, text=f"{button_number}. ボタン", relief="flat", font=("Meiryo UI", 10), bg=default_bg, fg=default_fg)
     elif ctype == "Label":
@@ -3744,6 +4126,7 @@ def add_component(ctype):
         "bg_color": default_bg, "fg_color": default_fg, "font_size": 10,
         "custom_background": False, "custom_foreground": False,
         "action": "none", "param": "", "close_after_action": True,
+        "button_index": button_number,
         "browser_choice": "既定のブラウザ", "browser_window_mode": "最大化"
     }
     designer_components.append(comp_info)
@@ -3792,6 +4175,7 @@ def open_properties_dialog(comp):
     if not comp:
         messagebox.showwarning("注意", "部品を選択してください。")
         return
+
     diag = tk.Toplevel(root)
     diag.title("部品の詳細プロパティ設定")
     diag.geometry("640x620")
@@ -3921,7 +4305,10 @@ def open_properties_dialog(comp):
             ]),
         ]
 
-        act_var = tk.StringVar(value=comp["action"])
+        initial_action = comp["action"]
+        if initial_action == "hide_window":
+            initial_action = "none"
+        act_var = tk.StringVar(value=initial_action)
         for cat_name, acts in action_categories:
             tk.Label(f_act, text=cat_name, bg="#f8f9fa", fg="#0d6efd",
                      font=("Meiryo UI", 11, "bold")).pack(anchor="w", pady=(10, 2))
@@ -3934,7 +4321,7 @@ def open_properties_dialog(comp):
         param_entry = tk.Entry(f_act, width=50, font=("Meiryo UI", 11))
         param_entry.pack(anchor="w")
         param_entry.insert(0, comp["param"])
-        close_after_var = tk.BooleanVar(value=comp.get("close_after_action", True))
+        close_after_var = tk.BooleanVar(value=comp.get("close_after_action", True), name="prop_close_after_var")
         tk.Checkbutton(
             f_act,
             text="アクション実行後にこのアプリを終了する",
@@ -3945,7 +4332,7 @@ def open_properties_dialog(comp):
         ).pack(anchor="w", pady=(8, 2))
         tk.Label(f_act, text="ブラウザを開くアクションの使用ブラウザ:", bg="#f8f9fa",
                  font=("Meiryo UI", 11)).pack(anchor="w", pady=(8, 2))
-        browser_var = tk.StringVar(value=comp.get("browser_choice", "既定のブラウザ"))
+        browser_var = tk.StringVar(value=comp.get("browser_choice", "既定のブラウザ"), name="prop_browser_var")
         browser_combo = ttk.Combobox(
             f_act,
             textvariable=browser_var,
@@ -3957,7 +4344,7 @@ def open_properties_dialog(comp):
         browser_combo.pack(anchor="w")
         tk.Label(f_act, text="ブラウザの表示方法:", bg="#f8f9fa",
                  font=("Meiryo UI", 11)).pack(anchor="w", pady=(6, 2))
-        browser_window_mode_var = tk.StringVar(value=comp.get("browser_window_mode", "最大化"))
+        browser_window_mode_var = tk.StringVar(value=comp.get("browser_window_mode", "最大化"), name="prop_browser_window_mode_var")
         browser_window_mode_combo = ttk.Combobox(
             f_act,
             textvariable=browser_window_mode_var,
@@ -4112,6 +4499,11 @@ def open_properties_dialog(comp):
     diag.after(50, center_properties_dialog)
     diag.after(50, diag.lift)
 
+    def on_dialog_close():
+        diag.destroy()
+
+    diag.protocol("WM_DELETE_WINDOW", on_dialog_close)
+
 def delete_component():
     global selected_component
     if selected_component:
@@ -4132,7 +4524,60 @@ def clear_designer():
     designer_components.clear()
     selected_component = None
 
-def generate_code_from_designer():
+def generate_code_from_designer(include_hotkeys=False):
+    combined_hotkey_actions = []
+    if include_hotkeys:
+        if not hotkey_actions:
+            messagebox.showerror("入力エラー", "統合プログラムにはホットキー動作を1つ以上登録してください。")
+            top_notebook.select(tab_docked)
+            docked_notebook.select(docked_hotkey_tab)
+            return
+        seen_shortcuts = set()
+        for item in hotkey_actions:
+            shortcut = item["shortcut"].lower().replace(" ", "")
+            if shortcut and shortcut in seen_shortcuts:
+                messagebox.showerror("入力エラー", f"ホットキーが重複しています: {item['shortcut']}")
+                top_notebook.select(tab_docked)
+                docked_notebook.select(docked_hotkey_tab)
+                return
+            seen_shortcuts.add(shortcut)
+        kind_map = {
+            "URLを開く": "Open URL",
+            "アプリ/ファイル起動": "Launch app/file",
+            "キー送信": "Send keys",
+            "コマンド実行": "Run command",
+            "ウィンドウを隠す": "Hide window",
+        }
+        combined_hotkey_actions = []
+        for item in hotkey_actions:
+            action = {
+                key: item[key]
+                for key in ("shortcut", "button", "kind", "target", "wait", "followup")
+            }
+            action["kind"] = kind_map.get(action["kind"], action["kind"])
+            combined_hotkey_actions.append(action)
+    hotkey_button_actions = [
+        (index, action)
+        for index, action in enumerate(combined_hotkey_actions)
+        if action["button"]
+    ]
+    combined_window_height = form_window_height
+    hotkey_button_start_y = form_window_height
+    hotkey_button_columns = max(1, form_window_width // 180)
+    if include_hotkeys and hotkey_button_actions:
+        component_bottom = max(
+            (
+                comp["wrapper"].winfo_y() + comp["wrapper"].winfo_height()
+                for comp in designer_components
+            ),
+            default=form_window_height,
+        )
+        hotkey_button_start_y = max(form_window_height, component_bottom) + 8
+        hotkey_button_rows = (
+            len(hotkey_button_actions) + hotkey_button_columns - 1
+        ) // hotkey_button_columns
+        combined_window_height = hotkey_button_start_y + hotkey_button_rows * 42 + 8
+
     missing_copy_settings = [
         comp for comp in designer_components
         if comp["type"] == "Button"
@@ -4144,21 +4589,23 @@ def generate_code_from_designer():
             "コピー設定が必要です",
             "コピー操作のボタンは、詳細設定でコピー元とコピー先フォルダを設定してください。",
         )
-        top_notebook.select(tab_designer)
+        top_notebook.select(tab_docked if include_hotkeys else tab_designer)
+        if include_hotkeys:
+            docked_notebook.select(docked_form_tab)
         return
 
     if form_pos_mode == "center":
         geometry_code = (
-            f"root.geometry('{form_window_width}x{form_window_height}')\n"
+            f"root.geometry('{form_window_width}x{combined_window_height}')\n"
             f"root.update_idletasks()\n"
             f"sw = root.winfo_screenwidth()\n"
             f"sh = root.winfo_screenheight()\n"
             f"x = (sw - {form_window_width}) // 2\n"
-            f"y = (sh - {form_window_height}) // 2\n"
-            f"root.geometry(f'{form_window_width}x{form_window_height}+{{x}}+{{y}}')"
+            f"y = (sh - {combined_window_height}) // 2\n"
+            f"root.geometry(f'{form_window_width}x{combined_window_height}+{{x}}+{{y}}')"
         )
     else:
-        geometry_code = f"root.geometry('{form_window_width}x{form_window_height}+{form_pos_x}+{form_pos_y}')"
+        geometry_code = f"root.geometry('{form_window_width}x{combined_window_height}+{form_pos_x}+{form_pos_y}')"
 
     actions = {
         comp["action"] for comp in designer_components
@@ -4181,7 +4628,7 @@ def generate_code_from_designer():
         "create_folder", "create_text_file", "open_folder",
         "open_file_default", "open_desktop", "open_documents",
         "open_downloads", "open_explorer", "open_notepad", "open_calc",
-        "open_terminal",
+        "open_terminal", "maximize_window",
     } or needs_browser:
         imports.append("import os")
     if actions & {
@@ -4219,6 +4666,33 @@ def generate_code_from_designer():
             "    import winsound",
             "except ImportError:",
             "    winsound = None",
+        ])
+    needs_tray = form_use_tray
+    if include_hotkeys:
+        for statement in (
+            "import ctypes",
+            "from ctypes import wintypes",
+            "import os",
+            "import queue",
+            "import shlex",
+            "import subprocess",
+            "import threading",
+            "import time",
+            "import webbrowser",
+        ):
+            if statement not in imports:
+                imports.append(statement)
+    if needs_tray:
+        if "from tkinter import messagebox" not in imports:
+            imports.append("from tkinter import messagebox")
+        imports.extend([
+            "import threading",
+            "try:",
+            "    import pystray",
+            "    from PIL import Image, ImageDraw, ImageFont",
+            "    PYSTRAY_AVAILABLE = True",
+            "except ImportError:",
+            "    PYSTRAY_AVAILABLE = False",
         ])
 
     code = [
@@ -4386,6 +4860,8 @@ def generate_code_from_designer():
         x, y = w.winfo_x(), w.winfo_y()
         width, height = w.winfo_width(), w.winfo_height()
         ctype, act, param, label_text = comp["type"], comp["action"], comp["param"], comp["text"]
+        if act == "hide_window":
+            act = "none"
         source_path = comp.get("source_path", "").strip()
         destination_path = comp.get("destination_path", "").strip()
         browser_choice = comp.get("browser_choice", "既定のブラウザ")
@@ -4398,7 +4874,7 @@ def generate_code_from_designer():
             if act != "none":
                 code.append(f"def on_btn_{i}_click():")
                 if act == "close_app":
-                    code.append("    root.destroy()")
+                    code.append("    shutdown_app()" if include_hotkeys else "    root.destroy()")
                 elif act == "copy_file":
                     code.append(f"    src = {source_path!r}")
                     code.append("    if not src: return")
@@ -4560,34 +5036,290 @@ def generate_code_from_designer():
                     code.append("    chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$*'")
                     code.append("    pwd = ''.join(random.choices(chars, k=12))")
                     code.append("    messagebox.showinfo('パスワード生成', f'生成されたパスワード:\\n{pwd}')")
-                if comp.get("close_after_action", True) and act != "close_app":
-                    code.append("    root.destroy()")
+                elif act == "show_window":
+                    code.append("    root.deiconify()")
+                    code.append("    root.lift()")
+                    code.append("    root.focus_force()")
+                elif act == "minimize_window":
+                    code.append("    root.iconify()")
+                elif act == "maximize_window":
+                    code.append("    if os.name == 'nt':")
+                    code.append("        root.state('zoomed')")
+                    code.append("    else:")
+                    code.append("        root.attributes('-zoomed', True)")
+                if comp.get("close_after_action", True) and act != "close_app" and act not in ("hide_window", "show_window", "minimize_window", "maximize_window"):
+                    code.append("    shutdown_app()" if include_hotkeys else "    root.destroy()")
                 code.append("")
                 cmd_str = f", command=on_btn_{i}_click"
             else:
                 cmd_str = ""
 
-            code.append(f"btn_{i} = tk.Button(root, text={label_text!r}, bg={bg!r}, fg={fg!r}, font={font_str}{cmd_str})")
+            component_parent = "root"
+            code.append(f"btn_{i} = tk.Button({component_parent}, text={label_text!r}, bg={bg!r}, fg={fg!r}, font={font_str}{cmd_str})")
             code.append(f"btn_{i}.place(x={x}, y={y}, width={width}, height={height})")
         elif ctype == "Label":
-            code.append(f"lbl_{i} = tk.Label(root, text={label_text!r}, bg={bg!r}, fg={fg!r}, font={font_str})")
+            component_parent = "root"
+            code.append(f"lbl_{i} = tk.Label({component_parent}, text={label_text!r}, bg={bg!r}, fg={fg!r}, font={font_str})")
             code.append(f"lbl_{i}.place(x={x}, y={y}, width={width}, height={height})")
         elif ctype == "Entry":
-            code.append(f"ent_{i} = tk.Entry(root, bg={bg!r}, fg={fg!r}, font={font_str})")
+            component_parent = "root"
+            code.append(f"ent_{i} = tk.Entry({component_parent}, bg={bg!r}, fg={fg!r}, font={font_str})")
             code.append(f"ent_{i}.place(x={x}, y={y}, width={width}, height={height})")
 
+    if include_hotkeys and hotkey_button_actions:
+        code.extend(["", "# Hotkey action buttons"])
+        for button_index, (action_index, action) in enumerate(hotkey_button_actions):
+            column = button_index % hotkey_button_columns
+            row = button_index // hotkey_button_columns
+            cell_width = form_window_width // hotkey_button_columns
+            button_x = column * cell_width + 3
+            button_y = hotkey_button_start_y + row * 42
+            button_width = max(1, cell_width - 6)
+            code.extend([
+                f"hotkey_button_{button_index} = tk.Button(root, text={action['button']!r}, command=lambda: threading.Thread(target=run_hotkey_action, args=({action_index},), daemon=True).start())",
+                f"hotkey_button_{button_index}.place(x={button_x}, y={button_y}, width={button_width}, height=36)",
+            ])
+
+    if needs_tray:
+        code.extend([
+            "",
+            "# タスクトレイアイコンの作成",
+            "def create_tray_icon():",
+            "    image = Image.new('RGB', (64, 64), color=(23, 105, 170))",
+            "    draw = ImageDraw.Draw(image)",
+            "    try:",
+            "        font = ImageFont.truetype('arialbd.ttf', 22)",
+            "    except OSError:",
+            "        font = ImageFont.load_default()",
+            "    bounds = draw.textbbox((0, 0), 'PYB', font=font)",
+            "    x = (64 - (bounds[2] - bounds[0])) // 2 - bounds[0]",
+            "    y = (64 - (bounds[3] - bounds[1])) // 2 - bounds[1]",
+            "    draw.text((x, y), 'PYB', fill='white', font=font)",
+            "    return image",
+            "",
+            "def restore_window():",
+            "    root.deiconify()",
+            "    root.update_idletasks()",
+            f"    x = max(0, (root.winfo_screenwidth() - {form_window_width}) // 2)",
+            f"    y = max(0, (root.winfo_screenheight() - {form_window_height}) // 2)",
+            f"    root.geometry(f'{form_window_width}x{form_window_height}+{{x}}+{{y}}')",
+            "    root.lift()",
+            "    root.focus_force()",
+            "",
+            "def exit_from_tray(icon):",
+            "    icon.stop()",
+            "    shutdown_app()" if include_hotkeys else "    root.destroy()",
+            "",
+            "def on_tray_clicked(icon, item):",
+            "    item_text = getattr(item, 'text', item)",
+            "    if item_text in ('Show', '表示'):",
+            "        root.after(0, restore_window)",
+            "    elif item_text in ('Exit', '終了'):",
+            "        root.after(0, lambda: exit_from_tray(icon))",
+            "",
+            "def close_window():",
+            "    if PYSTRAY_AVAILABLE:",
+            "        root.withdraw()",
+            "    else:",
+            "        root.destroy()",
+            "",
+            "if PYSTRAY_AVAILABLE:",
+            "    root.protocol('WM_DELETE_WINDOW', close_window)",
+            "    icon = pystray.Icon(",
+            "        'form_app',",
+            "        create_tray_icon(),",
+            "        'フォームアプリ',",
+            "        menu=pystray.Menu(",
+            "            pystray.MenuItem('表示', on_tray_clicked, default=True),",
+            "            pystray.MenuItem('終了', on_tray_clicked)",
+            "        )",
+            "    )",
+            "    tray_thread = threading.Thread(target=icon.run, daemon=True)",
+            "    tray_thread.start()",
+            "    # 起動時にタスクトレイへ格納",
+            "    root.withdraw()",
+            "else:",
+            "    messagebox.showwarning('タスクトレイを使用できません', 'タスクトレイ機能には pystray と Pillow が必要です。pip install pystray Pillow でインストールしてください。')",
+            ""
+        ])
+
+    if include_hotkeys:
+        code.extend([
+            "",
+            f"HOTKEY_ACTIONS = {combined_hotkey_actions!r}",
+            "MOD_ALT = 0x0001",
+            "MOD_CONTROL = 0x0002",
+            "MOD_SHIFT = 0x0004",
+            "MOD_WIN = 0x0008",
+            "MOD_NOREPEAT = 0x4000",
+            "WM_HOTKEY = 0x0312",
+            "WM_QUIT = 0x0012",
+            "HOTKEY_MODIFIERS = {'alt': MOD_ALT, 'ctrl': MOD_CONTROL, 'control': MOD_CONTROL, 'shift': MOD_SHIFT, 'win': MOD_WIN, 'windows': MOD_WIN}",
+            "SPECIAL_KEYS = {'backspace': 0x08, 'tab': 0x09, 'enter': 0x0D, 'return': 0x0D, 'esc': 0x1B, 'escape': 0x1B, 'space': 0x20, 'left': 0x25, 'up': 0x26, 'right': 0x27, 'down': 0x28, 'delete': 0x2E, 'home': 0x24, 'end': 0x23, 'pageup': 0x21, 'pagedown': 0x22}",
+            "for number in range(1, 13):",
+            "    SPECIAL_KEYS[f'f{number}'] = 0x70 + number - 1",
+            "hotkey_events = queue.Queue()",
+            "hotkey_thread_id = 0",
+            "hotkey_thread = None",
+            "hotkey_ready = threading.Event()",
+            "hotkey_closing = False",
+            "",
+            "def get_hotkey_key_code(name):",
+            "    name = name.strip().lower()",
+            "    if name in SPECIAL_KEYS:",
+            "        return SPECIAL_KEYS[name]",
+            "    if len(name) == 1:",
+            "        result = ctypes.windll.user32.VkKeyScanW(ord(name))",
+            "        if result != -1:",
+            "            return result & 0xFF",
+            "    raise ValueError(f'未対応のキーです: {name}')",
+            "",
+            "def parse_hotkey(shortcut):",
+            "    modifiers = 0",
+            "    key_code = None",
+            "    for part in (value.strip().lower() for value in shortcut.split('+') if value.strip()):",
+            "        if part in HOTKEY_MODIFIERS:",
+            "            modifiers |= HOTKEY_MODIFIERS[part]",
+            "        elif key_code is None:",
+            "            key_code = get_hotkey_key_code(part)",
+            "        else:",
+            "            raise ValueError(f'キーは1つだけ指定してください: {shortcut}')",
+            "    if key_code is None:",
+            "        raise ValueError(f'キーが指定されていません: {shortcut}')",
+            "    return modifiers | MOD_NOREPEAT, key_code",
+            "",
+            "def send_hotkey_keys(sequence):",
+            "    modifier_codes = {'ctrl': 0x11, 'control': 0x11, 'alt': 0x12, 'shift': 0x10, 'win': 0x5B, 'windows': 0x5B}",
+            "    codes = [modifier_codes[part.strip().lower()] if part.strip().lower() in modifier_codes else get_hotkey_key_code(part) for part in sequence.split('+') if part.strip()]",
+            "    for code in codes:",
+            "        ctypes.windll.user32.keybd_event(code, 0, 0, 0)",
+            "    for code in reversed(codes):",
+            "        ctypes.windll.user32.keybd_event(code, 0, 0x0002, 0)",
+            "",
+            "def run_hotkey_action(index):",
+            "    action = HOTKEY_ACTIONS[index]",
+            "    try:",
+            "        kind, target = action['kind'], action['target']",
+            "        if kind == 'Open URL':",
+            "            webbrowser.open(target, new=2)",
+            "        elif kind == 'Launch app/file':",
+            "            os.startfile(target)",
+            "        elif kind == 'Run command':",
+            "            try:",
+            "                subprocess.Popen(shlex.split(target))",
+            "            except Exception:",
+            "                subprocess.Popen(target, shell=True)",
+            "        elif kind == 'Send keys':",
+            "            send_hotkey_keys(target)",
+            "        elif kind == 'Hide window':",
+            "            hotkey_events.put(('hide', None))",
+            "        if action['wait']:",
+            "            time.sleep(action['wait'])",
+            "        if action['followup']:",
+            "            send_hotkey_keys(action['followup'])",
+            "    except Exception as error:",
+            "        hotkey_events.put(('error', f\"{action['button'] or action['shortcut']}: {error}\"))",
+            "",
+            "def hotkey_loop():",
+            "    global hotkey_thread_id",
+            "    message = wintypes.MSG()",
+            "    ctypes.windll.user32.PeekMessageW(ctypes.byref(message), None, 0, 0, 0)",
+            "    hotkey_thread_id = ctypes.windll.kernel32.GetCurrentThreadId()",
+            "    hotkey_ready.set()",
+            "    registered = []",
+            "    try:",
+            "        for index, action in enumerate(HOTKEY_ACTIONS):",
+            "            if not action['shortcut']:",
+            "                continue",
+            "            try:",
+            "                modifiers, key_code = parse_hotkey(action['shortcut'])",
+            "                if not ctypes.windll.user32.RegisterHotKey(None, index + 1, modifiers, key_code):",
+            "                    raise OSError('このキーは登録できませんでした。別のアプリで使用中かもしれません。')",
+            "                registered.append(index + 1)",
+            "            except Exception as error:",
+            "                hotkey_events.put(('error', f\"{action['shortcut']}: {error}\"))",
+            "        while ctypes.windll.user32.GetMessageW(ctypes.byref(message), None, 0, 0) > 0:",
+            "            if message.message == WM_HOTKEY:",
+            "                hotkey_events.put(('run', message.wParam - 1))",
+            "    finally:",
+            "        for hotkey_id in registered:",
+            "            ctypes.windll.user32.UnregisterHotKey(None, hotkey_id)",
+            "",
+            "def process_hotkey_events():",
+            "    while not hotkey_events.empty():",
+            "        kind, value = hotkey_events.get_nowait()",
+            "        if kind == 'run':",
+            "            threading.Thread(target=run_hotkey_action, args=(value,), daemon=True).start()",
+            "        elif kind == 'hide':",
+            "            root.withdraw()",
+            "        else:",
+            "            root.deiconify()",
+            "            root.lift()",
+            "            messagebox.showerror('ホットキー', value, parent=root)",
+            "    if not hotkey_closing:",
+            "        root.after(50, process_hotkey_events)",
+            "",
+            "def shutdown_app():",
+            "    global hotkey_closing",
+            "    if hotkey_closing:",
+            "        return",
+            "    hotkey_closing = True",
+            "    if hotkey_thread is not None and hotkey_thread.is_alive():",
+            "        if not hotkey_ready.wait(timeout=5):",
+            "            hotkey_closing = False",
+            "            root.deiconify()",
+            "            messagebox.showerror('終了エラー', 'ホットキー監視の起動を確認できませんでした。', parent=root)",
+            "            return",
+            "        if not ctypes.windll.user32.PostThreadMessageW(hotkey_thread_id, WM_QUIT, 0, 0):",
+            "            hotkey_closing = False",
+            "            root.deiconify()",
+            "            messagebox.showerror('終了エラー', 'ホットキー監視を停止できませんでした。もう一度終了してください。', parent=root)",
+            "            return",
+            "        hotkey_thread.join()",
+            *(
+                [
+                    "    if PYSTRAY_AVAILABLE and 'icon' in globals():",
+                    "        icon.stop()",
+                ]
+                if needs_tray
+                else []
+            ),
+            "    root.destroy()",
+            "",
+            "def close_combined_window():",
+            *(
+                [
+                    "    if PYSTRAY_AVAILABLE:",
+                    "        root.withdraw()",
+                    "    else:",
+                    "        shutdown_app()",
+                ]
+                if needs_tray
+                else ["    shutdown_app()"]
+            ),
+            "",
+            "root.protocol('WM_DELETE_WINDOW', close_combined_window)",
+            "hotkey_thread = threading.Thread(target=hotkey_loop, daemon=True)",
+            "hotkey_thread.start()",
+            "root.after(50, process_hotkey_events)",
+            "",
+        ])
     code.extend(["", "root.mainloop()"])
+    generated_code = "\n".join(code) + "\n"
     if text.get("1.0", tk.END).strip():
         if not messagebox.askyesno("上書き確認", "エディターの内容を生成コードで置き換えますか？"):
             return
     text.delete("1.0", tk.END)
-    text.insert("1.0", "\n".join(code) + "\n")
+    text.insert("1.0", generated_code)
     update_text_modified_state()
     apply_syntax_highlighting()
     update_line_numbers()
     update_status_bar()
     top_notebook.select(tab_editor)
-    messagebox.showinfo("生成完了", "フォームのコードでエディター内容を置き換えました！\nファイル操作系は実行時に選択画面が出ます。")
+    if include_hotkeys:
+        messagebox.showinfo("生成完了", "ホットキーとフォームを統合したプログラムを生成しました。")
+    else:
+        messagebox.showinfo("生成完了", "フォームのコードでエディター内容を置き換えました！\nファイル操作系は実行時に選択画面が出ます。")
 
 # ツールバーボタン
 def add_designer_toolbar_button(label, command, bg, fg="white", active_bg=None):
@@ -5728,4 +6460,3 @@ update_status_bar()
 root.protocol("WM_DELETE_WINDOW", safe_exit)
 root.mainloop()
 
-            
