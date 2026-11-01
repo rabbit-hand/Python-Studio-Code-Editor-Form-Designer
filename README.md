@@ -1,4 +1,3 @@
----
 
 # Python Studio Editor (v0.2.3) 取扱説明書
 
