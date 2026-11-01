@@ -118,7 +118,7 @@ def create_pyh_icon():
 '''
 
 # Version
-APP_VERSION = "0.2.2"
+APP_VERSION = "0.2.3"
 
 # Windows専用
 try:
