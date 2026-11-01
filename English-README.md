@@ -1,134 +1,90 @@
-# Python Studio Editor v0.2
 
-Python Studio Editor is an Integrated Development Environment (IDE) that combines a Python code editor and a visual GUI form designer in a single application.
+# Python Studio Editor (v0.2.3) - User Manual
 
-Inspired by classic RAD (Rapid Application Development) tools such as Visual Basic and Delphi, Python Studio Editor allows users to design graphical interfaces with drag-and-drop simplicity while maintaining full control over their Python source code.
+## 1. Overview
 
-The goal of this project is to make Python GUI development easier, faster, and more accessible for beginners and experienced developers alike.
-
----
-
-## Features
-
-### Visual Form Designer
-
-- Drag-and-drop GUI design
-- Button, Label, Entry and widget placement
-- Control resizing and repositioning
-- Property editor
-- Object tree view
-- Form preview
-- Automatic event handler generation
-- Multi-form support
-
-### Python Code Editor
-
-- Python syntax highlighting
-- Undo / Redo
-- Search and Replace
-- Auto indentation
-- Code formatting
-- Multi-file editing
-- Form and code synchronization
-- Keyboard shortcut support
-
-### Project Management
-
-- Create new projects
-- Save projects
-- Save form layouts
-- Configuration management
-- File management
-- Folder management
-
-### Run and Debug
-
-- One-click execution
-- Output console
-- Error display
-- Stack trace viewer
-- Test execution support
-
-### Customization
-
-- Light theme
-- Dark theme
-- Adjustable font size
-- Window state persistence
-- Custom keyboard shortcuts
+**Python Studio Editor** is a lightweight Python code editor and GUI build-assistance tool built using Tkinter for Windows. It provides a complete environment for editing, formatting, testing, and running Python scripts, along with interactive tools such as a beginner sample catalog, a visual Form Designer, and a Hotkey/Button builder.
 
 ---
 
-## Requirements
+## 2. Key Features & Usage
 
-### Supported Operating Systems
+### 1. Code Editing & Interface
 
-- Windows 10
-- Windows 11
+* **File Operations**:
+* **New / Open / Quick Save / Save As**: Full support for `.py` and `.pyw` files.
+* **Unsaved Changes Tracking**: Displays a modification indicator (`●`) in the status bar and prompts to save unsaved changes before exiting or loading new code.
 
-### Required Software
 
-- Python 3.x
+* **Editor Features**:
+* **Syntax Highlighting**: Real-time color coding for Python keywords, comments, and strings.
+* **Status Bar & Line Numbers**: Shows real-time line/column positions, total character counts, and the currently opened file name.
+* **Theme Switcher**: Toggle between Dark Mode (default) and Light Mode.
+* **Font Scaling**: Adjust editor font size dynamically.
 
-### Recommended Libraries
 
-```bash
-pip install pillow pygments autopep8 pywin32
-```
+* **Search & Replace (`Ctrl+F`)**:
+* Search for text, jump to the next match, and perform single or bulk text replacements.
 
----
 
-## Getting Started
 
-Run the application:
+### 2. Code Formatting & Virtual Environment Execution
 
-```bash
-python "Python Studio Editor v0.2 English.pyw"
-```
+* **Automatic Formatting**: Integrated `autopep8` formatting to ensure PEP 8 style compliance.
+* **Isolated Execution Environment (venv)**:
+* Automatically sets up a dedicated virtual environment (`PythonEditor_VirtualEnv`) on the user's desktop.
+* Runs code inside the virtual environment to prevent dependency conflicts with the system Python installation.
+* **Auto-Module Installer**: Scans imports in your script and prompts to install missing PyPI packages via `pip` inside the virtual environment.
 
-or simply double-click the `.pyw` file.
 
----
 
-## Intended Audience
+### 3. Beginner Project Catalog
 
-- Python beginners
-- Students and educators
-- GUI application developers
-- Business tool developers
-- Hobby programmers
+A built-in repository of starter projects that can be instantly loaded into the editor:
 
----
+* **Practice Mini Apps**: Calculator, Rock-Paper-Scissors, Number Guessing Game, Timer.
+* **Everyday Utilities**: To-Do List, Simple Notepad, Password Generator, Batch File Renamer, CSV Summarizer.
+* **Network & API Examples**: Web Page Title Fetcher, Open-Meteo Weather App, Discord Webhook Sender, LINE Messaging API Integration.
+* **Module Deep Dives**: File System Manager, Regex Text Search, System Info, JSON Editor, SQLite Manager, HTTP Request Tool, Calendar App, Process Manager.
 
-## License
+### 4. Hotkey & Button Builder
 
-See the LICENSE file for license details.
+* Create custom system tray tools and shortcut utilities.
+* Map keyboard shortcuts (e.g., `Alt+A`) or custom GUI buttons to specific actions:
+* Open URLs
+* Launch local applications/files
+* Simulate key combinations (`Send keys`)
+* Execute terminal commands
+* Hide/minimize windows
 
----
 
-## Disclaimer
+* Generates self-contained executable Python code using either native `ctypes` Windows APIs or external libraries (`pystray`, `keyboard`, `Pillow`).
 
-This software is provided "as is", without warranty of any kind.
+### 5. GUI Form Designer
 
-The author makes no warranties regarding the quality, performance, reliability, accuracy, completeness, usefulness, or fitness for a particular purpose of this software.
-
-The author shall not be liable for any damages arising from the use or inability to use this software, including but not limited to data loss, business interruption, loss of profits, software failures, hardware failures, or any direct or indirect damages.
-
-This software may contain bugs, unfinished features, or experimental functionality. Features and specifications may change or be discontinued without notice.
-
-Users are strongly encouraged to maintain backups of important data before using this software.
-
-By using this software, you acknowledge and agree to this disclaimer.
+* Integrated tab to visually place labels, entries, and buttons to generate Tkinter layout code interactively.
 
 ---
 
-## Author
+## 3. System Requirements & Dependencies
 
-rabbit-hand
+* **Operating System**: Windows (required for system tray integration, `winsound`, and Windows API calls).
+* **Python Runtime**: Python 3.x
+* **Optional / Recommended Packages**:
+* `autopep8` (for automatic code formatting)
+* `pystray`, `Pillow`, `keyboard` (optional dependencies for enhanced hotkey/tray functionality)
 
-GitHub:
-https://github.com/rabbit-hand/Python-Studio-Code-Editor-Form-Designer
 
-<img width="1600" height="852" alt="image" src="https://github.com/user-attachments/assets/9f9b7123-b5f2-4750-9937-87413527f869" />
-<img width="1600" height="852" alt="image" src="https://github.com/user-attachments/assets/ae4c0e59-4b05-46cd-9227-233eebb9f970" />
-<img width="1600" height="852" alt="image" src="https://github.com/user-attachments/assets/029edf9e-534d-4faf-aa09-17ab06df4bf2" />
+
+---
+
+# Disclaimer
+
+1. **Use at Your Own Risk**
+This software (**Python Studio Editor**) and any scripts or applications generated by it (including Hotkey Builder code and sample scripts) are provided for use at your own risk.
+2. **No Warranty**
+This software is provided **"AS IS"**, without warranty of any kind, express or implied, including but not limited to the warranties of merchantability, fitness for a particular purpose, and non-infringement.
+3. **Limitation of Liability**
+In no event shall the author or copyright holders be liable for any claim, damages, or other liability—including data loss, system errors, script failure, or operational disruption—arising from, out of, or in connection with the software or the use of code generated by the software.
+4. **Third-Party APIs & Credentials**
+When using built-in scripts or features involving third-party services (such as Open-Meteo, Discord Webhooks, or LINE Messaging API), users are solely responsible for protecting their secret tokens/Webhook URLs and complying with the respective service terms.
