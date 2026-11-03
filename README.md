@@ -1,4 +1,5 @@
 Python Studio Editor 取扱説明書
+
 Python Studio Editor は、プログラミング初心者・学習者・ホビーストのために開発された、軽量でシンプルな Python GUI コードエディター & Tkinter フォームデザイナーです。
 複雑な環境構築を必要とせず、直感的な操作で Python/Tkinter を使ったデスクトップアプリの作成や学習が行えます。
 
