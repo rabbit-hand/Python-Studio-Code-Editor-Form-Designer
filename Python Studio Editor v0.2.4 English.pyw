@@ -118,7 +118,7 @@ def create_pyh_icon():
 '''
 
 # Version
-APP_VERSION = "0.2.2"
+APP_VERSION = "0.2.4"
 
 # Windows only
 try:
@@ -1621,25 +1621,8 @@ def open_hotkey_builder():
     tk.Label(settings, text="Window title").pack(side="left")
     title_value = tk.StringVar(value=str(builder_config.get("title", "Simple Hotkeys")))
     ttk.Entry(settings, textvariable=title_value, width=24).pack(side="left", padx=(6, 16))
-    tk.Label(settings, text="Width").pack(side="left")
-    width_value = tk.StringVar(value=str(builder_config.get("width", 240)))
-    ttk.Entry(settings, textvariable=width_value, width=7).pack(side="left", padx=6)
-    tk.Label(settings, text="Height").pack(side="left")
-    height_value = tk.StringVar(value=str(builder_config.get("height", 420)))
-    ttk.Entry(settings, textvariable=height_value, width=7).pack(side="left", padx=6)
-    tk.Label(settings, text="Tray click").pack(side="left", padx=(10, 4))
-    tray_click_value = tk.StringVar(value=builder_config.get("tray_click_exit", "double"))
-    ttk.Combobox(settings, textvariable=tray_click_value,
-                 values=("Exit on single click", "Exit on double click"),
-                 state="readonly", width=22).pack(side="left")
-    if tray_click_value.get() not in ("Exit on single click", "Exit on double click"):
-        tray_click_value.set("Exit on double click")
-    tk.Label(settings, text="Use external libs").pack(side="left", padx=(10, 4))
-    use_external_libs = tk.BooleanVar(value=builder_config.get("use_external_libs", False))
-    ttk.Checkbutton(settings, variable=use_external_libs).pack(side="left")
-
-    icon_settings = tk.Frame(content)
-    icon_settings.pack(fill="x", pady=(0, 8))
+    icon_settings = tk.Frame(settings)
+    icon_settings.pack(side="left", fill="x", expand=True, padx=(0, 8))
     tk.Label(icon_settings, text="Tray icon").pack(side="left")
     tray_icon_style_value = tk.StringVar(value=builder_config.get("tray_icon_style", "Original (H)"))
     icon_style_options = ("Original (H)", "Info", "Warning", "Error", "ICO file")
@@ -1661,6 +1644,24 @@ def open_hotkey_builder():
             tray_icon_style_value.set("ICO file")
 
     ttk.Button(icon_settings, text="Choose ICO...", command=choose_tray_icon).pack(side="left")
+    tk.Label(icon_settings, text="Recommended: 16×16 / 32×32 px",
+             fg="#777777").pack(side="left", padx=(6, 0))
+    tk.Label(settings, text="Width").pack(side="left")
+    width_value = tk.StringVar(value=str(builder_config.get("width", 240)))
+    ttk.Entry(settings, textvariable=width_value, width=7).pack(side="left", padx=6)
+    tk.Label(settings, text="Height").pack(side="left")
+    height_value = tk.StringVar(value=str(builder_config.get("height", 420)))
+    ttk.Entry(settings, textvariable=height_value, width=7).pack(side="left", padx=6)
+    tk.Label(settings, text="Tray click").pack(side="left", padx=(10, 4))
+    tray_click_value = tk.StringVar(value=builder_config.get("tray_click_exit", "double"))
+    ttk.Combobox(settings, textvariable=tray_click_value,
+                 values=("Exit on single click", "Exit on double click"),
+                 state="readonly", width=22).pack(side="left")
+    if tray_click_value.get() not in ("Exit on single click", "Exit on double click"):
+        tray_click_value.set("Exit on double click")
+    tk.Label(settings, text="Use external libs").pack(side="left", padx=(10, 4))
+    use_external_libs = tk.BooleanVar(value=builder_config.get("use_external_libs", False))
+    ttk.Checkbutton(settings, variable=use_external_libs).pack(side="left")
 
     body = tk.Frame(content)
     body.pack(fill="both", expand=True)
@@ -1699,7 +1700,7 @@ def open_hotkey_builder():
     tk.Label(form, text="Keys after wait (optional)").grid(row=2, column=2, sticky="w", padx=4, pady=3)
     ttk.Entry(form, textvariable=followup_value, width=50).grid(row=2, column=3, sticky="ew", padx=4, pady=3)
     form.columnconfigure(1, weight=1)
-    form.columnconfigure(3, weight=3)
+    form.columnconfigure(3, weight=1)
     tk.Label(content, text="Key send examples: Ctrl+w, Alt+F4, Left. Leave key empty to use button only.", anchor="w").pack(fill="x", pady=(2, 4))
 
     def wrap_text(text, max_length=40):
@@ -3022,22 +3023,8 @@ hotkey_settings.pack(fill="x", pady=(10, 8))
 tk.Label(hotkey_settings, text="Window title", bg=THEMES[current_theme]['bg'], fg=THEMES[current_theme]['text_fg']).pack(side="left")
 hotkey_title_value = tk.StringVar(value="Simple Hotkeys")
 ttk.Entry(hotkey_settings, textvariable=hotkey_title_value, width=24).pack(side="left", padx=(6, 16))
-tk.Label(hotkey_settings, text="Width", bg=THEMES[current_theme]['bg'], fg=THEMES[current_theme]['text_fg']).pack(side="left")
-hotkey_width_value = tk.StringVar(value="240")
-ttk.Entry(hotkey_settings, textvariable=hotkey_width_value, width=7).pack(side="left", padx=6)
-tk.Label(hotkey_settings, text="Height", bg=THEMES[current_theme]['bg'], fg=THEMES[current_theme]['text_fg']).pack(side="left")
-hotkey_height_value = tk.StringVar(value="420")
-ttk.Entry(hotkey_settings, textvariable=hotkey_height_value, width=7).pack(side="left", padx=6)
-tk.Label(hotkey_settings, text="Tray click", bg=THEMES[current_theme]['bg'], fg=THEMES[current_theme]['text_fg']).pack(side="left", padx=(10, 4))
-hotkey_tray_click_value = tk.StringVar(value="double")
-ttk.Combobox(hotkey_settings, textvariable=hotkey_tray_click_value,
-             values=("Exit on single click", "Exit on double click"),
-             state="readonly", width=22).pack(side="left")
-if hotkey_tray_click_value.get() not in ("Exit on single click", "Exit on double click"):
-    hotkey_tray_click_value.set("Exit on double click")
-
-hotkey_icon_settings = tk.Frame(hotkey_content, bg=THEMES[current_theme]['bg'])
-hotkey_icon_settings.pack(fill="x", pady=(0, 8))
+hotkey_icon_settings = tk.Frame(hotkey_settings, bg=THEMES[current_theme]['bg'])
+hotkey_icon_settings.pack(side="left", fill="x", expand=True, padx=(0, 8))
 tk.Label(hotkey_icon_settings, text="Tray icon", bg=THEMES[current_theme]['bg'], fg=THEMES[current_theme]['text_fg']).pack(side="left")
 hotkey_tray_icon_style_value = tk.StringVar(value="Original (H)")
 hotkey_icon_style_options = ("Original (H)", "Info", "Warning", "Error", "ICO file")
@@ -3059,6 +3046,22 @@ def hotkey_choose_tray_icon():
         hotkey_tray_icon_style_value.set("ICO file")
 
 ttk.Button(hotkey_icon_settings, text="Choose ICO...", command=hotkey_choose_tray_icon).pack(side="left")
+tk.Label(hotkey_icon_settings, text="Recommended: 16×16 / 32×32 px",
+         bg=THEMES[current_theme]['bg'], fg=THEMES[current_theme]['text_fg'],
+         font=("Segoe UI", 8)).pack(side="left", padx=(6, 0))
+tk.Label(hotkey_settings, text="Width", bg=THEMES[current_theme]['bg'], fg=THEMES[current_theme]['text_fg']).pack(side="left")
+hotkey_width_value = tk.StringVar(value="240")
+ttk.Entry(hotkey_settings, textvariable=hotkey_width_value, width=7).pack(side="left", padx=6)
+tk.Label(hotkey_settings, text="Height", bg=THEMES[current_theme]['bg'], fg=THEMES[current_theme]['text_fg']).pack(side="left")
+hotkey_height_value = tk.StringVar(value="420")
+ttk.Entry(hotkey_settings, textvariable=hotkey_height_value, width=7).pack(side="left", padx=6)
+tk.Label(hotkey_settings, text="Tray click", bg=THEMES[current_theme]['bg'], fg=THEMES[current_theme]['text_fg']).pack(side="left", padx=(10, 4))
+hotkey_tray_click_value = tk.StringVar(value="double")
+ttk.Combobox(hotkey_settings, textvariable=hotkey_tray_click_value,
+             values=("Exit on single click", "Exit on double click"),
+             state="readonly", width=22).pack(side="left")
+if hotkey_tray_click_value.get() not in ("Exit on single click", "Exit on double click"):
+    hotkey_tray_click_value.set("Exit on double click")
 
 hotkey_body = tk.Frame(hotkey_content, bg=THEMES[current_theme]['bg'])
 hotkey_body.pack(fill="both", expand=True)
@@ -3096,7 +3099,7 @@ ttk.Entry(hotkey_form, textvariable=hotkey_wait_value, width=10).grid(row=2, col
 tk.Label(hotkey_form, text="Keys after wait (optional)", bg=THEMES[current_theme]['bg'], fg=THEMES[current_theme]['text_fg'], font=("Segoe UI", 11)).grid(row=2, column=2, sticky="w", padx=4, pady=3)
 ttk.Entry(hotkey_form, textvariable=hotkey_followup_value).grid(row=2, column=3, sticky="ew", padx=4, pady=3)
 hotkey_form.columnconfigure(1, weight=1)
-hotkey_form.columnconfigure(3, weight=2)
+hotkey_form.columnconfigure(3, weight=1)
 tk.Label(hotkey_content, text="Key send examples: Ctrl+w, Alt+F4, Left. Leave key empty to use button only.",
          bg=THEMES[current_theme]['bg'], fg=THEMES[current_theme]['text_fg'], anchor="w").pack(fill="x", pady=(2, 4))
 
