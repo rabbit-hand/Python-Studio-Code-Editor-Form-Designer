@@ -1,90 +1,123 @@
 
-# Python Studio Editor (v0.2.3) - User Manual
+# Python Studio Editor User Manual
 
-## 1. Overview
+Python Studio Editor is a lightweight and simple Python GUI code editor and Tkinter form designer designed for beginners, learners, and hobbyists. It allows you to create desktop applications and learn Python/Tkinter intuitively without complex environment setup.
 
-**Python Studio Editor** is a lightweight Python code editor and GUI build-assistance tool built using Tkinter for Windows. It provides a complete environment for editing, formatting, testing, and running Python scripts, along with interactive tools such as a beginner sample catalog, a visual Form Designer, and a Hotkey/Button builder.
+## Table of Contents
 
----
-
-## 2. Key Features & Usage
-
-### 1. Code Editing & Interface
-
-* **File Operations**:
-* **New / Open / Quick Save / Save As**: Full support for `.py` and `.pyw` files.
-* **Unsaved Changes Tracking**: Displays a modification indicator (`●`) in the status bar and prompts to save unsaved changes before exiting or loading new code.
-
-
-* **Editor Features**:
-* **Syntax Highlighting**: Real-time color coding for Python keywords, comments, and strings.
-* **Status Bar & Line Numbers**: Shows real-time line/column positions, total character counts, and the currently opened file name.
-* **Theme Switcher**: Toggle between Dark Mode (default) and Light Mode.
-* **Font Scaling**: Adjust editor font size dynamically.
-
-
-* **Search & Replace (`Ctrl+F`)**:
-* Search for text, jump to the next match, and perform single or bulk text replacements.
-
-
-
-### 2. Code Formatting & Virtual Environment Execution
-
-* **Automatic Formatting**: Integrated `autopep8` formatting to ensure PEP 8 style compliance.
-* **Isolated Execution Environment (venv)**:
-* Automatically sets up a dedicated virtual environment (`PythonEditor_VirtualEnv`) on the user's desktop.
-* Runs code inside the virtual environment to prevent dependency conflicts with the system Python installation.
-* **Auto-Module Installer**: Scans imports in your script and prompts to install missing PyPI packages via `pip` inside the virtual environment.
-
-
-
-### 3. Beginner Project Catalog
-
-A built-in repository of starter projects that can be instantly loaded into the editor:
-
-* **Practice Mini Apps**: Calculator, Rock-Paper-Scissors, Number Guessing Game, Timer.
-* **Everyday Utilities**: To-Do List, Simple Notepad, Password Generator, Batch File Renamer, CSV Summarizer.
-* **Network & API Examples**: Web Page Title Fetcher, Open-Meteo Weather App, Discord Webhook Sender, LINE Messaging API Integration.
-* **Module Deep Dives**: File System Manager, Regex Text Search, System Info, JSON Editor, SQLite Manager, HTTP Request Tool, Calendar App, Process Manager.
-
-### 4. Hotkey & Button Builder
-
-* Create custom system tray tools and shortcut utilities.
-* Map keyboard shortcuts (e.g., `Alt+A`) or custom GUI buttons to specific actions:
-* Open URLs
-* Launch local applications/files
-* Simulate key combinations (`Send keys`)
-* Execute terminal commands
-* Hide/minimize windows
-
-
-* Generates self-contained executable Python code using either native `ctypes` Windows APIs or external libraries (`pystray`, `keyboard`, `Pillow`).
-
-### 5. GUI Form Designer
-
-* Integrated tab to visually place labels, entries, and buttons to generate Tkinter layout code interactively.
+1. Key Features
+2. System Requirements
+3. Installation & Startup
+4. Basic Usage
+   - Code Editor
+   - Beginner Project Catalog
+   - Tkinter Form Designer
+   - Hotkey & Button Creator
+5. Version 0.2.4 New Features & Changes
+6. Disclaimer
 
 ---
 
-## 3. System Requirements & Dependencies
+## Key Features
 
-* **Operating System**: Windows (required for system tray integration, `winsound`, and Windows API calls).
-* **Python Runtime**: Python 3.x
-* **Optional / Recommended Packages**:
-* `autopep8` (for automatic code formatting)
-* `pystray`, `Pillow`, `keyboard` (optional dependencies for enhanced hotkey/tray functionality)
+* **Simple & Lightweight Code Editor**
+  * Syntax highlighting (color-coded keywords, strings, and comments)
+  * Line number display, font size adjustment, and light/dark theme switching
+  * Search and replace functions, alongside automated code formatting via PEP8 (`autopep8`)
+* **Beginner Project Catalog**
+  * Comes standard with practical sample codes such as calculators, rock-paper-scissors, ToDo lists, file managers, JSON editors, and calendars
+  * Instantly load samples into the editor with a single click
+* **Intuitive Tkinter Form Designer**
+  * Drag-and-drop style placement of GUI widgets such as buttons and labels
+  * Automatically generates executable Python/Tkinter code from your visual layouts
+* **Hotkey & Button Creator**
+  * Automatically generates task automation code for opening URLs, launching applications, or sending keystrokes via custom shortcuts or button actions
+  * Supports system tray resident functionality
+
+---
+
+## System Requirements
+
+* **Supported OS**: Windows 10 / 11 (Recommended) / Linux
+* **Python**: Python 3.8 or later
+* **Dependencies**: Python standard libraries (`tkinter`, `ctypes`, `json`, `subprocess`, etc.)
+  * *Note: External libraries (`autopep8`, `pystray`, `pillow`, `keyboard`) are utilized for certain extended features.*
+
+---
+
+## Installation & Startup
+
+1. Download `Python Studio Editor v0.2.4 日本語.pyw` (or the relevant `.pyw` / `.py` file) from the repository.
+2. Double-click the file in an environment where Python is installed.
+3. If running from a terminal or command prompt, execute the following command:
+
+```bash
+python "Python Studio Editor v0.2.4 日本語.pyw"
+
+```
+
+---
+
+## Basic Usage
+
+### 1. Code Editor
+
+* You can write Python code directly in the main editor screen.
+* Perform file operations such as "Save", "Save As", and "Open" from the top toolbar.
+* Trigger search/replace dialogs or execute code formatting using keyboard shortcuts.
+
+### 2. Beginner Project Catalog
+
+* Open the beginner project list to browse sample programs categorized by type.
+* Select a project and click "Load code to editor" to immediately populate the workspace with executable code.
+
+### 3. Tkinter Form Designer
+
+* Select the "Form Creation" tab to launch the visual designer.
+* Add and arrange widgets like buttons, labels, and text input fields, and adjust properties such as text and dimensions.
+* Click the "Generate Code" button to automatically output the corresponding Python code for your screen layout.
+
+### 4. Hotkey & Button Creator
+
+* Assign specific actions (such as displaying web pages or launching files) to desired key inputs (e.g., `Alt+A`) or button clicks.
+* Once configured, export custom utility code designed to run persistently in the system tray.
+
+---
+
+## Version 0.2.4 New Features & Changes
+
+* **Improvements to File Saving & Tray Icons**
+* Refactored the `save_as_file` function to enhance stability and behavior during file save operations.
+* Revised the default settings for `form_use_tray` (tray functionality in forms and hotkey builders) for a smoother user experience.
+
+
+* **Expansion of Hotkey & Button Creator**
+* Improved the stability of generated code and adjusted integration options with external libraries (`keyboard` / `pystray`) for easier usability.
 
 
 
 ---
 
-# Disclaimer
+## Disclaimer
 
 1. **Use at Your Own Risk**
-This software (**Python Studio Editor**) and any scripts or applications generated by it (including Hotkey Builder code and sample scripts) are provided for use at your own risk.
-2. **No Warranty**
-This software is provided **"AS IS"**, without warranty of any kind, express or implied, including but not limited to the warranties of merchantability, fitness for a particular purpose, and non-infringement.
-3. **Limitation of Liability**
-In no event shall the author or copyright holders be liable for any claim, damages, or other liability—including data loss, system errors, script failure, or operational disruption—arising from, out of, or in connection with the software or the use of code generated by the software.
-4. **Third-Party APIs & Credentials**
-When using built-in scripts or features involving third-party services (such as Open-Meteo, Discord Webhooks, or LINE Messaging API), users are solely responsible for protecting their secret tokens/Webhook URLs and complying with the respective service terms.
+* This software (Python Studio Editor) is provided "as-is" without warranty of any kind.
+* The developers and rights holders assume no responsibility for any direct or indirect damages (including data loss, system failures, business interruptions, or any other damages) arising from the use or inability to use this software. Please use it entirely at your own risk.
+
+
+2. **No Warranty for Generated Code and Samples**
+* No guarantees, explicit or implicit, are made regarding the accuracy, completeness, safety, or fitness for a particular purpose of the sample codes provided within this software or the codes automatically generated by various tools.
+
+
+3. **External Libraries and Environment Dependencies**
+* This software includes features that execute OS-specific APIs (such as Windows APIs) or external commands. Depending on your environment and execution permissions, unexpected behaviors may occur, so please thoroughly test functionality before use.
+
+
+4. **Specifications Changes and Support**
+* The specifications of this software are subject to change, or development and provision may be discontinued without prior notice. There is no obligation to provide support for individual feature improvements or bug fixes.
+
+
+
+```
+
+```
