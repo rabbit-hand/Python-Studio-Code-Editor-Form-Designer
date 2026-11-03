@@ -127,4 +127,7 @@ python "Python Studio Editor v0.2.4 日本語.pyw"
 
 4. **仕様変更およびサポート**
 * 本ソフトウェアの仕様は、予告なく変更または開発・提供が中止される場合があります。個別の機能改善や不具合修正等のサポート義務を負うものではありません。
-* 
+<img width="1600" height="852" alt="image" src="https://github.com/user-attachments/assets/5e41b2da-aaf2-4762-a5e3-23b99eee2cd1" />
+<img width="1600" height="852" alt="image" src="https://github.com/user-attachments/assets/dcfd5a29-7e06-433f-b03a-619b8fc586cf" />
+<img width="1600" height="852" alt="image" src="https://github.com/user-attachments/assets/4c60a04f-397c-412e-8a95-336af8baaca9" />
+
