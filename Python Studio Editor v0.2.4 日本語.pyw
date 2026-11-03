@@ -6227,50 +6227,50 @@ robot_buttons_frame.pack(side="left", fill="y", padx=(0, 10))
 # ドローン用ボタン（縦並び）
 drone_btns = tk.Frame(robot_buttons_frame, bg=THEMES[current_theme]['bg'])
 drone_btns.pack(fill="x")
-tk.Button(drone_btns, text="🚀 離陸", command=robot_add_takeoff, bg="#198754", fg="white", 
-          font=("Meiryo UI", 10, "bold"), width=16, height=1).pack(fill="x", pady=3)
-tk.Button(drone_btns, text="🛬 着陸", command=robot_add_land, bg="#dc3545", fg="white", 
-          font=("Meiryo UI", 10, "bold"), width=16, height=1).pack(fill="x", pady=3)
-tk.Button(drone_btns, text="⬆️ 前進", command=robot_add_forward, bg="#0d6efd", fg="white", 
-          font=("Meiryo UI", 10, "bold"), width=16, height=1).pack(fill="x", pady=3)
-tk.Button(drone_btns, text="⬇️ 後退", command=robot_add_backward, bg="#0d6efd", fg="white", 
-          font=("Meiryo UI", 10, "bold"), width=16, height=1).pack(fill="x", pady=3)
-tk.Button(drone_btns, text="⬅️ 左移動", command=robot_add_left, bg="#6c757d", fg="white", 
-          font=("Meiryo UI", 10, "bold"), width=16, height=1).pack(fill="x", pady=3)
-tk.Button(drone_btns, text="➡️ 右移動", command=robot_add_right, bg="#6c757d", fg="white", 
-          font=("Meiryo UI", 10, "bold"), width=16, height=1).pack(fill="x", pady=3)
-tk.Button(drone_btns, text="🔼 上昇", command=robot_add_up, bg="#17a2b8", fg="white",
-          font=("Meiryo UI", 10, "bold"), width=16, height=1).pack(fill="x", pady=3)
-tk.Button(drone_btns, text="🔽 下降", command=robot_add_down, bg="#17a2b8", fg="white",
-          font=("Meiryo UI", 10, "bold"), width=16, height=1).pack(fill="x", pady=3)
-tk.Button(drone_btns, text="↪️ 左回転", command=robot_add_rotate_left, bg="#6c757d", fg="white",
-          font=("Meiryo UI", 10, "bold"), width=16, height=1).pack(fill="x", pady=3)
-tk.Button(drone_btns, text="↩️ 右回転", command=robot_add_rotate_right, bg="#6c757d", fg="white",
-          font=("Meiryo UI", 10, "bold"), width=16, height=1).pack(fill="x", pady=3)
-tk.Button(drone_btns, text="⏱️ 待機", command=robot_add_wait, bg="#fd7e14", fg="white",
-          font=("Meiryo UI", 10, "bold"), width=16, height=1).pack(fill="x", pady=3)
-tk.Button(drone_btns, text="🏠 電波途脱時帰還", command=robot_add_return_home, bg="#ffc107", fg="#000", 
-          font=("Meiryo UI", 10, "bold"), width=16, height=1).pack(fill="x", pady=3)
+tk.Button(drone_btns, text="↑ 離陸", command=robot_add_takeoff, bg="#198754", fg="white", 
+          font=("Meiryo UI", 11, "bold"), width=16, height=1).pack(fill="x", pady=3)
+tk.Button(drone_btns, text="↓ 着陸", command=robot_add_land, bg="#dc3545", fg="white", 
+          font=("Meiryo UI", 11, "bold"), width=16, height=1).pack(fill="x", pady=3)
+tk.Button(drone_btns, text="↑ 前進", command=robot_add_forward, bg="#0d6efd", fg="white", 
+          font=("Meiryo UI", 11, "bold"), width=16, height=1).pack(fill="x", pady=3)
+tk.Button(drone_btns, text="↓ 後退", command=robot_add_backward, bg="#0d6efd", fg="white", 
+          font=("Meiryo UI", 11, "bold"), width=16, height=1).pack(fill="x", pady=3)
+tk.Button(drone_btns, text="← 左移動", command=robot_add_left, bg="#6c757d", fg="white", 
+          font=("Meiryo UI", 11, "bold"), width=16, height=1).pack(fill="x", pady=3)
+tk.Button(drone_btns, text="→ 右移動", command=robot_add_right, bg="#6c757d", fg="white", 
+          font=("Meiryo UI", 11, "bold"), width=16, height=1).pack(fill="x", pady=3)
+tk.Button(drone_btns, text="↑ 上昇", command=robot_add_up, bg="#17a2b8", fg="white",
+          font=("Meiryo UI", 11, "bold"), width=16, height=1).pack(fill="x", pady=3)
+tk.Button(drone_btns, text="↓ 下降", command=robot_add_down, bg="#17a2b8", fg="white",
+          font=("Meiryo UI", 11, "bold"), width=16, height=1).pack(fill="x", pady=3)
+tk.Button(drone_btns, text="↺ 左回転", command=robot_add_rotate_left, bg="#6c757d", fg="white",
+          font=("Meiryo UI", 11, "bold"), width=16, height=1).pack(fill="x", pady=3)
+tk.Button(drone_btns, text="↻ 右回転", command=robot_add_rotate_right, bg="#6c757d", fg="white",
+          font=("Meiryo UI", 11, "bold"), width=16, height=1).pack(fill="x", pady=3)
+tk.Button(drone_btns, text="待機", command=robot_add_wait, bg="#fd7e14", fg="white",
+          font=("Meiryo UI", 11, "bold"), width=16, height=1).pack(fill="x", pady=3)
+tk.Button(drone_btns, text="電波途絶時帰還", command=robot_add_return_home, bg="#ffc107", fg="#000", 
+          font=("Meiryo UI", 11, "bold"), width=16, height=1).pack(fill="x", pady=3)
 
 # ロボット用ボタン（縦並び、初期は非表示）
 robot_btns = tk.Frame(robot_buttons_frame, bg=THEMES[current_theme]['bg'])
 robot_btns.pack_forget()  # 初期は非表示
-tk.Button(robot_btns, text="⬆️ 前進", command=robot_add_forward, bg="#0d6efd", fg="white", 
-          font=("Meiryo UI", 10, "bold"), width=16, height=1).pack(fill="x", pady=3)
-tk.Button(robot_btns, text="⬇️ 後退", command=robot_add_backward, bg="#0d6efd", fg="white", 
-          font=("Meiryo UI", 10, "bold"), width=16, height=1).pack(fill="x", pady=3)
-tk.Button(robot_btns, text="↪️ 左回転", command=robot_add_rotate_left, bg="#6c757d", fg="white", 
-          font=("Meiryo UI", 10, "bold"), width=16, height=1).pack(fill="x", pady=3)
-tk.Button(robot_btns, text="↩️ 右回転", command=robot_add_rotate_right, bg="#6c757d", fg="white", 
-          font=("Meiryo UI", 10, "bold"), width=16, height=1).pack(fill="x", pady=3)
-tk.Button(robot_btns, text="🔄 反転", command=robot_add_rotate_180, bg="#6610f2", fg="white", 
-          font=("Meiryo UI", 10, "bold"), width=16, height=1).pack(fill="x", pady=3)
-tk.Button(robot_btns, text="🧭 方向を向く", command=robot_add_face_direction, bg="#20c997", fg="white", 
-          font=("Meiryo UI", 10, "bold"), width=16, height=1).pack(fill="x", pady=3)
-tk.Button(robot_btns, text="⏱️ 待機", command=robot_add_wait, bg="#fd7e14", fg="white", 
-          font=("Meiryo UI", 10, "bold"), width=16, height=1).pack(fill="x", pady=3)
-tk.Button(robot_btns, text="🏠 電波途脱時帰還", command=robot_add_return_home, bg="#ffc107", fg="#000", 
-          font=("Meiryo UI", 10, "bold"), width=16, height=1).pack(fill="x", pady=3)
+tk.Button(robot_btns, text="↑ 前進", command=robot_add_forward, bg="#0d6efd", fg="white", 
+          font=("Meiryo UI", 11, "bold"), width=16, height=1).pack(fill="x", pady=3)
+tk.Button(robot_btns, text="↓ 後退", command=robot_add_backward, bg="#0d6efd", fg="white", 
+          font=("Meiryo UI", 11, "bold"), width=16, height=1).pack(fill="x", pady=3)
+tk.Button(robot_btns, text="↺ 左回転", command=robot_add_rotate_left, bg="#6c757d", fg="white", 
+          font=("Meiryo UI", 11, "bold"), width=16, height=1).pack(fill="x", pady=3)
+tk.Button(robot_btns, text="↻ 右回転", command=robot_add_rotate_right, bg="#6c757d", fg="white", 
+          font=("Meiryo UI", 11, "bold"), width=16, height=1).pack(fill="x", pady=3)
+tk.Button(robot_btns, text="180° 反転", command=robot_add_rotate_180, bg="#6610f2", fg="white", 
+          font=("Meiryo UI", 11, "bold"), width=16, height=1).pack(fill="x", pady=3)
+tk.Button(robot_btns, text="方向を向く", command=robot_add_face_direction, bg="#20c997", fg="white", 
+          font=("Meiryo UI", 11, "bold"), width=16, height=1).pack(fill="x", pady=3)
+tk.Button(robot_btns, text="待機", command=robot_add_wait, bg="#fd7e14", fg="white", 
+          font=("Meiryo UI", 11, "bold"), width=16, height=1).pack(fill="x", pady=3)
+tk.Button(robot_btns, text="電波途絶時帰還", command=robot_add_return_home, bg="#ffc107", fg="#000", 
+          font=("Meiryo UI", 11, "bold"), width=16, height=1).pack(fill="x", pady=3)
 
 def update_robot_buttons():
     mode = robot_control_mode.get()
