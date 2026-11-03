@@ -118,7 +118,7 @@ def create_pyh_icon():
 '''
 
 # Version
-APP_VERSION = "0.2.3"
+APP_VERSION = "0.2.4"
 
 # Windows専用
 try:
@@ -1710,25 +1710,8 @@ def open_hotkey_builder():
     tk.Label(settings, text="ウィンドウ名").pack(side="left")
     title_value = tk.StringVar(value=str(builder_config.get("title", "かんたんホットキー")))
     ttk.Entry(settings, textvariable=title_value, width=24).pack(side="left", padx=(6, 16))
-    tk.Label(settings, text="幅").pack(side="left")
-    width_value = tk.StringVar(value=str(builder_config.get("width", 240)))
-    ttk.Entry(settings, textvariable=width_value, width=7).pack(side="left", padx=6)
-    tk.Label(settings, text="高さ").pack(side="left")
-    height_value = tk.StringVar(value=str(builder_config.get("height", 420)))
-    ttk.Entry(settings, textvariable=height_value, width=7).pack(side="left", padx=6)
-    tk.Label(settings, text="アイコン操作").pack(side="left", padx=(10, 4))
-    tray_click_value = tk.StringVar(value=builder_config.get("tray_click_exit", "double"))
-    ttk.Combobox(settings, textvariable=tray_click_value,
-                 values=("シングルクリックで終了", "ダブルクリックで終了"),
-                 state="readonly", width=22).pack(side="left")
-    if tray_click_value.get() not in ("シングルクリックで終了", "ダブルクリックで終了"):
-        tray_click_value.set("ダブルクリックで終了")
-    tk.Label(settings, text="外部ライブラリ使用").pack(side="left", padx=(10, 4))
-    use_external_libs = tk.BooleanVar(value=builder_config.get("use_external_libs", False))
-    ttk.Checkbutton(settings, variable=use_external_libs).pack(side="left")
-
-    icon_settings = tk.Frame(content)
-    icon_settings.pack(fill="x", pady=(0, 8))
+    icon_settings = tk.Frame(settings)
+    icon_settings.pack(side="left", fill="x", expand=True, padx=(0, 8))
     tk.Label(icon_settings, text="トレイアイコン").pack(side="left")
     tray_icon_style_value = tk.StringVar(value=builder_config.get("tray_icon_style", "オリジナル（H）"))
     icon_style_options = ("オリジナル（H）", "情報", "警告", "エラー", "ICOファイル")
@@ -1750,6 +1733,24 @@ def open_hotkey_builder():
             tray_icon_style_value.set("ICOファイル")
 
     ttk.Button(icon_settings, text="ICOを選択...", command=choose_tray_icon).pack(side="left")
+    tk.Label(icon_settings, text="ICO推奨サイズ: 16×16 / 32×32 px",
+             fg="#777777").pack(side="left", padx=(6, 0))
+    tk.Label(settings, text="幅").pack(side="left")
+    width_value = tk.StringVar(value=str(builder_config.get("width", 240)))
+    ttk.Entry(settings, textvariable=width_value, width=7).pack(side="left", padx=6)
+    tk.Label(settings, text="高さ").pack(side="left")
+    height_value = tk.StringVar(value=str(builder_config.get("height", 420)))
+    ttk.Entry(settings, textvariable=height_value, width=7).pack(side="left", padx=6)
+    tk.Label(settings, text="アイコン操作").pack(side="left", padx=(10, 4))
+    tray_click_value = tk.StringVar(value=builder_config.get("tray_click_exit", "double"))
+    ttk.Combobox(settings, textvariable=tray_click_value,
+                 values=("シングルクリックで終了", "ダブルクリックで終了"),
+                 state="readonly", width=22).pack(side="left")
+    if tray_click_value.get() not in ("シングルクリックで終了", "ダブルクリックで終了"):
+        tray_click_value.set("ダブルクリックで終了")
+    tk.Label(settings, text="外部ライブラリ使用").pack(side="left", padx=(10, 4))
+    use_external_libs = tk.BooleanVar(value=builder_config.get("use_external_libs", False))
+    ttk.Checkbutton(settings, variable=use_external_libs).pack(side="left")
 
     body = tk.Frame(content)
     body.pack(fill="both", expand=True)
@@ -1786,7 +1787,7 @@ def open_hotkey_builder():
     tk.Label(form, text="待機後に送るキー (任意)", font=("Meiryo UI", 11)).grid(row=2, column=2, sticky="w", padx=4, pady=3)
     ttk.Entry(form, textvariable=followup_value).grid(row=2, column=3, sticky="ew", padx=4, pady=3)
     form.columnconfigure(1, weight=1)
-    form.columnconfigure(3, weight=2)
+    form.columnconfigure(3, weight=1)
     tk.Label(content, text="キー送信の例: Ctrl+w、Alt+F4、Left。キー欄を空にするとボタンだけで実行します。", anchor="w").pack(fill="x", pady=(2, 4))
 
     def refresh_table(select_index=None):
@@ -3094,22 +3095,8 @@ hotkey_settings.pack(fill="x", pady=(10, 8))
 tk.Label(hotkey_settings, text="ウィンドウ名", bg=THEMES[current_theme]['bg'], fg=THEMES[current_theme]['text_fg']).pack(side="left")
 hotkey_title_value = tk.StringVar(value="かんたんホットキー")
 ttk.Entry(hotkey_settings, textvariable=hotkey_title_value, width=24).pack(side="left", padx=(6, 16))
-tk.Label(hotkey_settings, text="幅", bg=THEMES[current_theme]['bg'], fg=THEMES[current_theme]['text_fg']).pack(side="left")
-hotkey_width_value = tk.StringVar(value="240")
-ttk.Entry(hotkey_settings, textvariable=hotkey_width_value, width=7).pack(side="left", padx=6)
-tk.Label(hotkey_settings, text="高さ", bg=THEMES[current_theme]['bg'], fg=THEMES[current_theme]['text_fg']).pack(side="left")
-hotkey_height_value = tk.StringVar(value="420")
-ttk.Entry(hotkey_settings, textvariable=hotkey_height_value, width=7).pack(side="left", padx=6)
-tk.Label(hotkey_settings, text="アイコン操作", bg=THEMES[current_theme]['bg'], fg=THEMES[current_theme]['text_fg']).pack(side="left", padx=(10, 4))
-hotkey_tray_click_value = tk.StringVar(value="double")
-ttk.Combobox(hotkey_settings, textvariable=hotkey_tray_click_value,
-             values=("シングルクリックで終了", "ダブルクリックで終了"),
-             state="readonly", width=22).pack(side="left")
-if hotkey_tray_click_value.get() not in ("シングルクリックで終了", "ダブルクリックで終了"):
-    hotkey_tray_click_value.set("ダブルクリックで終了")
-
-hotkey_icon_settings = tk.Frame(hotkey_content, bg=THEMES[current_theme]['bg'])
-hotkey_icon_settings.pack(fill="x", pady=(0, 8))
+hotkey_icon_settings = tk.Frame(hotkey_settings, bg=THEMES[current_theme]['bg'])
+hotkey_icon_settings.pack(side="left", fill="x", expand=True, padx=(0, 8))
 tk.Label(hotkey_icon_settings, text="トレイアイコン", bg=THEMES[current_theme]['bg'], fg=THEMES[current_theme]['text_fg']).pack(side="left")
 hotkey_tray_icon_style_value = tk.StringVar(value="オリジナル（H）")
 hotkey_icon_style_options = ("オリジナル（H）", "情報", "警告", "エラー", "ICOファイル")
@@ -3131,6 +3118,22 @@ def hotkey_choose_tray_icon():
         hotkey_tray_icon_style_value.set("ICOファイル")
 
 ttk.Button(hotkey_icon_settings, text="ICOを選択...", command=hotkey_choose_tray_icon).pack(side="left")
+tk.Label(hotkey_icon_settings, text="ICO推奨サイズ: 16×16 / 32×32 px",
+         bg=THEMES[current_theme]['bg'], fg=THEMES[current_theme]['text_fg'],
+         font=("Meiryo UI", 8)).pack(side="left", padx=(6, 0))
+tk.Label(hotkey_settings, text="幅", bg=THEMES[current_theme]['bg'], fg=THEMES[current_theme]['text_fg']).pack(side="left")
+hotkey_width_value = tk.StringVar(value="240")
+ttk.Entry(hotkey_settings, textvariable=hotkey_width_value, width=7).pack(side="left", padx=6)
+tk.Label(hotkey_settings, text="高さ", bg=THEMES[current_theme]['bg'], fg=THEMES[current_theme]['text_fg']).pack(side="left")
+hotkey_height_value = tk.StringVar(value="420")
+ttk.Entry(hotkey_settings, textvariable=hotkey_height_value, width=7).pack(side="left", padx=6)
+tk.Label(hotkey_settings, text="アイコン操作", bg=THEMES[current_theme]['bg'], fg=THEMES[current_theme]['text_fg']).pack(side="left", padx=(10, 4))
+hotkey_tray_click_value = tk.StringVar(value="double")
+ttk.Combobox(hotkey_settings, textvariable=hotkey_tray_click_value,
+             values=("シングルクリックで終了", "ダブルクリックで終了"),
+             state="readonly", width=22).pack(side="left")
+if hotkey_tray_click_value.get() not in ("シングルクリックで終了", "ダブルクリックで終了"):
+    hotkey_tray_click_value.set("ダブルクリックで終了")
 
 hotkey_body = tk.Frame(hotkey_content, bg=THEMES[current_theme]['bg'])
 hotkey_body.pack(fill="both", expand=True)
@@ -3168,7 +3171,7 @@ ttk.Entry(hotkey_form, textvariable=hotkey_wait_value, width=10).grid(row=2, col
 tk.Label(hotkey_form, text="待機後に送るキー (任意)", bg=THEMES[current_theme]['bg'], fg=THEMES[current_theme]['text_fg'], font=("Meiryo UI", 11)).grid(row=2, column=2, sticky="w", padx=4, pady=3)
 ttk.Entry(hotkey_form, textvariable=hotkey_followup_value).grid(row=2, column=3, sticky="ew", padx=4, pady=3)
 hotkey_form.columnconfigure(1, weight=1)
-hotkey_form.columnconfigure(3, weight=2)
+hotkey_form.columnconfigure(3, weight=1)
 tk.Label(hotkey_content, text="キー送信の例: Ctrl+w、Alt+F4、Left。キー欄を空にするとボタンだけで実行します。",
          bg=THEMES[current_theme]['bg'], fg=THEMES[current_theme]['text_fg'], anchor="w").pack(fill="x", pady=(2, 4))
 
