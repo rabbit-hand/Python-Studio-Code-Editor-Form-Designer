@@ -130,4 +130,5 @@ python "Python Studio Editor v0.2.4 日本語.pyw"
 <img width="1600" height="852" alt="image" src="https://github.com/user-attachments/assets/5e41b2da-aaf2-4762-a5e3-23b99eee2cd1" />
 <img width="1600" height="852" alt="image" src="https://github.com/user-attachments/assets/dcfd5a29-7e06-433f-b03a-619b8fc586cf" />
 <img width="1600" height="852" alt="image" src="https://github.com/user-attachments/assets/4c60a04f-397c-412e-8a95-336af8baaca9" />
+<img width="1600" height="852" alt="image" src="https://github.com/user-attachments/assets/ef73e357-9867-4e2c-be0c-d5f4f1e1b28d" />
 
