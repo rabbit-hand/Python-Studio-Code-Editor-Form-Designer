@@ -55,7 +55,7 @@ It allows you to create desktop applications and learn Python/Tkinter intuitivel
 
 ## 2. System Requirements
 
-- **Supported OS:** Windows 10 / 11 (Recommended) / Linux
+- **Supported OS:** Windows 10 / 11
 - **Python:** Python 3.8 or later
 - **Dependencies:** Python standard libraries (`tkinter`, `ctypes`, `json`, `subprocess`, etc.)
 
