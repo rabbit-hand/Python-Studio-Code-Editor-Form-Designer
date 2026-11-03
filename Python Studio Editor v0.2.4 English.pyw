@@ -262,19 +262,13 @@ def quick_save():
 def save_as_file():
     global last_saved_content, text_modified
     content = text.get("1.0", tk.END).strip()
-    selected_filetype = tk.StringVar(root)
     path = filedialog.asksaveasfilename(
-        filetypes=[
-            ("Python no window (*.pyw)", "*.pyw"),
-            ("Python files (*.py)", "*.py"),
-            ("All Files", "*.*")
-        ],
-        typevariable=selected_filetype
+        defaultextension=".pyw",
+        filetypes=[("Python no window (*.pyw)", "*.pyw")]
     )
     if path:
-        if not os.path.splitext(path)[1]:
-            extension = ".pyw" if ".pyw" in selected_filetype.get() else ".py"
-            path += extension
+        if os.path.splitext(path)[1].lower() != ".pyw":
+            path = os.path.splitext(path)[0] + ".pyw"
         try:
             with open(path, "w", encoding="utf-8") as f:
                 f.write(content)
@@ -3703,7 +3697,7 @@ form_fg_color = "#000000"
 form_pos_x = 100
 form_pos_y = 100
 form_pos_mode = "manual"
-form_start_in_tray = True
+form_start_in_tray = False
 show_grid_lines = False
 guide_lines = []
 
@@ -3715,7 +3709,7 @@ def load_designer_settings():
         with open(get_settings_path(DESIGNER_SETTINGS_FILE), "r", encoding="utf-8") as settings_file:
             data = json.load(settings_file)
         if isinstance(data, dict):
-            form_start_in_tray = bool(data.get("start_in_tray", True))
+            form_start_in_tray = bool(data.get("start_in_tray", False))
     except (OSError, json.JSONDecodeError, TypeError):
         pass
 
@@ -4135,7 +4129,7 @@ def add_component(ctype):
         "text": f"Button {component_index}" if ctype == "Button" else (f"Label {component_index}" if ctype == "Label" else ""),
         "bg_color": default_bg, "fg_color": default_fg, "font_size": 12,
         "custom_background": False, "custom_foreground": False,
-        "action": "none", "param": "", "close_after_action": True,
+        "action": "none", "param": "", "close_after_action": False,
         "hide_to_tray_after_action": False,
         "browser_choice": "Default browser", "browser_window_mode": "Maximized"
     }
@@ -4348,7 +4342,7 @@ def open_properties_dialog(comp):
         param_entry = tk.Entry(f_act, width=50, font=("Segoe UI", 10))
         param_entry.pack(anchor="w")
         param_entry.insert(0, comp["param"])
-        close_after_var = tk.BooleanVar(value=comp.get("close_after_action", True))
+        close_after_var = tk.BooleanVar(value=comp.get("close_after_action", False))
         tk.Checkbutton(
             f_act,
             text="Exit this app after the action",
@@ -5092,7 +5086,7 @@ def generate_code_from_designer(include_hotkeys=False):
                     code.append("        root.attributes('-zoomed', True)")
                 if hide_to_tray and act != "hide_window":
                     code.append("    hide_to_tray()")
-                if comp.get("close_after_action", True) and act != "close_app" and act not in ("hide_window", "show_window", "minimize_window", "maximize_window") and not hide_to_tray:
+                if comp.get("close_after_action", False) and act != "close_app" and act not in ("hide_window", "show_window", "minimize_window", "maximize_window") and not hide_to_tray:
                     code.append("    shutdown_app()" if include_hotkeys else "    root.destroy()")
                 code.append("")
                 cmd_str = f", command=on_btn_{i}_click"
@@ -6469,3 +6463,4 @@ root.protocol("WM_DELETE_WINDOW", safe_exit)
 root.mainloop()
     
 
+                
