@@ -118,7 +118,7 @@ def create_pyh_icon():
 '''
 
 # Version
-APP_VERSION = "0.2.4"
+APP_VERSION = "0.2.5"
 
 # Windows専用
 try:
@@ -5353,9 +5353,9 @@ def robot_create_block_ui():
 def robot_add_block(block_type, params=None):
     if params is None:
         params = {}
-    
-    if len(robot_blocks) >= 80:
-        messagebox.showwarning("制限", "ブロックは最大80個までです")
+
+    if len(robot_blocks) >= 90:
+        messagebox.showwarning("制限", "ブロックは最大90個までです")
         return
     
     block = {
@@ -5381,42 +5381,22 @@ def robot_refresh_blocks_display():
     if canvas_height < 100:
         canvas_height = 300
     
-    block_width = 160     # ブロックの幅
-    block_height = 45      # ブロックの高さ
-    block_gap = 4          # ブロック間の隙間
-    padding = 10           # 余白
-    
-    # 横に並べられるブロック数を計算
-    items_per_row = max(1, int((canvas_width - padding * 2) / (block_width + block_gap)))
-    max_rows = 10          # 最大行数
+    block_width = 210     # ブロックの幅
+    block_height = 32      # ブロックの高さ（72個が収まるようにコンパクト化）
+    block_gap = 3          # ブロック間の隙間
+    padding = 8            # 余白
 
-    # 各行のブロック数を計算
-    rows_info = []
-    for i in range(len(robot_blocks)):
-        row = i // items_per_row
-        if row >= max_rows:
-            row = max_rows - 1
-        if row >= len(rows_info):
-            rows_info.append(0)
-        rows_info[row] += 1
+    # 横に並べるブロック数（縦に列）
+    items_per_row = 6      # 横に6個並べる
 
     for i, block in enumerate(robot_blocks):
         # 行と列を計算（横並び）
         row = i // items_per_row
         column = i % items_per_row
 
-        # 最大行数を超えないように
-        if row >= max_rows:
-            row = max_rows - 1
-            column = i  # 超えた分は同じ行に横に並べる
-
-        # その行のブロック数を取得
-        blocks_in_row = rows_info[row] if row < len(rows_info) else 1
-
-        # その行のブロック全体の幅
-        total_row_width = blocks_in_row * block_width + (blocks_in_row - 1) * block_gap
-
-        # 中央揃えの開始位置
+        # 中央揃えの計算
+        blocks_in_this_row = min(items_per_row, len(robot_blocks) - row * items_per_row)
+        total_row_width = blocks_in_this_row * block_width + (blocks_in_this_row - 1) * block_gap
         x_start = (canvas_width - total_row_width) / 2
 
         x_pos = x_start + (column * (block_width + block_gap))
@@ -5424,20 +5404,27 @@ def robot_refresh_blocks_display():
 
         block_frame = robot_create_block_ui()
         block_frame.place(x=x_pos, y=y_pos, width=block_width, height=block_height)
-        
+
         block_text = robot_get_block_text(block)
         tk.Label(block_frame, text=f"{i+1}. {block_text}",
                 bg=THEMES[current_theme]['button_bg'], fg=THEMES[current_theme]['text_fg'],
-                font=("Meiryo UI", 9), wraplength=150).pack(fill="both", expand=True, padx=2, pady=1)
-    
-    # Canvasサイズを更新
-    max_height = padding + (max_rows * (block_height + block_gap))
-    robot_canvas.configure(height=max_height)
+                font=("Meiryo UI", 11), justify="center", anchor="center",
+                wraplength=200).pack(fill="both", expand=True, padx=4, pady=1)
+
+    # Canvasサイズを更新（スクロールなしで画面内に収める、最大90個=15行）
+    max_rows = 15  # 最大15行（6列×15行=90個）
+    if robot_blocks:
+        actual_rows = (len(robot_blocks) + items_per_row - 1) // items_per_row
+        actual_rows = min(actual_rows, max_rows)  # 最大15行に制限
+        max_height = padding + (actual_rows * (block_height + block_gap))
+        robot_canvas.configure(height=max_height)
+    else:
+        robot_canvas.configure(height=100)
 
 def robot_get_block_text(block):
     block_type = block["type"]
     params = block["params"]
-    
+
     if block_type == "takeoff":
         return f"離陸（{params.get('height', 5)}メートル）"
     elif block_type == "land":
@@ -5463,7 +5450,7 @@ def robot_get_block_text(block):
     elif block_type == "wait":
         return f"待機（{params.get('seconds', 1)}秒）"
     elif block_type == "return_home":
-        return "⚠️ 電波途脱時帰還"
+        return "⚠️ 電波途絶時帰還"
     elif block_type == "face_direction":
         direction = params.get('direction', '北')
         return f"{direction}を向く"
@@ -6214,9 +6201,25 @@ hardware_robot_rpi = tk.Radiobutton(robot_hardware_frame, text="Raspberry Pi", v
                                       font=("Meiryo UI", 11), selectcolor=THEMES[current_theme]['button_bg'])
 hardware_robot_rpi.pack(side="left", padx=5)
 
+# 操作ボタン（上部に配置）
+robot_control_frame = tk.Frame(robot_main_frame, bg=THEMES[current_theme]['bg'])
+robot_control_frame.pack(fill="x", pady=(0, 8))
+
+robot_delete_btn = tk.Button(robot_control_frame, text="🗑️ 最後を削除", command=robot_delete_last_block,
+          bg="#dc3545", fg="white", font=("Meiryo UI", 9, "bold"), width=14, height=1)
+robot_delete_btn.pack(side="left", padx=4, pady=3)
+
+robot_clear_btn = tk.Button(robot_control_frame, text="🧹 全消去", command=robot_clear_blocks,
+          bg="#6c757d", fg="white", font=("Meiryo UI", 9, "bold"), width=12, height=1)
+robot_clear_btn.pack(side="left", padx=4, pady=3)
+
+robot_generate_btn = tk.Button(robot_control_frame, text="📝 コード生成", command=robot_generate_code,
+          bg="#0d6efd", fg="white", font=("Meiryo UI", 10, "bold"), width=16, height=1)
+robot_generate_btn.pack(side="right", padx=4, pady=3)
+
 # メインコンテンツエリア（左右分割）
 robot_content_frame = tk.Frame(robot_main_frame, bg=THEMES[current_theme]['bg'])
-robot_content_frame.pack(expand=True, fill="both", pady=(0, 15))
+robot_content_frame.pack(expand=True, fill="both", pady=(0, 10))
 
 # 左側：ボタンエリア
 robot_buttons_frame = tk.LabelFrame(robot_content_frame, text=" ブロックを追加 ", 
@@ -6291,22 +6294,13 @@ robot_program_frame.pack(side="left", expand=True, fill="both")
 
 robot_canvas_frame = tk.Frame(robot_program_frame, bg=THEMES[current_theme]['bg'])
 robot_canvas_frame.pack(expand=True, fill="both")
-robot_canvas = tk.Canvas(robot_canvas_frame, bg=THEMES[current_theme]['text_bg'], 
+
+robot_canvas = tk.Canvas(robot_canvas_frame, bg=THEMES[current_theme]['text_bg'],
                         highlightthickness=0)
 robot_canvas.pack(side="left", expand=True, fill="both")
 
 # Canvasサイズ変更時にブロックを再配置
 robot_canvas.bind("<Configure>", lambda e: robot_refresh_blocks_display())
-
-# 操作ボタン
-robot_control_frame = tk.Frame(robot_main_frame, bg=THEMES[current_theme]['bg'])
-robot_control_frame.pack(fill="x")
-tk.Button(robot_control_frame, text="🗑️ 最後のブロックを削除", command=robot_delete_last_block, 
-          bg="#dc3545", fg="white", font=("Meiryo UI", 11, "bold"), width=22, height=2).pack(side="left", padx=6, pady=6)
-tk.Button(robot_control_frame, text="🧹 全ブロックを消去", command=robot_clear_blocks, 
-          bg="#6c757d", fg="white", font=("Meiryo UI", 11, "bold"), width=22, height=2).pack(side="left", padx=6, pady=6)
-tk.Button(robot_control_frame, text="📝 コード生成して転送", command=robot_generate_code, 
-          bg="#0d6efd", fg="white", font=("Meiryo UI", 12, "bold"), width=28, height=2).pack(side="right", padx=6, pady=6)
 
 
 # ---------- タブ4：ツール ----------
