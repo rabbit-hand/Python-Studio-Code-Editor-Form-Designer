@@ -118,7 +118,7 @@ def create_pyh_icon():
 '''
 
 # Version
-APP_VERSION = "0.2.4"
+APP_VERSION = "0.2.5"
 
 # Windows only
 try:
@@ -5386,8 +5386,8 @@ def robot_add_block(block_type, params=None):
     if params is None:
         params = {}
 
-    if len(robot_blocks) >= 70:
-        messagebox.showwarning("Limit", "Maximum 70 blocks")
+    if len(robot_blocks) >= 90:
+        messagebox.showwarning("Limit", "Maximum 90 blocks")
         return
 
     block = {
@@ -5411,33 +5411,22 @@ def robot_refresh_blocks_display():
     if canvas_height < 100:
         canvas_height = 300
     
-    block_width = 160
-    block_height = 45
-    block_gap = 4
-    padding = 10
-    
-    items_per_row = max(1, int((canvas_width - padding * 2) / (block_width + block_gap)))
-    max_rows = 10
+    block_width = 210     # Block width
+    block_height = 32     # Block height (adjusted to fit 100 blocks)
+    block_gap = 3         # Gap between blocks
+    padding = 8            # Padding
 
-    rows_info = []
-    for i in range(len(robot_blocks)):
-        row = i // items_per_row
-        if row >= max_rows:
-            row = max_rows - 1
-        if row >= len(rows_info):
-            rows_info.append(0)
-        rows_info[row] += 1
+    # 横に並べるブロック数（縦に列）
+    items_per_row = 6      # 6 blocks per row
 
     for i, block in enumerate(robot_blocks):
+        # 行と列を計算（横並び）
         row = i // items_per_row
         column = i % items_per_row
 
-        if row >= max_rows:
-            row = max_rows - 1
-            column = i
-
-        blocks_in_row = rows_info[row] if row < len(rows_info) else 1
-        total_row_width = blocks_in_row * block_width + (blocks_in_row - 1) * block_gap
+        # 中央揃えの計算
+        blocks_in_this_row = min(items_per_row, len(robot_blocks) - row * items_per_row)
+        total_row_width = blocks_in_this_row * block_width + (blocks_in_this_row - 1) * block_gap
         x_start = (canvas_width - total_row_width) / 2
 
         x_pos = x_start + (column * (block_width + block_gap))
@@ -5445,14 +5434,22 @@ def robot_refresh_blocks_display():
 
         block_frame = robot_create_block_ui()
         block_frame.place(x=x_pos, y=y_pos, width=block_width, height=block_height)
-        
+
         block_text = robot_get_block_text(block)
         tk.Label(block_frame, text=f"{i+1}. {block_text}",
                 bg=THEMES[current_theme]['button_bg'], fg=THEMES[current_theme]['text_fg'],
-                font=("Segoe UI", 9), wraplength=150).pack(fill="both", expand=True, padx=2, pady=1)
-    
-    max_height = padding + (max_rows * (block_height + block_gap))
-    robot_canvas.configure(height=max_height)
+                font=("Segoe UI", 11), justify="center", anchor="center",
+                wraplength=200).pack(fill="both", expand=True, padx=4, pady=1)
+
+    # Canvasサイズを更新（スクロールなしで画面内に収める、最大90個=15行）
+    max_rows = 15  # Maximum 15 rows (6 columns × 15 rows = 90 blocks)
+    if robot_blocks:
+        actual_rows = (len(robot_blocks) + items_per_row - 1) // items_per_row
+        actual_rows = min(actual_rows, max_rows)  # Limit to 15 rows
+        max_height = padding + (actual_rows * (block_height + block_gap))
+        robot_canvas.configure(height=max_height)
+    else:
+        robot_canvas.configure(height=100)
 
 def robot_get_block_text(block):
     block_type = block["type"]
@@ -6226,8 +6223,24 @@ hardware_robot_rpi = tk.Radiobutton(robot_hardware_frame, text="Raspberry Pi", v
                                       font=("Segoe UI", 11), selectcolor=THEMES[current_theme]['button_bg'])
 hardware_robot_rpi.pack(side="left", padx=5)
 
+# Control buttons (at the top)
+robot_control_frame = tk.Frame(robot_main_frame, bg=THEMES[current_theme]['bg'])
+robot_control_frame.pack(fill="x", pady=(0, 8))
+
+robot_delete_btn = tk.Button(robot_control_frame, text="🗑️ Delete Last", command=robot_delete_last_block,
+          bg="#dc3545", fg="white", font=("Segoe UI", 9, "bold"), width=14, height=1)
+robot_delete_btn.pack(side="left", padx=4, pady=3)
+
+robot_clear_btn = tk.Button(robot_control_frame, text="🧹 Clear All", command=robot_clear_blocks,
+          bg="#6c757d", fg="white", font=("Segoe UI", 9, "bold"), width=12, height=1)
+robot_clear_btn.pack(side="left", padx=4, pady=3)
+
+robot_generate_btn = tk.Button(robot_control_frame, text="📝 Generate Code", command=robot_generate_code,
+          bg="#0d6efd", fg="white", font=("Segoe UI", 10, "bold"), width=16, height=1)
+robot_generate_btn.pack(side="right", padx=4, pady=3)
+
 robot_content_frame = tk.Frame(robot_main_frame, bg=THEMES[current_theme]['bg'])
-robot_content_frame.pack(expand=True, fill="both", pady=(0, 15))
+robot_content_frame.pack(expand=True, fill="both", pady=(0, 10))
 
 robot_buttons_frame = tk.LabelFrame(robot_content_frame, text=" Add Blocks ", 
                                    bg=THEMES[current_theme]['bg'], fg=THEMES[current_theme]['text_fg'],
@@ -6236,49 +6249,49 @@ robot_buttons_frame.pack(side="left", fill="y", padx=(0, 10))
 
 drone_btns = tk.Frame(robot_buttons_frame, bg=THEMES[current_theme]['bg'])
 drone_btns.pack(fill="x")
-tk.Button(drone_btns, text="🚀 Takeoff", command=robot_add_takeoff, bg="#198754", fg="white",
-          font=("Segoe UI", 10, "bold"), width=20, height=1).pack(fill="x", pady=3)
-tk.Button(drone_btns, text="🛬 Land", command=robot_add_land, bg="#dc3545", fg="white",
-          font=("Segoe UI", 10, "bold"), width=20, height=1).pack(fill="x", pady=3)
-tk.Button(drone_btns, text="⬆️ Forward", command=robot_add_forward, bg="#0d6efd", fg="white",
-          font=("Segoe UI", 10, "bold"), width=20, height=1).pack(fill="x", pady=3)
-tk.Button(drone_btns, text="⬇️ Backward", command=robot_add_backward, bg="#0d6efd", fg="white",
-          font=("Segoe UI", 10, "bold"), width=20, height=1).pack(fill="x", pady=3)
-tk.Button(drone_btns, text="⬅️ Left", command=robot_add_left, bg="#6c757d", fg="white",
-          font=("Segoe UI", 10, "bold"), width=20, height=1).pack(fill="x", pady=3)
-tk.Button(drone_btns, text="➡️ Right", command=robot_add_right, bg="#6c757d", fg="white",
-          font=("Segoe UI", 10, "bold"), width=20, height=1).pack(fill="x", pady=3)
-tk.Button(drone_btns, text="🔼 Up", command=robot_add_up, bg="#17a2b8", fg="white",
-          font=("Segoe UI", 10, "bold"), width=20, height=1).pack(fill="x", pady=3)
-tk.Button(drone_btns, text="🔽 Down", command=robot_add_down, bg="#17a2b8", fg="white",
-          font=("Segoe UI", 10, "bold"), width=20, height=1).pack(fill="x", pady=3)
-tk.Button(drone_btns, text="↪️ Rotate Left", command=robot_add_rotate_left, bg="#6c757d", fg="white",
-          font=("Segoe UI", 10, "bold"), width=20, height=1).pack(fill="x", pady=3)
-tk.Button(drone_btns, text="↩️ Rotate Right", command=robot_add_rotate_right, bg="#6c757d", fg="white",
-          font=("Segoe UI", 10, "bold"), width=20, height=1).pack(fill="x", pady=3)
-tk.Button(drone_btns, text="⏱️ Wait", command=robot_add_wait, bg="#fd7e14", fg="white",
-          font=("Segoe UI", 10, "bold"), width=20, height=1).pack(fill="x", pady=3)
-tk.Button(drone_btns, text="🏠 Return on Signal Loss", command=robot_add_return_home, bg="#ffc107", fg="#000",
-          font=("Segoe UI", 10, "bold"), width=20, height=1).pack(fill="x", pady=3)
+tk.Button(drone_btns, text="↑ Takeoff", command=robot_add_takeoff, bg="#198754", fg="white",
+          font=("Segoe UI", 11, "bold"), width=16, height=1).pack(fill="x", pady=3)
+tk.Button(drone_btns, text="↓ Land", command=robot_add_land, bg="#dc3545", fg="white",
+          font=("Segoe UI", 11, "bold"), width=16, height=1).pack(fill="x", pady=3)
+tk.Button(drone_btns, text="↑ Forward", command=robot_add_forward, bg="#0d6efd", fg="white",
+          font=("Segoe UI", 11, "bold"), width=16, height=1).pack(fill="x", pady=3)
+tk.Button(drone_btns, text="↓ Backward", command=robot_add_backward, bg="#0d6efd", fg="white",
+          font=("Segoe UI", 11, "bold"), width=16, height=1).pack(fill="x", pady=3)
+tk.Button(drone_btns, text="← Left", command=robot_add_left, bg="#6c757d", fg="white",
+          font=("Segoe UI", 11, "bold"), width=16, height=1).pack(fill="x", pady=3)
+tk.Button(drone_btns, text="→ Right", command=robot_add_right, bg="#6c757d", fg="white",
+          font=("Segoe UI", 11, "bold"), width=16, height=1).pack(fill="x", pady=3)
+tk.Button(drone_btns, text="↑ Up", command=robot_add_up, bg="#17a2b8", fg="white",
+          font=("Segoe UI", 11, "bold"), width=16, height=1).pack(fill="x", pady=3)
+tk.Button(drone_btns, text="↓ Down", command=robot_add_down, bg="#17a2b8", fg="white",
+          font=("Segoe UI", 11, "bold"), width=16, height=1).pack(fill="x", pady=3)
+tk.Button(drone_btns, text="↺ Rotate Left", command=robot_add_rotate_left, bg="#6c757d", fg="white",
+          font=("Segoe UI", 11, "bold"), width=16, height=1).pack(fill="x", pady=3)
+tk.Button(drone_btns, text="↻ Rotate Right", command=robot_add_rotate_right, bg="#6c757d", fg="white",
+          font=("Segoe UI", 11, "bold"), width=16, height=1).pack(fill="x", pady=3)
+tk.Button(drone_btns, text="Wait", command=robot_add_wait, bg="#fd7e14", fg="white",
+          font=("Segoe UI", 11, "bold"), width=16, height=1).pack(fill="x", pady=3)
+tk.Button(drone_btns, text="Return Home", command=robot_add_return_home, bg="#ffc107", fg="#000",
+          font=("Segoe UI", 11, "bold"), width=16, height=1).pack(fill="x", pady=3)
 
 robot_btns = tk.Frame(robot_buttons_frame, bg=THEMES[current_theme]['bg'])
 robot_btns.pack_forget()
-tk.Button(robot_btns, text="⬆️ Forward", command=robot_add_forward, bg="#0d6efd", fg="white",
-          font=("Segoe UI", 10, "bold"), width=20, height=1).pack(fill="x", pady=3)
-tk.Button(robot_btns, text="⬇️ Backward", command=robot_add_backward, bg="#0d6efd", fg="white",
-          font=("Segoe UI", 10, "bold"), width=20, height=1).pack(fill="x", pady=3)
-tk.Button(robot_btns, text="↪️ Rotate Left", command=robot_add_rotate_left, bg="#6c757d", fg="white",
-          font=("Segoe UI", 10, "bold"), width=20, height=1).pack(fill="x", pady=3)
-tk.Button(robot_btns, text="↩️ Rotate Right", command=robot_add_rotate_right, bg="#6c757d", fg="white",
-          font=("Segoe UI", 10, "bold"), width=20, height=1).pack(fill="x", pady=3)
-tk.Button(robot_btns, text="🔄 Turn Around", command=robot_add_rotate_180, bg="#6610f2", fg="white",
-          font=("Segoe UI", 10, "bold"), width=20, height=1).pack(fill="x", pady=3)
-tk.Button(robot_btns, text="🧭 Face Direction", command=robot_add_face_direction, bg="#20c997", fg="white",
-          font=("Segoe UI", 10, "bold"), width=20, height=1).pack(fill="x", pady=3)
-tk.Button(robot_btns, text="⏱️ Wait", command=robot_add_wait, bg="#fd7e14", fg="white",
-          font=("Segoe UI", 10, "bold"), width=20, height=1).pack(fill="x", pady=3)
-tk.Button(robot_btns, text="🏠 Return on Signal Loss", command=robot_add_return_home, bg="#ffc107", fg="#000",
-          font=("Segoe UI", 10, "bold"), width=20, height=1).pack(fill="x", pady=3)
+tk.Button(robot_btns, text="↑ Forward", command=robot_add_forward, bg="#0d6efd", fg="white",
+          font=("Segoe UI", 11, "bold"), width=16, height=1).pack(fill="x", pady=3)
+tk.Button(robot_btns, text="↓ Backward", command=robot_add_backward, bg="#0d6efd", fg="white",
+          font=("Segoe UI", 11, "bold"), width=16, height=1).pack(fill="x", pady=3)
+tk.Button(robot_btns, text="↺ Rotate Left", command=robot_add_rotate_left, bg="#6c757d", fg="white",
+          font=("Segoe UI", 11, "bold"), width=16, height=1).pack(fill="x", pady=3)
+tk.Button(robot_btns, text="↻ Rotate Right", command=robot_add_rotate_right, bg="#6c757d", fg="white",
+          font=("Segoe UI", 11, "bold"), width=16, height=1).pack(fill="x", pady=3)
+tk.Button(robot_btns, text="180° Turn", command=robot_add_rotate_180, bg="#6610f2", fg="white",
+          font=("Segoe UI", 11, "bold"), width=16, height=1).pack(fill="x", pady=3)
+tk.Button(robot_btns, text="Face Direction", command=robot_add_face_direction, bg="#20c997", fg="white",
+          font=("Segoe UI", 11, "bold"), width=16, height=1).pack(fill="x", pady=3)
+tk.Button(robot_btns, text="Wait", command=robot_add_wait, bg="#fd7e14", fg="white",
+          font=("Segoe UI", 11, "bold"), width=16, height=1).pack(fill="x", pady=3)
+tk.Button(robot_btns, text="Return Home", command=robot_add_return_home, bg="#ffc107", fg="#000",
+          font=("Segoe UI", 11, "bold"), width=16, height=1).pack(fill="x", pady=3)
 
 def update_robot_buttons():
     mode = robot_control_mode.get()
@@ -6298,20 +6311,12 @@ robot_program_frame.pack(side="left", expand=True, fill="both")
 
 robot_canvas_frame = tk.Frame(robot_program_frame, bg=THEMES[current_theme]['bg'])
 robot_canvas_frame.pack(expand=True, fill="both")
-robot_canvas = tk.Canvas(robot_canvas_frame, bg=THEMES[current_theme]['text_bg'], 
+
+robot_canvas = tk.Canvas(robot_canvas_frame, bg=THEMES[current_theme]['text_bg'],
                         highlightthickness=0)
 robot_canvas.pack(side="left", expand=True, fill="both")
 
 robot_canvas.bind("<Configure>", lambda e: robot_refresh_blocks_display())
-
-robot_control_frame = tk.Frame(robot_main_frame, bg=THEMES[current_theme]['bg'])
-robot_control_frame.pack(fill="x")
-tk.Button(robot_control_frame, text="🗑️ Delete Last Block", command=robot_delete_last_block, 
-          bg="#dc3545", fg="white", font=("Segoe UI", 11, "bold"), width=22, height=2).pack(side="left", padx=6, pady=6)
-tk.Button(robot_control_frame, text="🧹 Clear All Blocks", command=robot_clear_blocks, 
-          bg="#6c757d", fg="white", font=("Segoe UI", 11, "bold"), width=22, height=2).pack(side="left", padx=6, pady=6)
-tk.Button(robot_control_frame, text="📝 Generate Code", command=robot_generate_code, 
-          bg="#0d6efd", fg="white", font=("Segoe UI", 12, "bold"), width=28, height=2).pack(side="right", padx=6, pady=6)
 
 
 # ---------- Tab: Tools ----------
@@ -6463,4 +6468,3 @@ root.protocol("WM_DELETE_WINDOW", safe_exit)
 root.mainloop()
     
 
-                
