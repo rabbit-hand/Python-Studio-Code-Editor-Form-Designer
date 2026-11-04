@@ -59,12 +59,12 @@ Python Studio Editor は、プログラミング初心者・学習者・ホビ�
 
 ## インストール・起動方法
 
-1. リポジトリから Python Studio Editor v0.2.4 日本語.pyw （または該当する .pyw / .py ファイル）をダウンロードします。
+1. リポジトリから Python Studio Editor v0.2.5 日本語.pyw （または該当する .pyw / .py ファイル）をダウンロードします。
 2. Python がインストールされている環境で、ファイルをダブルクリックして起動します。
 3. ターミナルやコマンドプロンプトから起動する場合は以下のコマンドを実行します。
 
 ```bash
-python "Python Studio Editor v0.2.4 日本語.pyw"
+python "Python Studio Editor v0.2.5 日本語.pyw"
 
 ```
 
