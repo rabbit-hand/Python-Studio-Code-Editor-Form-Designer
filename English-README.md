@@ -63,15 +63,15 @@ It allows you to create desktop applications and learn Python/Tkinter intuitivel
 
 ## 3. Installation & Startup
 
-1. Download the relevant `.pyw` or `.py` file  
-   (for example: `Python Studio Editor v0.2.4 English.pyw`) from the repository.
+1. Download the relevant `.pyw` file  
+   (for example: `Python Studio Editor v0.2.5 English.pyw`) from the repository.
 
 2. Double-click the file in an environment where Python is installed.
 
 3. If running from a terminal or command prompt, execute the following command:
 
 ```bash
-python "Python Studio Editor v0.2.4 English.pyw"
+python "Python Studio Editor v0.2.5 English.pyw"
 ```
 
 ## 4. Basic Usage
