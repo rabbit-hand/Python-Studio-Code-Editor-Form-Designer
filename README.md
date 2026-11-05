@@ -48,7 +48,7 @@ Python Studio Editor は、プログラミング初心者・学習者・ホビ�
 
 ## 動作環境
 
-* **対応OS**: Windows 10 / 11 (推奨) / Linux
+* **対応OS**: Windows 10 / 11 (推奨) 
 * **Python**: Python 3.8 以降
 * **依存ライブラリ**: Python 標準ライブラリ (tkinter, ctypes, json, subprocess など)
 * ※一部の拡張機能では外部ライブラリ (autopep8, pystray, pillow, keyboard) を使用します。
