@@ -23,7 +23,7 @@ import platform
 import shutil
 
 # Version
-APP_VERSION = "0.2.3"
+APP_VERSION = "0.2.5"
 
 # 設定
 SETTINGS_FOLDER = os.path.join(
@@ -498,9 +498,7 @@ def save_as_file():
     selected_filetype = tk.StringVar(root)
     path = filedialog.asksaveasfilename(
         filetypes=[
-            ("Python ファイル (*.py)", "*.py"),
-            ("Python ウィンドウなし (*.pyw)", "*.pyw"),
-            ("All Files", "*.*")
+            ("Python ファイル (*.py)", "*.py")
         ],
         typevariable=selected_filetype
     )
@@ -524,7 +522,7 @@ def save_as_file():
 def open_file():
     global last_saved_content, text_modified
     path = filedialog.askopenfilename(
-        filetypes=[("Python Files", "*.py;*.pyw"), ("All Files", "*.*")]
+        filetypes=[("Python Files", "*.py")]
     )
     if path:
         try:
@@ -2777,6 +2775,7 @@ add_btn(top_btn_frame, "▶ テスト実行", test_python_code, "#198754")
 add_btn(top_btn_frame, "📦 モジュール自動インストール", lambda: parse_and_install_code_modules(auto_install=True), "#6610f2")
 add_btn(top_btn_frame, "🔍 検索", open_search_dialog, "#6c757d")
 add_btn(top_btn_frame, "🌓 テーマ切替", toggle_theme, "#ffc107", "#000")
+# コード読み込みボタンは後で追加
 
 text_frame = tk.Frame(tab_editor)
 text_frame.pack(expand=True, fill="both", padx=6, pady=2)
@@ -3247,14 +3246,16 @@ selected_component = None
 designer_toolbar = tk.Frame(root, bg="#2d2d2d", padx=8, pady=8)
 designer_toolbar.pack(in_=tab_designer, side="top", fill="x")
 
-form_window_width = 600
-form_window_height = 450
+form_window_width = 582
+form_window_height = 427
 form_bg_color = "#f0f0f0"
 form_fg_color = "#000000"
 form_pos_x = 100
 form_pos_y = 100
 form_pos_mode = "manual"
 form_use_tray = False
+form_width_var = None
+form_height_var = None
 
 # フォームデザイナーの設定を保存/読み込み
 DESIGNER_SETTINGS_FILE = 'designer_settings.json'
@@ -3267,8 +3268,8 @@ def load_designer_settings():
             with open(path, 'r', encoding='utf-8') as f:
                 data = json.load(f)
                 form_use_tray = data.get('start_in_tray', False)
-                form_window_width = data.get('window_width', 600)
-                form_window_height = data.get('window_height', 450)
+                form_window_width = data.get('window_width', 582)
+                form_window_height = data.get('window_height', 427)
                 form_bg_color = data.get('bg_color', '#f0f0f0')
                 form_fg_color = data.get('fg_color', '#000000')
                 form_pos_x = data.get('pos_x', 100)
@@ -3346,7 +3347,7 @@ def update_form_preview_size(w, h):
     form_window_width = max(0, w)
     form_window_height = max(0, h)
     form_preview.place(width=form_window_width, height=form_window_height)
-    if "form_width_var" in globals():
+    if form_width_var is not None and form_height_var is not None:
         form_width_var.set(str(form_window_width))
         form_height_var.set(str(form_window_height))
     update_size_label()
@@ -3365,23 +3366,208 @@ def apply_form_size_inputs(event=None):
 designer_options_frame = tk.Frame(designer_toolbar, bg="#2d2d2d")
 designer_options_frame.pack(side="bottom", fill="x")
 
-size_control_frame = tk.Frame(designer_options_frame, bg="#2d2d2d")
-size_control_frame.pack(side="right", padx=8)
-tk.Label(size_control_frame, text="フォームサイズ", bg="#2d2d2d", fg="#eeeeee",
-         font=("Meiryo UI", 9)).pack(side="left", padx=(0, 5))
-form_width_var = tk.StringVar(value=str(form_window_width))
-form_width_spin = ttk.Spinbox(size_control_frame, from_=0, to=100000, increment=1,
-                              width=7, textvariable=form_width_var, command=apply_form_size_inputs)
-form_width_spin.pack(side="left")
-tk.Label(size_control_frame, text="×", bg="#2d2d2d", fg="#eeeeee").pack(side="left", padx=3)
-form_height_var = tk.StringVar(value=str(form_window_height))
-form_height_spin = ttk.Spinbox(size_control_frame, from_=0, to=100000, increment=1,
-                               width=7, textvariable=form_height_var, command=apply_form_size_inputs)
-form_height_spin.pack(side="left")
-form_width_spin.bind("<Return>", apply_form_size_inputs)
-form_height_spin.bind("<Return>", apply_form_size_inputs)
-form_width_spin.bind("<FocusOut>", apply_form_size_inputs)
-form_height_spin.bind("<FocusOut>", apply_form_size_inputs)
+# コード読み込みボタン
+def load_form_from_code():
+    global designer_components, form_window_width, form_window_height, form_bg_color, form_fg_color
+    
+    # ファイル選択ダイアログを表示
+    path = filedialog.askopenfilename(
+        filetypes=[("Python Files", "*.py")]
+    )
+    if not path:
+        return
+    
+    try:
+        with open(path, 'r', encoding='utf-8') as f:
+            code = f.read()
+    except Exception as e:
+        messagebox.showerror("エラー", f"ファイル読み込み失敗: {e}")
+        return
+    
+    parse_and_load_code(code, path)
+
+def load_form_from_editor():
+    global designer_components, form_window_width, form_window_height, form_bg_color, form_fg_color
+    
+    code = text.get("1.0", tk.END).strip()
+    if not code:
+        messagebox.showwarning("警告", "エディターにコードがありません")
+        return
+    
+    parse_and_load_code(code, quick_save.current_file_path if hasattr(quick_save, 'current_file_path') else None)
+
+def parse_and_load_code(code, file_path=None):
+    global designer_components, form_window_width, form_window_height, form_bg_color, form_fg_color
+    
+    # ファイルパスがある場合はエディターにも読み込む
+    if file_path:
+        text.delete("1.0", tk.END)
+        text.insert("1.0", code)
+        quick_save.current_file_path = file_path
+        last_saved_content = code + "\n"
+        text_modified = False
+        update_status_bar()
+    
+    # 現在のコンポーネントをクリア
+    for comp in designer_components:
+        try:
+            comp["wrapper"].destroy()
+        except:
+            pass
+    designer_components.clear()
+    
+    # geometryからサイズを抽出
+    width_match = re.search(r'geometry\s*=\s*[\'"](\d+)x(\d+)', code)
+    if width_match:
+        form_window_width = int(width_match.group(1))
+        form_window_height = int(width_match.group(2))
+        update_form_preview_size(form_window_width, form_window_height)
+    
+    # place()のパターンを抽出（2行形式）
+    button_pattern = r'btn_(\d+)\s*=\s*tk\.Button.*'
+    button_place_pattern = r'btn_(\d+)\.place\s*\(\s*x=(\d+),\s*y=(\d+),\s*width=(\d+),\s*height=(\d+)\s*\)'
+    label_pattern = r'lbl_(\d+)\s*=\s*tk\.Label.*'
+    label_place_pattern = r'lbl_(\d+)\.place\s*\(\s*x=(\d+),\s*y=(\d+),\s*width=(\d+),\s*height=(\d+)\s*\)'
+    entry_pattern = r'ent_(\d+)\s*=\s*tk\.Entry.*'
+    entry_place_pattern = r'ent_(\d+)\.place\s*\(\s*x=(\d+),\s*y=(\d+),\s*width=(\d+),\s*height=(\d+)\s*\)'
+    
+    # デザイナー設定コメントを抽出
+    config_pattern = r'# DESIGNER_CONFIG_(\d+):\s*(\{.*?\})'
+    component_configs = {}
+    for match in re.finditer(config_pattern, code):
+        idx, config_json = match.groups()
+        try:
+            component_configs[idx] = json.loads(config_json)
+        except:
+            pass
+    
+    # ボタンのアクション関数を解析（古いコード対応）
+    def extract_button_action(btn_idx):
+        # on_btn_N_click 関数を探す
+        action_pattern = rf'def on_btn_{btn_idx}_click\(\):\s*(.*?)(?=\ndef|\Z)'
+        action_match = re.search(action_pattern, code, re.DOTALL)
+        if action_match:
+            action_body = action_match.group(1)
+            # open_browser を探す
+            browser_match = re.search(r"open_browser\(['\"]([^'\"]+)['\"'],\s*['\"]([^'\"]+)['\"]\)", action_body)
+            if browser_match:
+                url, browser = browser_match.groups()
+                return {'action': 'open_url', 'param': url, 'browser_choice': browser}
+        return None
+    
+    # プロパティを抽出するヘルパー関数
+    def extract_properties(line):
+        props = {}
+        # textを抽出
+        text_match = re.search(r'text=([\'"])(.*?)\1', line)
+        if text_match:
+            props['text'] = text_match.group(2)
+        # bgを抽出
+        bg_match = re.search(r'bg=([\'"])(.*?)\1', line)
+        if bg_match:
+            props['bg'] = bg_match.group(2)
+        # fgを抽出
+        fg_match = re.search(r'fg=([\'"])(.*?)\1', line)
+        if fg_match:
+            props['fg'] = fg_match.group(2)
+        return props
+    
+    # ボタンを解析
+    button_def_lines = {}
+    for match in re.finditer(button_pattern, code):
+        idx = match.group(1)
+        button_def_lines[idx] = match.group(0)
+    
+    for match in re.finditer(button_place_pattern, code):
+        idx, x, y, w, h = match.groups()
+        comp = add_component("Button", int(x), int(y), int(w), int(h), idx)
+        if idx in button_def_lines:
+            props = extract_properties(button_def_lines[idx])
+            if 'text' in props:
+                comp['text'] = props['text']
+                comp['inner'].config(text=props['text'])
+            if 'bg' in props:
+                comp['bg_color'] = props['bg']
+                comp['inner'].config(bg=props['bg'])
+            if 'fg' in props:
+                comp['fg_color'] = props['fg']
+                comp['inner'].config(fg=props['fg'])
+        # デザイナー設定を復元
+        if idx in component_configs:
+            config = component_configs[idx]
+            comp['action'] = config.get('action', 'none')
+            comp['param'] = config.get('param', '')
+            comp['font_size'] = config.get('font_size', 10)
+            comp['close_after_action'] = config.get('close_after_action', False)
+            comp['browser_choice'] = config.get('browser_choice', '既定のブラウザ')
+        else:
+            # 古いコード対応：アクション関数を解析
+            action_info = extract_button_action(idx)
+            if action_info:
+                comp['action'] = action_info.get('action', 'none')
+                comp['param'] = action_info.get('param', '')
+                comp['browser_choice'] = action_info.get('browser_choice', '既定のブラウザ')
+    
+    # ラベルを解析
+    label_def_lines = {}
+    for match in re.finditer(label_pattern, code):
+        idx = match.group(1)
+        label_def_lines[idx] = match.group(0)
+    
+    for match in re.finditer(label_place_pattern, code):
+        idx, x, y, w, h = match.groups()
+        comp = add_component("Label", int(x), int(y), int(w), int(h), idx)
+        if idx in label_def_lines:
+            props = extract_properties(label_def_lines[idx])
+            if 'text' in props:
+                comp['text'] = props['text']
+                comp['inner'].config(text=props['text'])
+            if 'bg' in props:
+                comp['bg_color'] = props['bg']
+                comp['inner'].config(bg=props['bg'])
+            if 'fg' in props:
+                comp['fg_color'] = props['fg']
+                comp['inner'].config(fg=props['fg'])
+        # デザイナー設定を復元
+        if idx in component_configs:
+            config = component_configs[idx]
+            comp['action'] = config.get('action', 'none')
+            comp['param'] = config.get('param', '')
+            comp['font_size'] = config.get('font_size', 10)
+    
+    # エントリを解析
+    entry_def_lines = {}
+    for match in re.finditer(entry_pattern, code):
+        idx = match.group(1)
+        entry_def_lines[idx] = match.group(0)
+    
+    for match in re.finditer(entry_place_pattern, code):
+        idx, x, y, w, h = match.groups()
+        comp = add_component("Entry", int(x), int(y), int(w), int(h), idx)
+        if idx in entry_def_lines:
+            props = extract_properties(entry_def_lines[idx])
+            if 'bg' in props:
+                comp['bg_color'] = props['bg']
+                comp['inner'].config(bg=props['bg'])
+            if 'fg' in props:
+                comp['fg_color'] = props['fg']
+                comp['inner'].config(fg=props['fg'])
+        # デザイナー設定を復元
+        if idx in component_configs:
+            config = component_configs[idx]
+            comp['action'] = config.get('action', 'none')
+            comp['param'] = config.get('param', '')
+            comp['font_size'] = config.get('font_size', 10)
+    
+    if designer_components:
+        messagebox.showinfo("読み込み完了", f"{len(designer_components)}個のコンポーネントを読み込みました")
+    else:
+        messagebox.showwarning("警告", "コンポーネントが見つかりませんでした")
+
+# コード読み込みボタンを追加（関数定義後に実行）
+add_btn(top_btn_frame, "📥 コード読み込み", load_form_from_editor, "#0d6efd")
+
+
 
 def update_size_label():
     pos_str = "画面中央に表示" if form_pos_mode == "center" else f"X={form_pos_x}, Y={form_pos_y}"
@@ -3541,22 +3727,31 @@ def open_window_position_dialog():
     w_diag.after(50, lambda: w_diag.focus_force())
 
 
-def add_component(ctype):
+def add_component(ctype, x=None, y=None, width=None, height=None, button_index=None):
     global selected_component
     wrapper = tk.Frame(form_preview, bg="#cccccc", bd=1, relief="raised")
-    wrapper.place(x=40, y=40, width=150, height=36)
+    
+    # 位置とサイズが指定されている場合はそれを使用
+    if x is not None and y is not None and width is not None and height is not None:
+        wrapper.place(x=x, y=y, width=width, height=height)
+    else:
+        wrapper.place(x=40, y=40, width=150, height=36)
 
     default_bg = "#e8e8e8" if ctype == "Button" else form_bg_color
     default_fg = form_fg_color
 
-    button_number = max(
-        (
-            existing.get("button_index", -1)
-            for existing in designer_components
-            if existing["type"] == "Button"
-        ),
-        default=-1,
-    ) + 1
+    if button_index is None:
+        button_number = max(
+            (
+                existing.get("button_index", -1)
+                for existing in designer_components
+                if existing["type"] == "Button"
+            ),
+            default=-1,
+        ) + 1
+    else:
+        button_number = int(button_index)
+    
     if ctype == "Button":
         inner = tk.Button(wrapper, text=f"{button_number}. ボタン", relief="flat", font=("Meiryo UI", 10), bg=default_bg, fg=default_fg)
     elif ctype == "Label":
@@ -3618,6 +3813,50 @@ def add_component(ctype):
     comp_resize_handle.bind("<Button-1>", on_resize_press)
     comp_resize_handle.bind("<B1-Motion>", on_resize_drag)
     select()
+    
+    return comp_info
+
+    def select(event=None):
+        global selected_component
+        if selected_component and selected_component != comp_info:
+            selected_component["wrapper"].config(bd=1, bg="#cccccc")
+        selected_component = comp_info
+        wrapper.config(bd=2, bg="#0d6efd")
+        if event:
+            event.widget.focus_set()
+
+    def on_press(event):
+        select(event)
+        wrapper._sx, wrapper._sy = event.x, event.y
+        wrapper.lift()
+
+    def on_drag(event):
+        x = wrapper.winfo_x() + event.x - wrapper._sx
+        y = wrapper.winfo_y() + event.y - wrapper._sy
+        wrapper.place(x=max(0, x), y=max(0, y))
+
+    def on_resize_press(event):
+        select(event)
+        wrapper._w_start = wrapper.winfo_width()
+        wrapper._h_start = wrapper.winfo_height()
+        wrapper._x_start = event.x_root
+        wrapper._y_start = event.y_root
+
+    def on_resize_drag(event):
+        dx = event.x_root - wrapper._x_start
+        dy = event.y_root - wrapper._y_start
+        wrapper.place(width=max(40, wrapper._w_start + dx), height=max(24, wrapper._h_start + dy))
+
+    for w in [wrapper, inner]:
+        w.bind("<Button-1>", on_press)
+        w.bind("<B1-Motion>", on_drag)
+        w.bind("<Double-Button-1>", lambda e: (select(e), open_properties_dialog(comp_info)))
+
+    comp_resize_handle.bind("<Button-1>", on_resize_press)
+    comp_resize_handle.bind("<B1-Motion>", on_resize_drag)
+    select()
+    
+    return comp_info
 
 def open_properties_dialog(comp):
     if not comp:
@@ -4358,14 +4597,35 @@ def generate_code_from_designer(include_hotkeys=False):
                 cmd_str = ""
 
             component_parent = "root"
+            # デザイナー設定をコメントとして埋め込む
+            config = {
+                "action": comp.get("action", "none"),
+                "param": comp.get("param", ""),
+                "font_size": comp.get("font_size", 10),
+                "close_after_action": comp.get("close_after_action", False),
+                "browser_choice": comp.get("browser_choice", "既定のブラウザ")
+            }
+            code.append(f"# DESIGNER_CONFIG_{i}: {json.dumps(config, ensure_ascii=False)}")
             code.append(f"btn_{i} = tk.Button({component_parent}, text={label_text!r}, bg={bg!r}, fg={fg!r}, font={font_str}{cmd_str})")
             code.append(f"btn_{i}.place(x={x}, y={y}, width={width}, height={height})")
         elif ctype == "Label":
             component_parent = "root"
+            config = {
+                "action": comp.get("action", "none"),
+                "param": comp.get("param", ""),
+                "font_size": comp.get("font_size", 10)
+            }
+            code.append(f"# DESIGNER_CONFIG_{i}: {json.dumps(config, ensure_ascii=False)}")
             code.append(f"lbl_{i} = tk.Label({component_parent}, text={label_text!r}, bg={bg!r}, fg={fg!r}, font={font_str})")
             code.append(f"lbl_{i}.place(x={x}, y={y}, width={width}, height={height})")
         elif ctype == "Entry":
             component_parent = "root"
+            config = {
+                "action": comp.get("action", "none"),
+                "param": comp.get("param", ""),
+                "font_size": comp.get("font_size", 10)
+            }
+            code.append(f"# DESIGNER_CONFIG_{i}: {json.dumps(config, ensure_ascii=False)}")
             code.append(f"ent_{i} = tk.Entry({component_parent}, bg={bg!r}, fg={fg!r}, font={font_str})")
             code.append(f"ent_{i}.place(x={x}, y={y}, width={width}, height={height})")
 
@@ -4590,9 +4850,10 @@ add_designer_toolbar_button("＋ ラベル", lambda: add_component("Label"), "#0
 add_designer_toolbar_button("＋ 入力欄", lambda: add_component("Entry"), "#3a7d44", active_bg="#2d6335")
 add_designer_toolbar_button("⚙ ウィンドウ位置", open_window_position_dialog, "#6610f2")
 add_designer_toolbar_button("⚙ ボタン詳細設定", lambda: open_properties_dialog(selected_component) if selected_component else messagebox.showwarning("注意", "部品を選んでください"), "#ffc107", fg="#000")
+add_designer_toolbar_button("📥 コード読み込み", load_form_from_code, "#0d6efd")
 add_designer_toolbar_button("🗑 削除", delete_component, "#dc3545")
 add_designer_toolbar_button("🧹 全消去", clear_designer, "#6c757d")
-add_designer_toolbar_button("📝 コード生成して転送", generate_code_from_designer, "#0d6efd")
+add_designer_toolbar_button("📝 コード生成", generate_code_from_designer, "#198754")
 designer_buttons_frame.pack_forget()
 designer_options_frame.pack_forget()
 designer_options_frame.pack(side="right", anchor="n", padx=(8, 0), pady=2)
