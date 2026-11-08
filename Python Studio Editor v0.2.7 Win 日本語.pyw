@@ -3,6 +3,7 @@ from tkinter import messagebox, filedialog, colorchooser, ttk
 import subprocess
 import sys
 import re
+import ast
 from threading import Thread
 import tempfile
 import os
@@ -118,7 +119,7 @@ def create_pyh_icon():
 '''
 
 # Version
-APP_VERSION = "0.2.5"
+APP_VERSION = "0.2.7"
 
 # Windows専用
 try:
@@ -170,6 +171,8 @@ VIRTUALENV_PATH = os.path.join(get_desktop_path(), VENV_FOLDER_NAME)
 
 def get_virtualenv_path():
     return VIRTUALENV_PATH
+
+HIDDEN_SUBPROCESS_OPTIONS = {"creationflags": 0x08000000} if os.name == "nt" else {}
 
 def get_virtualenv_python():
     venv_path = get_virtualenv_path()
@@ -1653,9 +1656,7 @@ def load_project_code(code, auto_install_modules=True):
     
     # Auto install modules if enabled
     if auto_install_modules:
-        installed = parse_and_install_code_modules(code, auto_install=True)
-        if installed:
-            messagebox.showinfo("自動インストール", f"自動的にモジュールをインストールしました: {', '.join(installed)}")
+        parse_and_install_code_modules(code, auto_install=True, report="changes")
     
     return True
 
@@ -2744,58 +2745,252 @@ def test_python_code():
                 pass
     Thread(target=run, daemon=True).start()
 
-def parse_and_install_code_modules(code_text=None, auto_install=False):
+MODULE_PIP_NAMES = {
+    "PIL": "pillow", "cv2": "opencv-python", "sklearn": "scikit-learn", "skimage": "scikit-image",
+    "yaml": "PyYAML", "bs4": "beautifulsoup4", "dateutil": "python-dateutil", "dotenv": "python-dotenv",
+    "serial": "pyserial", "usb": "pyusb", "Crypto": "pycryptodome", "Cryptodome": "pycryptodomex",
+    "OpenGL": "PyOpenGL", "docx": "python-docx", "pptx": "python-pptx", "fitz": "PyMuPDF",
+    "jwt": "PyJWT", "attr": "attrs", "magic": "python-magic", "telegram": "python-telegram-bot",
+    "discord": "discord.py", "win32api": "pywin32", "win32con": "pywin32", "win32gui": "pywin32",
+    "win32com": "pywin32", "win32clipboard": "pywin32", "win32process": "pywin32", "pythoncom": "pywin32",
+    "pywintypes": "pywin32", "winshell": "winshell", "Levenshtein": "python-Levenshtein",
+    "speech_recognition": "SpeechRecognition",
+    "mpl_toolkits": "matplotlib", "wx": "wxPython", "gi": "PyGObject", "pyaudio": "PyAudio",
+    "Xlib": "python-xlib", "socks": "PySocks", "nacl": "PyNaCl", "zmq": "pyzmq", "kivy": "kivy",
+    "djitellopy": "djitellopy", "pystray": "pystray", "keyboard": "keyboard", "mouse": "mouse",
+}
+EXTRA_STDLIB_MODULES = {
+    'os', 'sys', 're', 'math', 'time', 'datetime', 'json', 'random', 'subprocess', 'threading',
+    'tempfile', 'tkinter', 'webbrowser', 'urllib', 'winsound', 'winreg', 'msvcrt', 'pathlib',
+    'collections', 'itertools', 'functools', 'io', 'shutil', 'glob', 'sqlite3', 'csv', 'hashlib',
+    'hmac', 'uuid', 'smtplib', 'imaplib', 'http', 'socket', 'asyncio', 'logging', 'platform',
+    'typing', 'dataclasses', 'enum', 'abc', 'copy', 'pprint', 'argparse', 'ctypes', 'queue',
+    'shlex', 'html', 'calendar', 'string', 'struct', 'traceback', 'unittest', 'zipfile', 'email',
+    'base64', 'statistics', 'decimal', 'fractions', 'secrets', 'signal', 'select', 'ssl', 'gzip',
+    'tarfile', 'textwrap', 'locale', 'gettext', 'configparser', 'contextlib', 'inspect', 'types',
+    'weakref', 'heapq', 'bisect', 'array', 'operator', 'pickle', 'shelve', 'xml', 'turtle',
+    'concurrent', 'multiprocessing', 'importlib', 'getpass', 'ast', 'codecs', 'unicodedata',
+    'difflib', 'fnmatch', 'filecmp', 'stat', 'errno', 'warnings', 'atexit', 'builtins',
+    '__future__', '_thread', 'ftplib', 'ipaddress', 'mimetypes', 'binascii', 'zlib', 'lzma', 'bz2',
+    'sched', 'timeit', 'cProfile', 'pdb', 'venv', 'ensurepip', 'site', 'sysconfig', 'wave',
+    'colorsys', 'numbers', 'cmath', 'graphlib', 'zoneinfo', 'idlelib', 'tomllib', 'winapi', 'nt',
+}
+
+
+def extract_code_imports(code_text):
+    """Return (top-level module names, explicit pip packages from '# pip install' comments)."""
+    names = []
+    try:
+        tree = ast.parse(code_text)
+    except SyntaxError:
+        tree = None
+    if tree is not None:
+        for node in ast.walk(tree):
+            if isinstance(node, ast.Import):
+                names.extend(alias.name.split(".")[0] for alias in node.names)
+            elif isinstance(node, ast.ImportFrom):
+                if node.level == 0 and node.module:
+                    names.append(node.module.split(".")[0])
+            elif isinstance(node, ast.Call) and node.args:
+                func = node.func
+                func_name = func.id if isinstance(func, ast.Name) else (func.attr if isinstance(func, ast.Attribute) else "")
+                arg = node.args[0]
+                if func_name in ("__import__", "import_module") and isinstance(arg, ast.Constant) and isinstance(arg.value, str):
+                    if not arg.value.startswith("."):
+                        names.append(arg.value.split(".")[0])
+    else:
+        for match in re.finditer(r'^[ \t]*import[ \t]+([^\n#;]+)', code_text, re.MULTILINE):
+            for part in match.group(1).replace("(", " ").replace(")", " ").split(","):
+                part = part.strip().split(" as ")[0].strip()
+                if part:
+                    names.append(part.split(".")[0])
+        for match in re.finditer(r'^[ \t]*from[ \t]+([A-Za-z_][\w.]*)[ \t]+import\b', code_text, re.MULTILINE):
+            names.append(match.group(1).split(".")[0])
+    pip_packages = []
+    for match in re.finditer(r'^[ \t]*#.*?\bpip3?[ \t]+install[ \t]+([^\n]+)', code_text, re.MULTILINE):
+        for token in match.group(1).split():
+            if token.startswith("-"):
+                continue
+            if not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9_.\-\[\],=<>~!]*', token):
+                break
+            pip_packages.append(token)
+    seen, result = set(), []
+    for name in names:
+        if name and name.isidentifier() and name not in seen:
+            seen.add(name)
+            result.append(name)
+    return result, list(dict.fromkeys(pip_packages))
+
+
+def get_code_base_dir():
+    path = getattr(quick_save, "current_file_path", None)
+    if path:
+        directory = os.path.dirname(os.path.abspath(path))
+        if os.path.isdir(directory):
+            return directory
+    return None
+
+
+def find_missing_code_modules(python_executable, module_names, base_dir=None):
+    check_script = (
+        "import importlib.util, json, sys\n"
+        "names = json.loads(sys.argv[1])\n"
+        "std = set(getattr(sys, 'stdlib_module_names', ())) | set(sys.builtin_module_names)\n"
+        "missing = []\n"
+        "for name in names:\n"
+        "    if name in std:\n"
+        "        continue\n"
+        "    try:\n"
+        "        found = importlib.util.find_spec(name) is not None\n"
+        "    except Exception:\n"
+        "        found = False\n"
+        "    if not found:\n"
+        "        missing.append(name)\n"
+        "print(json.dumps(missing))\n"
+    )
+    result = subprocess.run([python_executable, "-c", check_script, json.dumps(module_names)],
+                            check=True, capture_output=True, text=True, timeout=60,
+                            cwd=base_dir or None, **HIDDEN_SUBPROCESS_OPTIONS)
+    return json.loads(result.stdout.strip().splitlines()[-1])
+
+
+def ensure_virtualenv_pip(python_executable):
+    check = subprocess.run([python_executable, "-m", "pip", "--version"],
+                           capture_output=True, text=True, timeout=60, **HIDDEN_SUBPROCESS_OPTIONS)
+    if check.returncode == 0:
+        return
+    repair = subprocess.run([python_executable, "-m", "ensurepip", "--upgrade"],
+                            capture_output=True, text=True, timeout=300, **HIDDEN_SUBPROCESS_OPTIONS)
+    if repair.returncode != 0:
+        raise RuntimeError((repair.stderr or repair.stdout or check.stderr).strip()[-800:])
+
+
+def pip_install_into_virtualenv(python_executable, package):
+    res = subprocess.run([python_executable, "-m", "pip", "install", "--disable-pip-version-check", package],
+                         capture_output=True, text=True, timeout=600, **HIDDEN_SUBPROCESS_OPTIONS)
+    return res.returncode == 0, (res.stderr or res.stdout or "").strip()
+
+
+def install_code_modules(python_executable, missing_modules, extra_packages=(), base_dir=None):
+    """Install missing modules (and explicit pip packages). Returns (success, failed, details)."""
+    jobs = []
+    for module_name in missing_modules:
+        package = MODULE_PIP_NAMES.get(module_name, module_name)
+        candidates = [package]
+        if package == module_name and "_" in module_name:
+            candidates.append(module_name.replace("_", "-"))
+        jobs.append((module_name, candidates))
+    for package in extra_packages:
+        if all(package.lower() not in [c.lower() for c in cands] for _, cands in jobs):
+            jobs.append((None, [package]))
+    if not jobs:
+        return [], [], []
+    progress = None
+    progress_var = tk.StringVar(master=root)
+    try:
+        progress = tk.Toplevel(root)
+        progress.title("モジュールをインストール中")
+        progress.geometry("380x110")
+        progress.resizable(False, False)
+        progress.transient(root)
+        tk.Label(progress, textvariable=progress_var, font=("Meiryo UI", 10), justify="left",
+                 padx=15, pady=20).pack(fill="both", expand=True)
+    except tk.TclError:
+        progress = None
+    success_list, fail_list, details = [], [], []
+    try:
+        ensure_virtualenv_pip(python_executable)
+        for index, (module_name, candidates) in enumerate(jobs, start=1):
+            label = module_name or candidates[0]
+            progress_var.set("インストール中: {name} ({i}/{n})\nしばらくお待ちください...".format(name=label, i=index, n=len(jobs)))
+            try:
+                root.config(cursor="watch")
+                root.update()
+            except tk.TclError:
+                pass
+            installed = False
+            last_error = ""
+            for package in candidates:
+                try:
+                    ok, output = pip_install_into_virtualenv(python_executable, package)
+                except Exception as e:
+                    ok, output = False, str(e)
+                if ok and module_name:
+                    try:
+                        ok = not find_missing_code_modules(python_executable, [module_name], base_dir)
+                    except Exception:
+                        pass
+                if ok:
+                    installed = True
+                    success_list.append(package if package == label else f"{label} ({package})")
+                    break
+                last_error = output
+            if not installed:
+                fail_list.append(label)
+                if last_error:
+                    details.append(f"[{label}] " + last_error.splitlines()[-1][:300])
+    finally:
+        try:
+            root.config(cursor="")
+            if progress is not None:
+                progress.destroy()
+        except tk.TclError:
+            pass
+    return success_list, fail_list, details
+
+
+def parse_and_install_code_modules(code_text=None, auto_install=False, report=None):
+    """report: 'always' shows a result every time, 'changes' only when something was missing, 'none' is silent."""
+    if report is None:
+        report = "always" if code_text is None else "none"
     if code_text is None:
         code_text = text.get("1.0", tk.END)
     if not code_text.strip():
-        if not auto_install:
+        if report == "always":
             messagebox.showwarning("注意", "エディターにコードがありません。")
         return []
-    import_matches = re.findall(r'^\s*(?:import|from)\s+([a-zA-Z0-9_]+)', code_text, re.MULTILINE)
-    modules = list(set(import_matches))
-    stdlib_set = {
-        'os', 'sys', 're', 'math', 'time', 'datetime', 'json', 'random', 'subprocess',
-        'threading', 'tempfile', 'tkinter', 'webbrowser', 'urllib', 'winsound', 'pathlib',
-        'collections', 'itertools', 'functools', 'io', 'shutil', 'glob', 'sqlite3', 'csv',
-        'hashlib', 'hmac', 'uuid', 'smtplib', 'imaplib', 'http', 'socket', 'asyncio', 'logging',
-        'platform', 'typing', 'dataclasses', 'enum', 'abc', 'copy', 'pprint', 'argparse',
-        'ctypes', 'wintypes', 'queue', 'shlex', 'html', 'html.parser', 'calendar'
-    }
-    candidate_modules = [m for m in modules if m not in stdlib_set]
-    if not candidate_modules:
-        if not auto_install:
-            messagebox.showinfo("確認", "追加でインストールが必要な未導入の外部モジュールは見つかりませんでした！")
-        return []
+    module_names, pip_packages = extract_code_imports(code_text)
+    base_dir = get_code_base_dir()
+    local_modules = []
+    if base_dir:
+        for name in module_names:
+            if os.path.isfile(os.path.join(base_dir, name + ".py")) or os.path.isdir(os.path.join(base_dir, name)):
+                local_modules.append(name)
+    candidate_modules = [m for m in module_names if m not in EXTRA_STDLIB_MODULES and m not in local_modules]
     try:
         python_executable = get_virtualenv_python()
-        check_script = "import importlib.util, json, sys; names=json.loads(sys.argv[1]); print(json.dumps([name for name in names if importlib.util.find_spec(name) is None]))"
-        result = subprocess.run([python_executable, "-c", check_script, json.dumps(candidate_modules)],
-                                check=True, capture_output=True, text=True, timeout=30)
-        target_modules = json.loads(result.stdout)
+        target_modules = find_missing_code_modules(python_executable, candidate_modules, base_dir) if candidate_modules else []
     except Exception as e:
-        if not auto_install:
-            messagebox.showerror("エラー", f"仮想環境のモジュール確認に失敗しました:\n{e}")
+        if report != "none":
+            messagebox.showerror("エラー", "仮想環境のモジュール確認に失敗しました:\n{e}".format(e=e))
         return []
-    if not target_modules:
-        if not auto_install:
-            messagebox.showinfo("確認", "追加でインストールが必要な未導入の外部モジュールは見つかりませんでした！")
+    covered = {MODULE_PIP_NAMES.get(m, m).lower() for m in candidate_modules}
+    extra_packages = [p for p in pip_packages if re.split(r'[\[=<>~!]', p)[0].lower() not in covered]
+    if not target_modules and not extra_packages:
+        if report == "always":
+            messagebox.showinfo("モジュールインストール結果", "このコードで使うモジュールはすべてインストール済みです。\n追加インストールは不要です。")
         return []
-    
-    # Auto install mode
+
     if auto_install:
-        success_list, fail_list = [], []
-        for mname in target_modules:
-            try:
-                res = subprocess.run([python_executable, "-m", "pip", "install", mname],
-                                     capture_output=True, text=True, timeout=90)
-                if res.returncode == 0:
-                    success_list.append(mname)
-                else:
-                    fail_list.append(mname)
-            except Exception:
-                fail_list.append(mname)
+        try:
+            success_list, fail_list, details = install_code_modules(python_executable, target_modules, extra_packages, base_dir)
+        except Exception as e:
+            if report != "none":
+                messagebox.showerror("エラー", "仮想環境で pip が使えません:\n{e}".format(e=e))
+            return []
+        if report != "none" and (success_list or fail_list):
+            lines = []
+            if success_list:
+                lines.append("インストール完了: {names}".format(names=", ".join(success_list)))
+            if fail_list:
+                lines.append("失敗: {names}".format(names=", ".join(fail_list)))
+                if details:
+                    lines.append("詳細:\n{detail}".format(detail="\n".join(details)))
+            if local_modules:
+                lines.append("同じフォルダのファイル（スキップ）: {names}".format(names=", ".join(local_modules)))
+            (messagebox.showerror if fail_list else messagebox.showinfo)("モジュールインストール結果", "\n".join(lines))
         return success_list
-    
+
     # Manual install mode with dialog
     win = tk.Toplevel(root)
     win.title("モジュール自動インストール")
@@ -2809,8 +3004,9 @@ def parse_and_install_code_modules(code_text=None, auto_install=False):
     list_frame.pack(fill="both", expand=True, padx=15, pady=5)
     lb = tk.Listbox(list_frame, font=("Consolas", 10), selectmode=tk.MULTIPLE, borderwidth=0)
     lb.pack(side="left", fill="both", expand=True)
-    for m in target_modules:
-        lb.insert(tk.END, m)
+    entries = [(m, None) for m in target_modules] + [(None, p) for p in extra_packages]
+    for module_name, package in entries:
+        lb.insert(tk.END, module_name if package is None else package)
     lb.select_set(0, tk.END)
     scrollbar = ttk.Scrollbar(list_frame, orient="vertical", command=lb.yview)
     scrollbar.pack(side="right", fill="y")
@@ -2819,25 +3015,22 @@ def parse_and_install_code_modules(code_text=None, auto_install=False):
     def do_install():
         selected_indices = lb.curselection()
         if not selected_indices:
-            messagebox.showwarning("注意", "モジュールを選択してください。")
+            messagebox.showwarning("注意", "モジュールを選択してください。", parent=win)
             return
-        success_list, fail_list = [], []
-        for idx in selected_indices:
-            mname = lb.get(idx)
-            try:
-                res = subprocess.run([python_executable, "-m", "pip", "install", mname],
-                                     capture_output=True, text=True, timeout=90)
-                if res.returncode == 0:
-                    success_list.append(mname)
-                else:
-                    fail_list.append(mname)
-            except Exception:
-                fail_list.append(mname)
-        msg = f"インストール完了: {', '.join(success_list) if success_list else 'なし'}"
-        if fail_list:
-            msg += f"\n失敗: {', '.join(fail_list)}"
-        messagebox.showinfo("インストール結果", msg)
+        chosen = [entries[i] for i in selected_indices]
         win.destroy()
+        try:
+            success_list, fail_list, details = install_code_modules(
+                python_executable, [m for m, p in chosen if m], [p for m, p in chosen if p], base_dir)
+        except Exception as e:
+            messagebox.showerror("エラー", "仮想環境で pip が使えません:\n{e}".format(e=e))
+            return
+        lines = ["インストール完了: {names}".format(names=", ".join(success_list) if success_list else "-")]
+        if fail_list:
+            lines.append("失敗: {names}".format(names=", ".join(fail_list)))
+            if details:
+                lines.append("詳細:\n{detail}".format(detail="\n".join(details)))
+        (messagebox.showerror if fail_list else messagebox.showinfo)("モジュールインストール結果", "\n".join(lines))
     tk.Button(win, text="🚀 選択したモジュールをインストール実行", command=do_install,
               bg="#198754", fg="white", font=("Meiryo UI", 10, "bold"), padx=10, pady=8, cursor="hand2").pack(side="bottom", fill="x", padx=15, pady=15)
 
@@ -2935,7 +3128,7 @@ add_btn(top_btn_frame, "📂 開く", open_file, "#495057")
 add_btn(top_btn_frame, "💾 保存", quick_save, "#0d6efd")
 add_btn(top_btn_frame, "✨ 自動整形", format_code, "#6c757d")
 add_btn(top_btn_frame, "▶ テスト実行", test_python_code, "#198754")
-add_btn(top_btn_frame, "📦 モジュール自動インストール", lambda: parse_and_install_code_modules(auto_install=True), "#6610f2")
+add_btn(top_btn_frame, "📦 モジュール自動インストール", lambda: parse_and_install_code_modules(auto_install=True, report="always"), "#6610f2")
 add_btn(top_btn_frame, "🔍 検索", open_search_dialog, "#6c757d")
 add_btn(top_btn_frame, "🌓 テーマ切替", toggle_theme, "#ffc107", "#000")
 
@@ -3819,8 +4012,8 @@ def load_designer_settings():
             with open(path, 'r', encoding='utf-8') as f:
                 data = json.load(f)
                 form_use_tray = data.get('start_in_tray', False)
-                form_window_width = data.get('window_width', 600)
-                form_window_height = data.get('window_height', 450)
+                form_window_width = 600
+                form_window_height = 450
                 form_bg_color = data.get('bg_color', '#f0f0f0')
                 form_fg_color = data.get('fg_color', '#000000')
                 form_pos_x = data.get('pos_x', 100)
@@ -4090,28 +4283,56 @@ def open_window_position_dialog():
     w_diag.after(50, lambda: w_diag.focus_force())
 
 
-def add_component(ctype):
+def add_component(ctype, text=None, x=40, y=40, width=150, height=36,
+                  bg_color=None, fg_color=None, font_size=10,
+                  action="none", param="", close_after_action=False,
+                  source_path="", destination_path="",
+                  browser_choice="既定のブラウザ", browser_window_mode="最大化",
+                  button_index=None, custom_background=None, custom_foreground=None,
+                  select_widget=True):
     global selected_component
+    x, y = int(x), int(y)
+    width, height = max(1, int(width)), max(1, int(height))
+    font_size = max(1, int(font_size))
     wrapper = tk.Frame(form_preview, bg="#cccccc", bd=1, relief="raised")
-    wrapper.place(x=40, y=40, width=150, height=36)
+    wrapper.place(x=x, y=y, width=width, height=height)
 
-    default_bg = "#e8e8e8" if ctype == "Button" else form_bg_color
-    default_fg = form_fg_color
-
-    button_number = max(
-        (
-            existing.get("button_index", -1)
-            for existing in designer_components
-            if existing["type"] == "Button"
-        ),
-        default=-1,
-    ) + 1
-    if ctype == "Button":
-        inner = tk.Button(wrapper, text=f"{button_number}. ボタン", relief="flat", font=("Meiryo UI", 10), bg=default_bg, fg=default_fg)
-    elif ctype == "Label":
-        inner = tk.Label(wrapper, text="テキストラベル", bg=default_bg, fg=default_fg, font=("Meiryo UI", 10))
+    if button_index is None:
+        button_number = max(
+            (
+                existing.get("button_index", -1)
+                for existing in designer_components
+                if existing["type"] == "Button"
+            ),
+            default=-1,
+        ) + 1
     else:
-        inner = tk.Entry(wrapper, font=("Meiryo UI", 10), bg=default_bg, fg=default_fg)
+        button_number = int(button_index)
+    if text is None:
+        if ctype == "Button":
+            text = f"{button_number}. ボタン"
+        elif ctype == "Label":
+            text = "テキストラベル"
+        else:
+            text = ""
+    if bg_color is None:
+        bg_color = "#e8e8e8" if ctype == "Button" else form_bg_color
+    if fg_color is None:
+        fg_color = form_fg_color
+    if custom_background is None:
+        if ctype == "Button":
+            custom_background = str(bg_color).lower() != "#e8e8e8"
+        else:
+            custom_background = str(bg_color).lower() != str(form_bg_color).lower()
+    if custom_foreground is None:
+        custom_foreground = str(fg_color).lower() != str(form_fg_color).lower()
+
+    if ctype == "Button":
+        inner = tk.Button(wrapper, text=text, relief="flat", font=("Meiryo UI", font_size), bg=bg_color, fg=fg_color)
+    elif ctype == "Label":
+        inner = tk.Label(wrapper, text=text, bg=bg_color, fg=fg_color, font=("Meiryo UI", font_size))
+    else:
+        inner = tk.Entry(wrapper, font=("Meiryo UI", font_size), bg=bg_color, fg=fg_color)
     inner.pack(fill="both", expand=True)
 
     comp_resize_handle = tk.Label(wrapper, text="◢", bg="#0d6efd", fg="white", font=("Meiryo UI", 8), cursor="sizing")
@@ -4119,12 +4340,15 @@ def add_component(ctype):
 
     comp_info = {
         "type": ctype, "wrapper": wrapper, "inner": inner,
-        "text": f"{button_number}. ボタン" if ctype == "Button" else ("テキストラベル" if ctype == "Label" else ""),
-        "bg_color": default_bg, "fg_color": default_fg, "font_size": 10,
-        "custom_background": False, "custom_foreground": False,
-        "action": "none", "param": "", "close_after_action": False,
+        "text": text,
+        "bg_color": bg_color, "fg_color": fg_color, "font_size": font_size,
+        "custom_background": bool(custom_background), "custom_foreground": bool(custom_foreground),
+        "action": action if ctype == "Button" else "none",
+        "param": param if ctype == "Button" else "",
+        "close_after_action": bool(close_after_action) if ctype == "Button" else False,
         "button_index": button_number,
-        "browser_choice": "既定のブラウザ", "browser_window_mode": "最大化"
+        "browser_choice": browser_choice, "browser_window_mode": browser_window_mode,
+        "source_path": source_path, "destination_path": destination_path,
     }
     designer_components.append(comp_info)
 
@@ -4166,7 +4390,9 @@ def add_component(ctype):
 
     comp_resize_handle.bind("<Button-1>", on_resize_press)
     comp_resize_handle.bind("<B1-Motion>", on_resize_drag)
-    select()
+    if select_widget:
+        select()
+    return comp_info
 
 def open_properties_dialog(comp):
     if not comp:
@@ -4510,16 +4736,535 @@ def delete_component():
     else:
         messagebox.showwarning("注意", "削除する部品を選択してください。")
 
-def clear_designer():
+def discard_designer_components():
     global selected_component
+    for comp in designer_components:
+        try:
+            comp["wrapper"].destroy()
+        except tk.TclError:
+            pass
+    designer_components.clear()
+    selected_component = None
+
+def clear_designer():
     if not designer_components:
         return
     if not messagebox.askyesno("フォームを全消去", "配置した部品をすべて削除しますか？"):
         return
-    for comp in designer_components:
-        comp["wrapper"].destroy()
-    designer_components.clear()
-    selected_component = None
+    discard_designer_components()
+
+def parse_designer_source(code_text):
+    """フォーム作成が出力したPythonから、ウィンドウ設定と部品を取り出す。"""
+
+    def expr_name(node):
+        if isinstance(node, ast.Name):
+            return node.id
+        if isinstance(node, ast.Attribute):
+            base = node.value
+            parent = expr_name(base.func if isinstance(base, ast.Call) else base)
+            return f"{parent}.{node.attr}" if parent else node.attr
+        return ""
+
+    def const_strings(node):
+        if node is None:
+            return []
+        return [
+            child.value
+            for child in ast.walk(node)
+            if isinstance(child, ast.Constant) and isinstance(child.value, str)
+        ]
+
+    def const_int(node, default=None):
+        if isinstance(node, ast.Constant) and isinstance(node.value, (int, float)) and not isinstance(node.value, bool):
+            return int(node.value)
+        return default
+
+    def font_size_of(node):
+        if isinstance(node, (ast.Tuple, ast.List)):
+            for item in reversed(node.elts):
+                size = const_int(item)
+                if size is not None:
+                    return size
+        size = const_int(node)
+        return 10 if size is None else size
+
+    def iter_runtime_calls(node):
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+            return
+        for child in ast.iter_child_nodes(node):
+            if isinstance(child, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef)):
+                continue
+            if isinstance(child, ast.Call):
+                yield child
+            yield from iter_runtime_calls(child)
+
+    def is_exit_statement(stmt):
+        return (
+            isinstance(stmt, ast.Expr)
+            and isinstance(stmt.value, ast.Call)
+            and expr_name(stmt.value.func) in {"root.destroy", "shutdown_app"}
+        )
+
+    def assigned_strings(func):
+        values = {}
+        for stmt in func.body:
+            if not isinstance(stmt, ast.Assign) or len(stmt.targets) != 1:
+                continue
+            target = stmt.targets[0]
+            if isinstance(target, ast.Name) and isinstance(stmt.value, ast.Constant) and isinstance(stmt.value.value, str):
+                values[target.id] = stmt.value.value
+        return values
+
+    def quoted_text(node):
+        for child in ast.walk(node):
+            if isinstance(child, ast.Call) and expr_name(child.func).endswith("quote") and child.args:
+                arg = child.args[0]
+                if isinstance(arg, ast.Constant) and isinstance(arg.value, str):
+                    return arg.value
+        return ""
+
+    def call_arg_string(call, index):
+        if len(call.args) > index and isinstance(call.args[index], ast.Constant) and isinstance(call.args[index].value, str):
+            return call.args[index].value
+        return None
+
+    def first_call(func, name):
+        for child in ast.walk(func):
+            if isinstance(child, ast.Call) and expr_name(child.func) == name:
+                return child
+        return None
+
+    def infer_action(func):
+        info = {
+            "action": "none",
+            "param": "",
+            "close_after_action": False,
+            "source_path": "",
+            "destination_path": "",
+            "browser_choice": "既定のブラウザ",
+            "browser_window_mode": "最大化",
+        }
+        if func is None:
+            return info
+        exits = [stmt for stmt in func.body if is_exit_statement(stmt)]
+        others = [stmt for stmt in func.body if not is_exit_statement(stmt)]
+        if exits and not others:
+            info["action"] = "close_app"
+            return info
+        if exits:
+            info["close_after_action"] = True
+
+        names = {
+            expr_name(child.func)
+            for child in ast.walk(func)
+            if isinstance(child, ast.Call)
+        }
+        strings = const_strings(func)
+        assigned = assigned_strings(func)
+
+        def has(name):
+            return name in names
+
+        if has("shutil.copytree"):
+            info["action"] = "copy_folder"
+            info["source_path"] = assigned.get("src", "")
+            info["destination_path"] = assigned.get("dest_parent", assigned.get("dest", ""))
+        elif has("shutil.copy2"):
+            info["action"] = "copy_file"
+            info["source_path"] = assigned.get("src", "")
+            info["destination_path"] = assigned.get("dest", "")
+        elif has("shutil.move"):
+            info["action"] = "move_file"
+        elif has("os.remove"):
+            info["action"] = "delete_file"
+        elif has("os.makedirs"):
+            info["action"] = "create_folder"
+        elif any(item == "新しいテキスト.txt" for item in strings):
+            info["action"] = "create_text_file"
+        elif any(item == "Desktop" for item in strings):
+            info["action"] = "open_desktop"
+        elif any(item == "Documents" for item in strings):
+            info["action"] = "open_documents"
+        elif any(item == "Downloads" for item in strings):
+            info["action"] = "open_downloads"
+        elif any(item == "explorer" for item in strings):
+            info["action"] = "open_explorer"
+        elif any(item == "notepad.exe" for item in strings):
+            info["action"] = "open_notepad"
+        elif any(item == "calc.exe" for item in strings):
+            info["action"] = "open_calc"
+        elif any(item in {"cmd.exe", "x-terminal-emulator"} for item in strings):
+            info["action"] = "open_terminal"
+        elif has("open_browser"):
+            browser_call = first_call(func, "open_browser")
+            arg = browser_call.args[0] if browser_call.args else None
+            blob = " ".join(const_strings(arg))
+            search_param = quoted_text(arg) if arg is not None else ""
+            if "google.com/maps" in blob:
+                info["action"] = "google_maps"
+                info["param"] = search_param
+            elif "translate.google" in blob:
+                info["action"] = "google_translate"
+                info["param"] = search_param
+            elif "youtube.com" in blob:
+                info["action"] = "youtube_search"
+                info["param"] = search_param
+            elif "google.com/search" in blob:
+                info["action"] = "google_search"
+                info["param"] = search_param
+            elif "x.com" in blob:
+                info["action"] = "open_x"
+            elif "abema.tv" in blob:
+                info["action"] = "open_abema"
+            else:
+                info["action"] = "open_url"
+                if isinstance(arg, ast.Constant) and isinstance(arg.value, str):
+                    info["param"] = arg.value
+                elif blob:
+                    info["param"] = blob.split()[0]
+            if len(browser_call.args) >= 2:
+                choice = call_arg_string(browser_call, 1)
+                if choice:
+                    info["browser_choice"] = choice
+            if len(browser_call.args) >= 3:
+                window_mode = call_arg_string(browser_call, 2)
+                if window_mode:
+                    info["browser_window_mode"] = window_mode
+        elif has("messagebox.askyesno"):
+            info["action"] = "ask_yesno"
+            param = call_arg_string(first_call(func, "messagebox.askyesno"), 1)
+            if param is not None:
+                info["param"] = param
+        elif first_call(func, "messagebox.showinfo") and any(
+            call_arg_string(call, 0) == "通知"
+            for call in ast.walk(func)
+            if isinstance(call, ast.Call) and expr_name(call.func) == "messagebox.showinfo"
+        ):
+            info["action"] = "show_msg"
+            for call in ast.walk(func):
+                if isinstance(call, ast.Call) and expr_name(call.func) == "messagebox.showinfo" and call_arg_string(call, 0) == "通知":
+                    param = call_arg_string(call, 1)
+                    if param is not None:
+                        info["param"] = param
+                    break
+        elif has("root.clipboard_append") and any(name.endswith("strftime") for name in names):
+            info["action"] = "copy_time"
+        elif any(
+            isinstance(call, ast.Call) and expr_name(call.func) == "messagebox.showinfo" and call_arg_string(call, 0) == "現在時刻"
+            for call in ast.walk(func)
+        ):
+            info["action"] = "show_time"
+        elif has("root.clipboard_append"):
+            info["action"] = "copy_clipboard"
+            param = call_arg_string(first_call(func, "root.clipboard_append"), 0)
+            if param is not None:
+                info["param"] = param
+        elif has("winsound.Beep") or "\a" in strings:
+            info["action"] = "beep"
+        else:
+            pairs = []
+            for child in ast.walk(func):
+                if isinstance(child, ast.Call) and expr_name(child.func) == "random.randint" and len(child.args) == 2:
+                    left, right = child.args
+                    if all(const_int(item) is not None for item in (left, right)):
+                        pairs.append((const_int(left), const_int(right)))
+            if (1, 100) in pairs:
+                info["action"] = "random_num"
+            elif (1, 6) in pairs:
+                info["action"] = "dice_roll"
+            elif has("random.choice") or any("大吉" in item or item == "おみくじ" for item in strings):
+                info["action"] = "omikuji"
+            elif has("random.choices"):
+                info["action"] = "gen_password"
+            elif has("root.state"):
+                info["action"] = "maximize_window"
+            elif has("root.deiconify"):
+                info["action"] = "show_window"
+            elif has("root.iconify"):
+                info["action"] = "minimize_window"
+            elif has("filedialog.askdirectory") and has("os.startfile"):
+                info["action"] = "open_folder"
+            elif has("filedialog.askopenfilename") and has("os.startfile"):
+                info["action"] = "open_file_default"
+        return info
+
+    def targets_root(call):
+        if call.args and isinstance(call.args[0], ast.Name):
+            return call.args[0].id == "root"
+        for keyword in call.keywords:
+            if keyword.arg in {"master", "parent"} and isinstance(keyword.value, ast.Name):
+                return keyword.value.id == "root"
+        return False
+
+    tree = ast.parse(code_text)
+    result = {
+        "recognized": False,
+        "width": None,
+        "height": None,
+        "pos_mode": None,
+        "pos_x": None,
+        "pos_y": None,
+        "bg_color": None,
+        "fg_color": None,
+        "use_tray": False,
+        "components": [],
+        "skipped_hotkey_buttons": 0,
+        "unplaced": 0,
+    }
+
+    for call in iter_runtime_calls(tree):
+        name = expr_name(call.func)
+        if name == "root.geometry" and call.args:
+            arg = call.args[0]
+            if isinstance(arg, ast.Constant) and isinstance(arg.value, str):
+                match = re.fullmatch(r"(\d+)x(\d+)(?:\+(-?\d+)\+(-?\d+))?", arg.value)
+                if match:
+                    result["width"] = int(match.group(1))
+                    result["height"] = int(match.group(2))
+                    if match.group(3) is not None:
+                        result["pos_mode"] = "manual"
+                        result["pos_x"] = int(match.group(3))
+                        result["pos_y"] = int(match.group(4))
+            elif isinstance(arg, ast.JoinedStr):
+                result["pos_mode"] = "center"
+                for value in arg.values:
+                    if isinstance(value, ast.Constant) and isinstance(value.value, str):
+                        match = re.search(r"(\d+)x(\d+)", value.value)
+                        if match and result["width"] is None:
+                            result["width"] = int(match.group(1))
+                            result["height"] = int(match.group(2))
+                            break
+        elif name == "root.configure":
+            for keyword in call.keywords:
+                if keyword.arg == "bg" and isinstance(keyword.value, ast.Constant) and isinstance(keyword.value.value, str):
+                    result["bg_color"] = keyword.value.value
+        elif name == "root.option_add" and len(call.args) >= 2:
+            if isinstance(call.args[0], ast.Constant) and call.args[0].value == "*Foreground":
+                if isinstance(call.args[1], ast.Constant) and isinstance(call.args[1].value, str):
+                    result["fg_color"] = call.args[1].value
+        elif name == "root.withdraw":
+            result["use_tray"] = True
+
+    if result["pos_mode"] is None and any(expr_name(call.func) == "root.winfo_screenwidth" for call in iter_runtime_calls(tree)):
+        result["pos_mode"] = "center"
+
+    handlers = {}
+    widgets = []
+    places = {}
+    for stmt in tree.body:
+        if isinstance(stmt, ast.FunctionDef) and re.fullmatch(r"on_btn_\d+_click", stmt.name):
+            handlers[stmt.name] = stmt
+        elif isinstance(stmt, ast.Assign) and len(stmt.targets) == 1 and isinstance(stmt.targets[0], ast.Name):
+            target_name = stmt.targets[0].id
+            call = stmt.value
+            if not isinstance(call, ast.Call):
+                continue
+            widget_type = {"tk.Button": "Button", "tk.Label": "Label", "tk.Entry": "Entry"}.get(expr_name(call.func))
+            if not widget_type:
+                continue
+            if target_name.startswith("hotkey_button"):
+                result["skipped_hotkey_buttons"] += 1
+                continue
+            if not targets_root(call):
+                continue
+            widgets.append((target_name, widget_type, call))
+        elif isinstance(stmt, ast.Expr) and isinstance(stmt.value, ast.Call):
+            func = stmt.value.func
+            if isinstance(func, ast.Attribute) and func.attr == "place" and isinstance(func.value, ast.Name):
+                places[func.value.id] = stmt.value
+
+    next_y = 20
+    for target_name, widget_type, call in widgets:
+        spec = {
+            "type": widget_type,
+            "has_text": False,
+            "text": None,
+            "bg_color": None,
+            "fg_color": None,
+            "font_size": 10,
+            "button_index": None,
+            "action": "none",
+            "param": "",
+            "close_after_action": False,
+            "source_path": "",
+            "destination_path": "",
+            "browser_choice": "既定のブラウザ",
+            "browser_window_mode": "最大化",
+        }
+        command_name = None
+        for keyword in call.keywords:
+            if keyword.arg == "text" and isinstance(keyword.value, ast.Constant) and isinstance(keyword.value.value, str):
+                spec["has_text"] = True
+                spec["text"] = keyword.value.value
+            elif keyword.arg == "bg" and isinstance(keyword.value, ast.Constant) and isinstance(keyword.value.value, str):
+                spec["bg_color"] = keyword.value.value
+            elif keyword.arg == "fg" and isinstance(keyword.value, ast.Constant) and isinstance(keyword.value.value, str):
+                spec["fg_color"] = keyword.value.value
+            elif keyword.arg == "font":
+                spec["font_size"] = font_size_of(keyword.value)
+            elif keyword.arg == "command" and isinstance(keyword.value, ast.Name):
+                command_name = keyword.value.id
+        if widget_type == "Button":
+            if spec["has_text"]:
+                number_match = re.match(r"(\d+)\.", spec["text"])
+                if number_match:
+                    spec["button_index"] = int(number_match.group(1))
+            spec.update(infer_action(handlers.get(command_name)))
+        place = places.get(target_name)
+        if place is not None:
+            values = {}
+            for keyword in place.keywords:
+                if keyword.arg in {"x", "y", "width", "height"}:
+                    values[keyword.arg] = const_int(keyword.value)
+            spec["x"] = 40 if values.get("x") is None else values["x"]
+            spec["y"] = 40 if values.get("y") is None else values["y"]
+            spec["width"] = 150 if values.get("width") is None else max(1, values["width"])
+            spec["height"] = 36 if values.get("height") is None else max(1, values["height"])
+        else:
+            spec["x"], spec["y"] = 40, next_y
+            spec["width"], spec["height"] = 150, 36
+            next_y += 50
+            result["unplaced"] += 1
+        result["components"].append(spec)
+
+    result["recognized"] = bool(
+        result["components"]
+        or result["width"] is not None
+        or result["bg_color"]
+        or result["fg_color"]
+        or result["use_tray"]
+    )
+    return result
+
+def apply_code_to_designer(code_text, auto_install_modules=False):
+    global form_bg_color, form_fg_color, form_pos_x, form_pos_y, form_pos_mode, form_use_tray
+
+    if not code_text.strip():
+        messagebox.showwarning("注意", "読み込むコードがありません。")
+        return
+
+    if auto_install_modules:
+        parse_and_install_code_modules(code_text, auto_install=True, report="changes")
+
+    try:
+        parsed = parse_designer_source(code_text)
+    except SyntaxError as error:
+        line_no = error.lineno or "?"
+        messagebox.showerror("解析エラー", f"Pythonの文法として読めませんでした（{line_no}行目）。")
+        return
+
+    if not parsed["recognized"]:
+        messagebox.showwarning(
+            "読み込めません",
+            "フォームの部品やウィンドウ設定が見つかりませんでした。\n"
+            "フォーム作成で生成したプログラムを指定してください。",
+        )
+        return
+
+    if parsed["components"] and designer_components:
+        if not messagebox.askyesno("部品の置き換え", "読み込んだ部品で、いま配置している部品を置き換えますか？"):
+            return
+
+    if parsed["bg_color"]:
+        form_bg_color = parsed["bg_color"]
+    if parsed["fg_color"]:
+        form_fg_color = parsed["fg_color"]
+    if parsed["pos_mode"]:
+        form_pos_mode = parsed["pos_mode"]
+    if parsed["pos_x"] is not None:
+        form_pos_x = parsed["pos_x"]
+        form_pos_y = parsed["pos_y"]
+    form_use_tray = parsed["use_tray"]
+    if parsed["width"] is not None and parsed["height"] is not None:
+        update_form_preview_size(parsed["width"], parsed["height"])
+    else:
+        update_size_label()
+    form_preview.configure(bg=form_bg_color)
+    form_bg_swatch.configure(bg=form_bg_color, activebackground=form_bg_color)
+    form_fg_swatch.configure(bg=form_fg_color, activebackground=form_fg_color)
+
+    if parsed["components"]:
+        discard_designer_components()
+        try:
+            for spec in parsed["components"]:
+                kwargs = {
+                    "x": spec["x"],
+                    "y": spec["y"],
+                    "width": spec["width"],
+                    "height": spec["height"],
+                    "font_size": spec["font_size"],
+                    "select_widget": False,
+                }
+                if spec["has_text"]:
+                    kwargs["text"] = spec["text"]
+                if spec["bg_color"] is not None:
+                    kwargs["bg_color"] = spec["bg_color"]
+                if spec["fg_color"] is not None:
+                    kwargs["fg_color"] = spec["fg_color"]
+                if spec["type"] == "Button":
+                    kwargs.update(
+                        action=spec["action"],
+                        param=spec["param"],
+                        close_after_action=spec["close_after_action"],
+                        source_path=spec["source_path"],
+                        destination_path=spec["destination_path"],
+                        browser_choice=spec["browser_choice"],
+                        browser_window_mode=spec["browser_window_mode"],
+                    )
+                    if spec["button_index"] is not None:
+                        kwargs["button_index"] = spec["button_index"]
+                add_component(spec["type"], **kwargs)
+        except tk.TclError as error:
+            messagebox.showerror("読み込みエラー", f"部品の配置に失敗しました: {error}")
+            return
+    else:
+        apply_form_colors()
+
+    save_designer_settings()
+    counts = {kind: sum(comp["type"] == kind for comp in parsed["components"]) for kind in ("Button", "Label", "Entry")}
+    if parsed["components"]:
+        lines = [
+            f"{len(parsed['components'])}個の部品を読み込みました（ボタン{counts['Button']}、ラベル{counts['Label']}、入力欄{counts['Entry']}）。",
+            "ボタンの追加・削除、ドラッグでの移動、右下の◢での大きさ変更ができます。",
+            "編集後は「コード生成して転送」で、いままでと同じ形式のプログラムに戻せます。",
+        ]
+        if parsed["unplaced"]:
+            lines.append(f"位置が書かれていない部品{parsed['unplaced']}個は仮の位置に並べました。")
+        if parsed["skipped_hotkey_buttons"]:
+            lines.append(f"ホットキー用ボタン{parsed['skipped_hotkey_buttons']}個はフォーム部品に入れていません。")
+        if form_use_tray:
+            lines.append("起動時にタスクトレイへ格納する設定も読み取りました。")
+        messagebox.showinfo("読み込み完了", "\n".join(lines))
+    else:
+        messagebox.showinfo("読み込み完了", "部品は見つかりませんでした。ウィンドウサイズや色の設定だけ反映しました。")
+
+
+
+def load_code_to_designer():
+    choice = messagebox.askyesnocancel(
+        "コード読み込み",
+        "現在のエディター内容から読み込みますか？\n（いいえ = ファイルから読み込み、キャンセル = 中止）",
+    )
+    if choice is None:
+        return
+
+    if choice:
+        code_text = text.get("1.0", tk.END)
+    else:
+        path = filedialog.askopenfilename(
+            filetypes=[("Python Files", "*.py;*.pyw"), ("All Files", "*.*")]
+        )
+        if not path:
+            return
+        try:
+            with open(path, "r", encoding="utf-8-sig") as f:
+                code_text = f.read()
+        except Exception as e:
+            messagebox.showerror("エラー", f"ファイルの読み込みに失敗しました: {e}")
+            return
+
+    apply_code_to_designer(code_text, auto_install_modules=True)
+
 
 def generate_code_from_designer(include_hotkeys=False):
     combined_hotkey_actions = []
@@ -5308,6 +6053,7 @@ def generate_code_from_designer(include_hotkeys=False):
             return
     text.delete("1.0", tk.END)
     text.insert("1.0", generated_code)
+    root.after(200, lambda: parse_and_install_code_modules(generated_code, auto_install=True, report="changes"))
     update_text_modified_state()
     apply_syntax_highlighting()
     update_line_numbers()
@@ -5323,22 +6069,26 @@ def add_designer_toolbar_button(label, command, bg, fg="white", active_bg=None):
     options = {
         "text": label, "command": command, "bg": bg, "fg": fg,
         "relief": "flat", "font": ("Meiryo UI", 9, "bold"),
-        "width": 12, "height": 2, "wraplength": 100,
-        "padx": 6, "pady": 5, "cursor": "hand2",
+        "width": 10, "height": 2, "wraplength": 80,
+        "padx": 4, "pady": 5, "cursor": "hand2",
     }
     if active_bg:
         options["activebackground"] = active_bg
         options["activeforeground"] = fg
-    tk.Button(designer_toolbar, **options).pack(side="left", padx=3)
+    tk.Button(designer_toolbar, **options).pack(side="left", padx=2)
 
 add_designer_toolbar_button("＋ ボタン", lambda: add_component("Button"), "#1769aa", active_bg="#12558a")
 add_designer_toolbar_button("＋ ラベル", lambda: add_component("Label"), "#0f766e", active_bg="#0b5c56")
 add_designer_toolbar_button("＋ 入力欄", lambda: add_component("Entry"), "#3a7d44", active_bg="#2d6335")
+add_designer_toolbar_button("📂 コード読み込み", load_code_to_designer, "#fd7e14")
 add_designer_toolbar_button("⚙ ウィンドウ位置", open_window_position_dialog, "#6610f2")
 add_designer_toolbar_button("⚙ ボタン詳細設定", lambda: open_properties_dialog(selected_component) if selected_component else messagebox.showwarning("注意", "部品を選んでください"), "#ffc107", fg="#000")
 add_designer_toolbar_button("🗑 削除", delete_component, "#dc3545")
 add_designer_toolbar_button("🧹 全消去", clear_designer, "#6c757d")
-add_designer_toolbar_button("📝 コード生成して転送", generate_code_from_designer, "#0d6efd")
+# コード生成ボタンは幅を広くして文字が一列に並ぶように
+tk.Button(designer_toolbar, text="📝 コード生成して転送", command=generate_code_from_designer,
+          bg="#0d6efd", fg="white", relief="flat", font=("Meiryo UI", 9, "bold"),
+          width=16, height=2, wraplength=130, padx=6, pady=5, cursor="hand2").pack(side="left", padx=2)
 
 
 # ---------- タブ5：ドローン・ロボット制御 ----------
