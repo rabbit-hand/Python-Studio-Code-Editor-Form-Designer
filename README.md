@@ -1,7 +1,8 @@
-# Python Studio Editor 取扱説明書
+
+# Python Studio Editor v0.2.8 取扱説明書
 
 Python Studio Editor は、プログラミング初心者・学習者・ホビーストのために開発された、軽量でシンプルな Python GUI コードエディター & Tkinter フォームデザイナーです。
-複雑な環境構築を必要とせず、直感的な操作で Python/Tkinter を使ったデスクトップアプリの作成や学習が行えます。
+複雑な環境構築を必要とせず、直感的なドラッグ＆ドロップ操作で Python/Tkinter を使ったデスクトップアプリの作成や学習が行えます。
 
 ## 目次
 
@@ -15,7 +16,7 @@ Python Studio Editor は、プログラミング初心者・学習者・ホビ�
 * ホットキー・ボタン作成ツール
 
 
-5. バージョン 0.2.4 の新機能・変更点
+5. バージョン 0.2.8 の新機能・変更点
 6. 免責事項
 
 ---
@@ -43,15 +44,19 @@ Python Studio Editor は、プログラミング初心者・学習者・ホビ�
 * タスクトレイ（システムトレイ）常駐機能の組み込みに対応
 
 
+* **多言語対応**
+* 日本語版および英語版（English Edition）を提供
+
+
 
 ---
 
 ## 動作環境
 
-* **対応OS**: Windows 10 / 11 (推奨) 
+* **対応OS**: Windows 10 / 11（推奨） / Linux (Ubuntu 等)
 * **Python**: Python 3.8 以降
-* **依存ライブラリ**: Python 標準ライブラリ (tkinter, ctypes, json, subprocess など)
-* ※一部の拡張機能では外部ライブラリ (autopep8, pystray, pillow, keyboard) を使用します。
+* **依存ライブラリ**: Python 標準ライブラリ (`tkinter`, `ctypes`, `json`, `subprocess` など)
+* ※一部の拡張機能では外部ライブラリ (`autopep8`, `pystray`, `pillow`, `keyboard`) を使用します。
 
 
 
@@ -59,12 +64,12 @@ Python Studio Editor は、プログラミング初心者・学習者・ホビ�
 
 ## インストール・起動方法
 
-1. リポジトリから Python Studio Editor v0.2.5 日本語.pyw をダウンロードします。
+1. リポジトリから使用環境に合わせたスクリプト（`Pythonエディター 日本語版 v0.2.8.pyw` または `Python Studio Editor v0.2.8 English.pyw`）をダウンロードします。
 2. Python がインストールされている環境で、ファイルをダブルクリックして起動します。
-3. ターミナルやコマンドプロンプトから起動する場合は以下のコマンドを実行します。
+3. コマンドプロンプトやターミナルから起動する場合は以下のコマンドを実行します。
 
 ```bash
-python "Python Studio Editor v0.2.5 日本語.pyw"
+python "Pythonエディター 日本語版 v0.2.8.pyw"
 
 ```
 
@@ -76,7 +81,7 @@ python "Python Studio Editor v0.2.5 日本語.pyw"
 
 * メイン画面のエディターで直接 Python コードを記述できます。
 * 上部ツールバーから「保存」「上書き保存」「開く」などのファイル操作が行えます。
-* ショートカットキーで「検索・置換」ダイアログを呼び出したり、コードの整形を実行できます。
+* ショートカットキーで「検索・置換」ダイアログを呼び出したり、コードの自動整形を実行できます。
 
 ### 2. 初心者向け作品カタログ
 
@@ -91,20 +96,23 @@ python "Python Studio Editor v0.2.5 日本語.pyw"
 
 ### 4. ホットキー・ボタン作成ツール
 
-* 任意のキー入力（例: Alt+A）やボタン押下に対して、特定のアクション（Webサイト表示、ファイル起動など）を割り当てられます。
+* 任意のキー入力（例: `Alt+A`）やボタン押下に対して、特定のアクション（Webサイト表示、ファイル起動など）を割り当てられます。
 * 設定完了後、タスクトレイに常駐して動作する自分専用の便利ツールコードを書き出せます。
 
 ---
 
-## バージョン 0.2.4 の新機能・変更点
+## バージョン 0.2.8 の新機能・変更点
 
-* **ファイル保存・トレイアイコンの改善**
-* save_as_file 関数のリファクタリングを実施し、ファイル保存処理の安定性と挙動を改善しました。
-* form_use_tray（フォームおよびホットキービルダーにおけるトレイ機能）のデフォルト設定を見直し、よりスムーズな動作を実現しました。
+* **ファイル形式と命名規則の更新**
+* メイン実行ファイルの拡張子を `.pyw` に変更し、起動時に不要なコンソールウィンドウ（黒い画面）が開かないよう最適化しました。
 
 
-* **ホットキー・ボタン作成ツールの拡張**
-* 生成されるコードの安定性が向上し、外部ライブラリ（keyboard / pystray）との連携オプションがより使いやすく調整されました。
+* **最新版スクリプトの統合**
+* `Pythonエディター 日本語版 v0.2.8.pyw` および `Python Studio Editor v0.2.8 English.pyw` を追加・更新しました。
+
+
+* **フォームデザイナーおよびエディターの安定性向上**
+* ウィジェット配置時のコード生成ロジックおよびファイル保存処理の挙動をさらに強化・安定化させました。
 
 
 
@@ -127,8 +135,4 @@ python "Python Studio Editor v0.2.5 日本語.pyw"
 
 4. **仕様変更およびサポート**
 * 本ソフトウェアの仕様は、予告なく変更または開発・提供が中止される場合があります。個別の機能改善や不具合修正等のサポート義務を負うものではありません。
-<img width="1600" height="852" alt="image" src="https://github.com/user-attachments/assets/5e41b2da-aaf2-4762-a5e3-23b99eee2cd1" />
-<img width="1600" height="852" alt="image" src="https://github.com/user-attachments/assets/dcfd5a29-7e06-433f-b03a-619b8fc586cf" />
-<img width="1600" height="852" alt="image" src="https://github.com/user-attachments/assets/4c60a04f-397c-412e-8a95-336af8baaca9" />
-<img width="1600" height="852" alt="image" src="https://github.com/user-attachments/assets/ef73e357-9867-4e2c-be0c-d5f4f1e1b28d" />
-
+* 
