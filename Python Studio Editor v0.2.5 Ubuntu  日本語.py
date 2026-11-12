@@ -3500,6 +3500,9 @@ def parse_and_load_code(code, file_path=None):
             comp['font_size'] = config.get('font_size', 10)
             comp['close_after_action'] = config.get('close_after_action', False)
             comp['browser_choice'] = config.get('browser_choice', '既定のブラウザ')
+            comp['source_path'] = config.get('source_path', '')
+            comp['destination_path'] = config.get('destination_path', '')
+            comp['source_filetype'] = config.get('source_filetype', 'すべてのファイル')
         else:
             # 古いコード対応：アクション関数を解析
             action_info = extract_button_action(idx)
@@ -4050,11 +4053,60 @@ def open_properties_dialog(comp):
         destination_entry.insert(0, comp.get("destination_path", ""))
         path_frame.grid_columnconfigure(1, weight=1)
 
+        filetype_options = [
+            ("すべてのファイル", "*.*"),
+            ("Python ファイル (*.py)", "*.py *.pyw"),
+            ("テキストファイル (*.txt)", "*.txt"),
+            ("CSV ファイル (*.csv)", "*.csv"),
+            ("JSON ファイル (*.json)", "*.json"),
+            ("画像ファイル", "*.png *.jpg *.jpeg *.gif *.bmp *.webp *.svg"),
+            ("PDF ファイル (*.pdf)", "*.pdf"),
+            ("Excel ファイル (*.xlsx *.xls)", "*.xlsx *.xls"),
+            ("Word ファイル (*.docx *.doc)", "*.docx *.doc"),
+            ("圧縮ファイル (*.zip *.7z)", "*.zip *.tar *.gz *.tgz *.bz2 *.7z *.rar"),
+            ("動画ファイル", "*.mp4 *.mkv *.avi *.mov *.wmv *.webm *.flv"),
+            ("音声ファイル", "*.mp3 *.wav *.ogg *.flac *.aac *.m4a"),
+            ("実行ファイル (*.sh *.exe)", "*.sh *.AppImage *.run *.exe *.bat"),
+        ]
+        filetype_labels = [label for label, _ in filetype_options]
+        filetype_map = dict(filetype_options)
+        saved_filetype = comp.get("source_filetype", "")
+        filetype_var = tk.StringVar(
+            value=saved_filetype if saved_filetype in filetype_map else "すべてのファイル"
+        )
+
+        tk.Label(path_frame, text="ファイルの種類:", bg="#f8f9fa").grid(row=3, column=0, sticky="w", pady=3)
+        filetype_combo = ttk.Combobox(
+            path_frame,
+            textvariable=filetype_var,
+            values=filetype_labels,
+            state="readonly",
+            width=30,
+            font=("Meiryo UI", 9),
+        )
+        filetype_combo.grid(row=3, column=1, sticky="ew", padx=5, pady=3)
+        tk.Label(path_frame, text="※ ファイル選択時の絞り込みに使います（フォルダ選択時は無効）",
+                 bg="#f8f9fa", fg="#666666", font=("Meiryo UI", 8)).grid(
+                     row=4, column=0, columnspan=3, sticky="w", pady=(0, 2))
+
+        def update_filetype_state(*_):
+            filetype_combo.configure(
+                state="disabled" if act_var.get() == "copy_folder" else "readonly"
+            )
+
+        act_var.trace_add("write", update_filetype_state)
+        update_filetype_state()
+
         def browse_source_path():
             if act_var.get() == "copy_folder":
                 path = filedialog.askdirectory(parent=diag, title="コピー元フォルダを選択")
             else:
-                path = filedialog.askopenfilename(parent=diag, title="コピー元ファイルを選択")
+                pattern = filetype_map.get(filetype_var.get(), "*.*")
+                path = filedialog.askopenfilename(
+                    parent=diag,
+                    title="コピー元ファイルを選択",
+                    filetypes=[(filetype_var.get(), pattern), ("すべてのファイル", "*.*")],
+                )
             if path:
                 source_entry.delete(0, tk.END)
                 source_entry.insert(0, path)
@@ -4096,6 +4148,7 @@ def open_properties_dialog(comp):
         param_entry = None
         source_entry = None
         destination_entry = None
+        filetype_var = None
         close_after_var = None
         browser_var = None
         tk.Label(tab_action, text="ラベルや入力欄にはアクションを設定できません。",
@@ -4144,6 +4197,8 @@ def open_properties_dialog(comp):
         if source_entry:
             comp["source_path"] = source_entry.get().strip()
             comp["destination_path"] = destination_entry.get().strip()
+            if filetype_var:
+                comp["source_filetype"] = filetype_var.get()
         try:
             if comp["type"] == "Entry":
                 comp["inner"].config(bg=comp["bg_color"], fg=comp["fg_color"], font=("Meiryo UI", comp["font_size"]))
@@ -4603,7 +4658,10 @@ def generate_code_from_designer(include_hotkeys=False):
                 "param": comp.get("param", ""),
                 "font_size": comp.get("font_size", 10),
                 "close_after_action": comp.get("close_after_action", False),
-                "browser_choice": comp.get("browser_choice", "既定のブラウザ")
+                "browser_choice": comp.get("browser_choice", "既定のブラウザ"),
+                "source_path": comp.get("source_path", ""),
+                "destination_path": comp.get("destination_path", ""),
+                "source_filetype": comp.get("source_filetype", "すべてのファイル")
             }
             code.append(f"# DESIGNER_CONFIG_{i}: {json.dumps(config, ensure_ascii=False)}")
             code.append(f"btn_{i} = tk.Button({component_parent}, text={label_text!r}, bg={bg!r}, fg={fg!r}, font={font_str}{cmd_str})")
