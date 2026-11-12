@@ -23,7 +23,7 @@ import platform
 import shutil
 
 # Version
-APP_VERSION = "0.2.5"
+APP_VERSION = "0.2.6"
 
 # 設定
 SETTINGS_FOLDER = os.path.join(
@@ -3246,8 +3246,8 @@ selected_component = None
 designer_toolbar = tk.Frame(root, bg="#2d2d2d", padx=8, pady=8)
 designer_toolbar.pack(in_=tab_designer, side="top", fill="x")
 
-form_window_width = 582
-form_window_height = 427
+form_window_width = 692
+form_window_height = 477
 form_bg_color = "#f0f0f0"
 form_fg_color = "#000000"
 form_pos_x = 100
@@ -3262,38 +3262,19 @@ DESIGNER_SETTINGS_FILE = 'designer_settings.json'
 
 def load_designer_settings():
     global form_use_tray, form_window_width, form_window_height, form_bg_color, form_fg_color, form_pos_x, form_pos_y, form_pos_mode
-    path = get_settings_path(DESIGNER_SETTINGS_FILE)
-    if os.path.exists(path):
-        try:
-            with open(path, 'r', encoding='utf-8') as f:
-                data = json.load(f)
-                form_use_tray = data.get('start_in_tray', False)
-                form_window_width = data.get('window_width', 582)
-                form_window_height = data.get('window_height', 427)
-                form_bg_color = data.get('bg_color', '#f0f0f0')
-                form_fg_color = data.get('fg_color', '#000000')
-                form_pos_x = data.get('pos_x', 100)
-                form_pos_y = data.get('pos_y', 100)
-                form_pos_mode = data.get('pos_mode', 'manual')
-        except Exception:
-            pass
+    # 設定ファイルの読み込みを無効化（初期サイズを固定）
+    form_use_tray = False
+    form_window_width = 692
+    form_window_height = 477
+    form_bg_color = '#f0f0f0'
+    form_fg_color = '#000000'
+    form_pos_x = 100
+    form_pos_y = 100
+    form_pos_mode = 'manual'
 
 def save_designer_settings():
-    path = get_settings_path(DESIGNER_SETTINGS_FILE)
-    try:
-        with open(path, 'w', encoding='utf-8') as f:
-            json.dump({
-                'start_in_tray': form_use_tray,
-                'window_width': form_window_width,
-                'window_height': form_window_height,
-                'bg_color': form_bg_color,
-                'fg_color': form_fg_color,
-                'pos_x': form_pos_x,
-                'pos_y': form_pos_y,
-                'pos_mode': form_pos_mode
-            }, f, ensure_ascii=False, indent=2)
-    except Exception:
-        pass
+    # 設定ファイルの保存を無効化（初期サイズを固定）
+    return
 
 # 設定を読み込む
 load_designer_settings()
@@ -4832,8 +4813,8 @@ designer_buttons_frame = tk.Frame(designer_toolbar, bg="#2d2d2d")
 def add_designer_toolbar_button(label, command, bg, fg="white", active_bg=None):
     options = {
         "text": label, "command": command, "bg": bg, "fg": fg,
-        "relief": "flat", "font": ("Meiryo UI", 8, "bold"),
-        "padx": 2, "pady": 3, "cursor": "hand2",
+        "relief": "flat", "font": ("Meiryo UI", 10, "bold"),
+        "padx": 2, "pady": 6, "cursor": "hand2",
     }
     if active_bg:
         options["activebackground"] = active_bg
