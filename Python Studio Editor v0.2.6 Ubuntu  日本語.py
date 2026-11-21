@@ -3967,6 +3967,7 @@ def open_properties_dialog(comp):
                 ("電卓を開く", "open_calc"),
                 ("コマンドプロンプト／ターミナルを開く", "open_terminal"),
                 ("ビープ音を鳴らす", "beep"),
+                ("PCをシャットダウン（Linux）", "shutdown_linux"),
             ]),
             ("🎲 お楽しみ", [
                 ("1〜100くじ引き", "random_num"),
@@ -4339,7 +4340,7 @@ def generate_code_from_designer(include_hotkeys=False):
         "create_folder", "create_text_file", "show_msg", "ask_yesno",
         "copy_clipboard", "copy_time", "show_time", "random_num",
         "dice_roll", "omikuji", "gen_password", "open_notepad",
-        "open_calc", "open_terminal",
+        "open_calc", "open_terminal", "shutdown_linux",
     } or needs_browser:
         imports.append("from tkinter import messagebox")
     if actions & {
@@ -4349,12 +4350,12 @@ def generate_code_from_designer(include_hotkeys=False):
         imports.append("from tkinter import filedialog")
     if actions & {
         "copy_file", "copy_folder", "move_file", "open_notepad",
-        "open_calc", "open_terminal",
+        "open_calc", "open_terminal", "shutdown_linux",
     } or needs_browser:
         imports.append("import shutil")
     if actions & {
         "open_folder", "open_file_default", "open_explorer", "open_notepad",
-        "open_calc", "open_terminal",
+        "open_calc", "open_terminal", "shutdown_linux",
     } or needs_browser:
         imports.append("import subprocess")
     if needs_browser:
@@ -4602,6 +4603,16 @@ def generate_code_from_designer(include_hotkeys=False):
                         code.append("    messagebox.showerror('起動エラー', 'ターミナルアプリが見つかりません。')")
                 elif act == "beep":
                     code.append("    root.bell()")
+                elif act == "shutdown_linux":
+                    code.append("    if not messagebox.askyesno('確認', '今すぐPCをシャットダウンしますか？', parent=root): return")
+                    code.append("    shutdown_cmds = (['systemctl', 'poweroff'], ['dbus-send', '--system', '--print-reply', '--dest=org.freedesktop.login1', '/org/freedesktop/login1', 'org.freedesktop.login1.Manager.PowerOff', 'boolean:true'], ['shutdown', '-h', 'now'])")
+                    code.append("    for shutdown_cmd in shutdown_cmds:")
+                    code.append("        if shutil.which(shutdown_cmd[0]):")
+                    code.append("            subprocess.Popen(shutdown_cmd, start_new_session=True)")
+                    code.append("            break")
+                    code.append("    else:")
+                    code.append("        messagebox.showerror('エラー', 'このシステムで使用できるシャットダウンコマンドがありません。')")
+                    code.append("        return")
                 elif act == "random_num":
                     code.append("    n = random.randint(1, 100)")
                     code.append("    messagebox.showinfo('くじ引き', f'出た数字: {n}')")
